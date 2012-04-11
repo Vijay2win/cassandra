@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.cache;
 
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -40,7 +41,7 @@ public class KeyCacheKey implements CacheKey
         assert this.key != null;
     }
 
-    public void write(DataOutputStream out) throws IOException
+    public void write(DataOutput out) throws IOException
     {
         ByteBufferUtil.writeWithLength(key, out);
     }

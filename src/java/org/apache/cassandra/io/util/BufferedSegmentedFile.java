@@ -55,7 +55,7 @@ public class BufferedSegmentedFile extends SegmentedFile
     {
         try
         {
-            RandomAccessReader file = RandomAccessReader.open(new File(path));
+            FileDataInput file = RandomAccessReader.open(new File(path));
             file.seek(position);
             return file;
         }

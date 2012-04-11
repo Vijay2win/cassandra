@@ -189,4 +189,25 @@ public class MappedFileDataInput extends AbstractDataInput implements FileDataIn
                ", position=" + position +
                ")";
     }
+
+    @Override
+    public long bytesPastMark()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public long length() throws IOException
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public void setLength(long newLength)
+    {
+        // TODO Auto-generated method stub
+        
+    }
 }

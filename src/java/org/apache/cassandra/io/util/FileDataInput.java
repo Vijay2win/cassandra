@@ -24,21 +24,25 @@ import java.nio.ByteBuffer;
 
 public interface FileDataInput extends DataInput, Closeable
 {
-    public String getPath();
+    String getPath();
 
-    public boolean isEOF() throws IOException;
+    boolean isEOF() throws IOException;
 
-    public long bytesRemaining() throws IOException;
+    long bytesRemaining() throws IOException;
 
-    public void seek(long pos) throws IOException;
+    void seek(long pos) throws IOException;
 
-    public FileMark mark();
+    FileMark mark();
 
-    public void reset(FileMark mark) throws IOException;
+    void reset(FileMark mark) throws IOException;
 
-    public long bytesPastMark(FileMark mark);
+    void reset() throws IOException;
 
-    public long getFilePointer();
+    long bytesPastMark(FileMark mark);
+
+    long bytesPastMark();
+
+    long getFilePointer();
 
     /**
      * Read length bytes from current file position
@@ -46,5 +50,15 @@ public interface FileDataInput extends DataInput, Closeable
      * @return buffer with bytes read
      * @throws IOException if any I/O operation failed
      */
-    public ByteBuffer readBytes(int length) throws IOException;
+    ByteBuffer readBytes(int length) throws IOException;
+
+    long length() throws IOException;
+
+    int read() throws IOException;
+    
+    int read(byte[] buffer) throws IOException;
+    
+    int read(byte[] buff, int offset, int length) throws IOException;
+    
+    void setLength(long newLength) throws IOException;
 }

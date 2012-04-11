@@ -24,6 +24,8 @@ import java.security.NoSuchAlgorithmException;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.utils.CLibrary;
+import org.apache.cassandra.utils.OptimizedDataInput;
+import org.apache.cassandra.utils.OptimizedDataOutput;
 
 public class SequentialWriter extends OutputStream
 {
@@ -57,7 +59,7 @@ public class SequentialWriter extends OutputStream
     private int trickleFsyncByteInterval;
     private int bytesSinceTrickleFsync = 0;
 
-    public final DataOutputStream stream;
+    public final DataOutput stream;
     private MessageDigest digest;
 
     public SequentialWriter(File file, int bufferSize, boolean skipIOCache) throws IOException
@@ -72,7 +74,7 @@ public class SequentialWriter extends OutputStream
         this.trickleFsyncByteInterval = DatabaseDescriptor.getTrickleFsyncIntervalInKb() * 1024;
         fd = CLibrary.getfd(out.getFD());
         directoryFD = CLibrary.tryOpenDirectory(file.getParent());
-        stream = new DataOutputStream(this);
+        stream = new OptimizedDataOutput(new DataOutputStream(this));
     }
 
     public static SequentialWriter open(File file) throws IOException

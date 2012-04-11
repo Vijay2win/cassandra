@@ -59,7 +59,7 @@ public class CompressedSegmentedFile extends SegmentedFile
     {
         try
         {
-            RandomAccessReader file = CompressedRandomAccessReader.open(path, metadata);
+            FileDataInput file = CompressedRandomAccessReader.open(path, metadata);
             file.seek(position);
             return file;
         }

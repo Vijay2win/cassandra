@@ -30,6 +30,7 @@ import org.apache.cassandra.db.RowIndexEntry;
 import org.apache.cassandra.db.RowPosition;
 import org.apache.cassandra.db.columniterator.IColumnIterator;
 import org.apache.cassandra.db.filter.QueryFilter;
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -39,8 +40,8 @@ public class SSTableScanner implements CloseableIterator<IColumnIterator>
 {
     private static final Logger logger = LoggerFactory.getLogger(SSTableScanner.class);
 
-    protected final RandomAccessReader dfile;
-    protected final RandomAccessReader ifile;
+    protected final FileDataInput dfile;
+    protected final FileDataInput ifile;
     public final SSTableReader sstable;
     private IColumnIterator row;
     protected boolean exhausted = false;

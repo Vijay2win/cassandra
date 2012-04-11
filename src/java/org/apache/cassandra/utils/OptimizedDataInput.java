@@ -1,13 +1,16 @@
 package org.apache.cassandra.utils;
 
-import java.io.DataInput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
-public class OptimizedDataInput implements DataInput
+import org.apache.cassandra.io.util.FileDataInput;
+import org.apache.cassandra.io.util.FileMark;
+
+public class OptimizedDataInput implements FileDataInput
 {
-    private DataInput input;
+    private FileDataInput input;
     
-    public OptimizedDataInput(DataInput input)
+    public OptimizedDataInput(FileDataInput input)
     {
         this.input = input;
     }
@@ -137,4 +140,104 @@ public class OptimizedDataInput implements DataInput
         return input.skipBytes(arg0);
     }
 
+    @Override
+    public void close() throws IOException
+    {
+        input.close();
+    }
+
+    @Override
+    public String getPath()
+    {
+        return input.getPath();
+    }
+
+    @Override
+    public boolean isEOF() throws IOException
+    {
+        return input.isEOF();
+    }
+
+    @Override
+    public long bytesRemaining() throws IOException
+    {
+        return input.bytesRemaining();
+    }
+
+    @Override
+    public void seek(long pos) throws IOException
+    {
+        input.seek(pos);
+    }
+
+    @Override
+    public FileMark mark()
+    {
+        return input.mark();
+    }
+
+    @Override
+    public void reset(FileMark mark) throws IOException
+    {
+        input.reset(mark);
+    }
+
+    @Override
+    public long bytesPastMark(FileMark mark)
+    {
+        return input.bytesPastMark(mark);
+    }
+
+    @Override
+    public long getFilePointer()
+    {
+        return input.getFilePointer();
+    }
+
+    @Override
+    public ByteBuffer readBytes(int length) throws IOException
+    {
+        return input.readBytes(length);
+    }
+
+    public long length() throws IOException
+    {
+        return input.length();
+    }
+
+    @Override
+    public void reset() throws IOException
+    {
+        input.reset();
+    }
+
+    @Override
+    public long bytesPastMark()
+    {
+        return input.bytesPastMark();
+    }
+
+    @Override
+    public int read() throws IOException
+    {
+        return input.read();
+    }
+
+    @Override
+    public int read(byte[] buffer) throws IOException
+    {
+        return input.read(buffer);
+    }
+
+    @Override
+    public int read(byte[] buff, int offset, int length) throws IOException
+    {
+        return input.read(buff, offset, length);
+    }
+
+    @Override
+    public void setLength(long newLength) throws IOException
+    {
+        input.setLength(newLength);
+    }
 }

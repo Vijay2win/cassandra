@@ -338,7 +338,8 @@ public class SSTableReader extends SSTable
                                           : SegmentedFile.getBuilder(DatabaseDescriptor.getDiskAccessMode());
 
         // we read the positions in a BRAF so we don't have to worry about an entry spanning a mmap boundary.
-        RandomAccessReader input = RandomAccessReader.open(new File(descriptor.filenameFor(Component.PRIMARY_INDEX)), true);
+        FileDataInput input = RandomAccessReader.open(new File(descriptor.filenameFor(Component.PRIMARY_INDEX)), true);
+        
         DecoratedKey left = null, right = null;
         try
         {
@@ -984,14 +985,14 @@ public class SSTableReader extends SSTable
         return sstableMetadata.maxTimestamp;
     }
 
-    public RandomAccessReader openDataReader(boolean skipIOCache) throws IOException
+    public FileDataInput openDataReader(boolean skipIOCache) throws IOException
     {
         return compression
                ? CompressedRandomAccessReader.open(getFilename(), getCompressionMetadata(), skipIOCache)
                : RandomAccessReader.open(new File(getFilename()), skipIOCache);
     }
 
-    public RandomAccessReader openIndexReader(boolean skipIOCache) throws IOException
+    public FileDataInput openIndexReader(boolean skipIOCache) throws IOException
     {
         return RandomAccessReader.open(new File(getIndexFilename()), skipIOCache);
     }

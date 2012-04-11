@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.compress.CompressedRandomAccessReader;
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.net.Header;
@@ -135,7 +136,7 @@ public class FileStreamTask extends WrappedRunnable
             return;
 
         // TODO just use a raw RandomAccessFile since we're managing our own buffer here
-        RandomAccessReader file = (header.file.sstable.compression) // try to skip kernel page cache if possible
+        FileDataInput file = (header.file.sstable.compression) // try to skip kernel page cache if possible
                                 ? CompressedRandomAccessReader.open(header.file.getFilename(), header.file.sstable.getCompressionMetadata(), true)
                                 : RandomAccessReader.open(new File(header.file.getFilename()), true);
 
@@ -212,7 +213,7 @@ public class FileStreamTask extends WrappedRunnable
      *
      * @throws IOException on any I/O error
      */
-    protected long write(RandomAccessReader reader, long length, long bytesTransferred) throws IOException
+    protected long write(FileDataInput reader, long length, long bytesTransferred) throws IOException
     {
         int toTransfer = (int) Math.min(CHUNK_SIZE, length - bytesTransferred);
 

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.cassandra.utils.OptimizedDataInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,14 +78,14 @@ public class MmappedSegmentedFile extends SegmentedFile
         if (segment.right != null)
         {
             // segment is mmap'd
-            return new MappedFileDataInput(segment.right, path, segment.left, (int) (position - segment.left));
+            return new OptimizedDataInput(new MappedFileDataInput(segment.right, path, segment.left, (int) (position - segment.left)));
         }
 
         // not mmap'd: open a braf covering the segment
         try
         {
             // FIXME: brafs are unbounded, so this segment will cover the rest of the file, rather than just the row
-            RandomAccessReader file = RandomAccessReader.open(new File(path));
+            FileDataInput file = RandomAccessReader.open(new File(path));
             file.seek(position);
             return file;
         }

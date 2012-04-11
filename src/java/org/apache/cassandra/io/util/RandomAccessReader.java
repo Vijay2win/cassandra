@@ -26,6 +26,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 
 import org.apache.cassandra.utils.CLibrary;
+import org.apache.cassandra.utils.OptimizedDataInput;
 
 public class RandomAccessReader extends RandomAccessFile implements FileDataInput
 {
@@ -81,28 +82,29 @@ public class RandomAccessReader extends RandomAccessFile implements FileDataInpu
         validBufferBytes = -1; // that will trigger reBuffer() on demand by read/seek operations
     }
 
-    public static RandomAccessReader open(File file, boolean skipIOCache) throws IOException
+    public static FileDataInput open(File file, boolean skipIOCache) throws IOException
     {
         return open(file, DEFAULT_BUFFER_SIZE, skipIOCache);
     }
 
-    public static RandomAccessReader open(File file) throws IOException
+    public static FileDataInput open(File file) throws IOException
     {
         return open(file, DEFAULT_BUFFER_SIZE, false);
     }
 
-    public static RandomAccessReader open(File file, int bufferSize) throws IOException
+    public static FileDataInput open(File file, int bufferSize) throws IOException
     {
         return open(file, bufferSize, false);
     }
 
-    public static RandomAccessReader open(File file, int bufferSize, boolean skipIOCache) throws IOException
+    public static FileDataInput open(File file, int bufferSize, boolean skipIOCache) throws IOException
     {
-        return new RandomAccessReader(file, bufferSize, skipIOCache);
+        FileDataInput reader = new RandomAccessReader(file, bufferSize, skipIOCache);
+        return new OptimizedDataInput(reader);
     }
 
     // convert open into open
-    public static RandomAccessReader open(SequentialWriter writer) throws IOException
+    public static FileDataInput open(SequentialWriter writer) throws IOException
     {
         return open(new File(writer.getPath()), DEFAULT_BUFFER_SIZE);
     }

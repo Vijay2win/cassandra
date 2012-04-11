@@ -24,8 +24,10 @@ import java.util.zip.Checksum;
 
 import com.google.common.primitives.Ints;
 
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.OptimizedDataInput;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +37,14 @@ public class CompressedRandomAccessReader extends RandomAccessReader
 {
     private static final Logger logger = LoggerFactory.getLogger(CompressedRandomAccessReader.class);
 
-    public static RandomAccessReader open(String dataFilePath, CompressionMetadata metadata) throws IOException
+    public static FileDataInput open(String dataFilePath, CompressionMetadata metadata) throws IOException
     {
         return open(dataFilePath, metadata, false);
     }
 
-    public static RandomAccessReader open(String dataFilePath, CompressionMetadata metadata, boolean skipIOCache) throws IOException
+    public static FileDataInput open(String dataFilePath, CompressionMetadata metadata, boolean skipIOCache) throws IOException
     {
-        return new CompressedRandomAccessReader(dataFilePath, metadata, skipIOCache);
+        return new OptimizedDataInput(new CompressedRandomAccessReader(dataFilePath, metadata, skipIOCache));
     }
 
     private final CompressionMetadata metadata;
@@ -58,7 +60,7 @@ public class CompressedRandomAccessReader extends RandomAccessReader
     private final FileInputStream source;
     private final FileChannel channel;
 
-    public CompressedRandomAccessReader(String dataFilePath, CompressionMetadata metadata, boolean skipIOCache) throws IOException
+    private CompressedRandomAccessReader(String dataFilePath, CompressionMetadata metadata, boolean skipIOCache) throws IOException
     {
         super(new File(dataFilePath), metadata.chunkLength(), skipIOCache);
         this.metadata = metadata;

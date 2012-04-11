@@ -27,6 +27,7 @@ import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.columniterator.ICountableColumnIterator;
 import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.io.IColumnSerializer;
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.utils.BytesReadTracker;
 
@@ -60,7 +61,7 @@ public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterat
      * @param dataSize length of row data
      * @throws IOException
      */
-    public SSTableIdentityIterator(SSTableReader sstable, RandomAccessReader file, DecoratedKey key, long dataStart, long dataSize)
+    public SSTableIdentityIterator(SSTableReader sstable, DataInput file, DecoratedKey key, long dataStart, long dataSize)
     throws IOException
     {
         this(sstable, file, key, dataStart, dataSize, false);
@@ -76,7 +77,7 @@ public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterat
      * @param checkData if true, do its best to deserialize and check the coherence of row data
      * @throws IOException
      */
-    public SSTableIdentityIterator(SSTableReader sstable, RandomAccessReader file, DecoratedKey key, long dataStart, long dataSize, boolean checkData)
+    public SSTableIdentityIterator(SSTableReader sstable, DataInput file, DecoratedKey key, long dataStart, long dataSize, boolean checkData)
     throws IOException
     {
         this(sstable.metadata, file, key, dataStart, dataSize, checkData, sstable, IColumnSerializer.Flag.LOCAL);
@@ -205,9 +206,9 @@ public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterat
     public String getPath()
     {
         // if input is from file, then return that path, otherwise it's from streaming
-        if (input instanceof RandomAccessReader)
+        if (input instanceof FileDataInput)
         {
-            RandomAccessReader file = (RandomAccessReader) input;
+            FileDataInput file = (FileDataInput) input;
             return file.getPath();
         }
         else
@@ -218,10 +219,10 @@ public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterat
 
     public void echoData(DataOutput out) throws IOException
     {
-        if (!(input instanceof RandomAccessReader))
+        if (!(input instanceof FileDataInput))
             throw new UnsupportedOperationException();
 
-        ((RandomAccessReader) input).seek(dataStart);
+        ((FileDataInput) input).seek(dataStart);
         inputWithTracker.reset(0);
         while (inputWithTracker.getBytesRead() < dataSize)
             out.write(inputWithTracker.readByte());

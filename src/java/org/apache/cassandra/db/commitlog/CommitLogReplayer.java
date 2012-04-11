@@ -23,6 +23,7 @@ import org.apache.cassandra.db.Table;
 import org.apache.cassandra.db.UnknownColumnFamilyException;
 import org.apache.cassandra.io.IColumnSerializer;
 import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.net.MessagingService;
@@ -100,7 +101,7 @@ private final AtomicInteger replayedCount;
     {
         logger.info("Replaying " + file.getPath());
         final long segment = CommitLogSegment.idFromFilename(file.getName());
-        RandomAccessReader reader = RandomAccessReader.open(new File(file.getAbsolutePath()), true);
+        FileDataInput reader = RandomAccessReader.open(new File(file.getAbsolutePath()), true);
         assert reader.length() <= Integer.MAX_VALUE;
         try
         {

@@ -42,6 +42,7 @@ import org.apache.cassandra.db.index.SecondaryIndexBuilder;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.*;
+import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.service.AntiEntropyService;
@@ -466,8 +467,8 @@ public class CompactionManager implements CompactionManagerMBean
         // we'll also loop through the index at the same time, using the position from the index to recover if the
         // row header (key or data size) is corrupt. (This means our position in the index file will be one row
         // "ahead" of the data file.)
-        final RandomAccessReader dataFile = sstable.openDataReader(true);
-        RandomAccessReader indexFile = RandomAccessReader.open(new File(sstable.descriptor.filenameFor(Component.PRIMARY_INDEX)), true);
+        final FileDataInput dataFile = sstable.openDataReader(true);
+        FileDataInput indexFile = RandomAccessReader.open(new File(sstable.descriptor.filenameFor(Component.PRIMARY_INDEX)), true);
         ScrubInfo scrubInfo = new ScrubInfo(dataFile, sstable);
         executor.beginCompaction(scrubInfo);
 
@@ -1200,9 +1201,9 @@ public class CompactionManager implements CompactionManagerMBean
 
     private static class ScrubInfo extends CompactionInfo.Holder
     {
-        private final RandomAccessReader dataFile;
+        private final FileDataInput dataFile;
         private final SSTableReader sstable;
-        public ScrubInfo(RandomAccessReader dataFile, SSTableReader sstable)
+        public ScrubInfo(FileDataInput dataFile, SSTableReader sstable)
         {
             this.dataFile = dataFile;
             this.sstable = sstable;

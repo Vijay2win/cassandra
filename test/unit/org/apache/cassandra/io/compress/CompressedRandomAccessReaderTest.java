@@ -75,8 +75,8 @@ public class CompressedRandomAccessReaderTest
             writer.close();
 
             assert f.exists();
-            RandomAccessReader reader = compressed
-                ? new CompressedRandomAccessReader(filename, new CompressionMetadata(filename + ".metadata", f.length()), false)
+            FileDataInput reader = compressed
+                ? CompressedRandomAccessReader.open(filename, new CompressionMetadata(filename + ".metadata", f.length()), false)
                 : new RandomAccessReader(f, CompressionParameters.DEFAULT_CHUNK_LENGTH, false);
             String expected = "The quick brown fox jumps over the lazy dog";
             assertEquals(expected.length(), reader.length());
@@ -116,7 +116,7 @@ public class CompressedRandomAccessReaderTest
         CompressionMetadata meta = new CompressionMetadata(metadata.getPath(), file.length());
         CompressionMetadata.Chunk chunk = meta.chunkFor(0);
 
-        RandomAccessReader reader = CompressedRandomAccessReader.open(file.getPath(), meta, false);
+        FileDataInput reader = CompressedRandomAccessReader.open(file.getPath(), meta, false);
         // read and verify compressed data
         assertEquals(CONTENT, reader.readLine());
         // close reader
@@ -143,7 +143,7 @@ public class CompressedRandomAccessReaderTest
                 checksumModifier.write(random.nextInt());
                 checksumModifier.getFD().sync(); // making sure that change was synced with disk
 
-                final RandomAccessReader r = CompressedRandomAccessReader.open(file.getPath(), meta, false);
+                final FileDataInput r = CompressedRandomAccessReader.open(file.getPath(), meta, false);
 
                 expectException(new Callable<String>()
                 {

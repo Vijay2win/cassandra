@@ -110,7 +110,7 @@ public class ColumnIndex
                 startPosition = endPosition;
             }
 
-            endPosition += column.serializedSize();
+            endPosition += column.serializedSize(DBConstants.nativeConstants);
 
             // if we hit the column index size that we have to index after, go ahead and index it.
             if (endPosition - startPosition >= DatabaseDescriptor.getColumnIndexSize())

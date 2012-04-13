@@ -22,12 +22,14 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.cassandra.db.DBConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FilterFactory
 {
     private static final Logger logger = LoggerFactory.getLogger(FilterFactory.class);
+    private static final DBConstants constants = new DBConstants.NativeDBConstants();
 
     public enum Type
     {
@@ -80,9 +82,9 @@ public class FilterFactory
             case SHA:
                 return LegacyBloomFilter.serializer.serializedSize((LegacyBloomFilter) bf);
             case MURMUR2:
-                return Murmur2BloomFilter.serializer.serializedSize((Murmur2BloomFilter) bf);
+                return Murmur2BloomFilter.serializer.serializedSize((Murmur2BloomFilter) bf, constants);
             default:
-                return Murmur3BloomFilter.serializer.serializedSize((Murmur3BloomFilter) bf);
+                return Murmur3BloomFilter.serializer.serializedSize((Murmur3BloomFilter) bf, constants);
         }
     }
 

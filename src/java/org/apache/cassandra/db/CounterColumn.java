@@ -93,13 +93,13 @@ public class CounterColumn extends Column
     }
 
     @Override
-    public int size()
+    public int size(DBConstants constants)
     {
         /*
          * A counter column adds to a Column :
          *  + 8 bytes for timestampOfLastDelete
          */
-        return super.size() + DBConstants.TIMESTAMP_SIZE;
+        return super.size(constants) + constants.sizeof(timestampOfLastDelete);
     }
 
     @Override

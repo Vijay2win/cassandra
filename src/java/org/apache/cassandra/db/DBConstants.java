@@ -17,11 +17,39 @@
  */
 package org.apache.cassandra.db;
 
-public class DBConstants
+public abstract class DBConstants
 {
+    public static final DBConstants nativeConstants = new DBConstants.NativeDBConstants();
     public static final int BOOL_SIZE = 1;
+    public static final int SHORT_SIZE = 2;
     public static final int INT_SIZE = 4;
     public static final int LONG_SIZE = 8;
-    public static final int SHORT_SIZE = 2;
-    public static final int TIMESTAMP_SIZE = 8;
+
+    public abstract int sizeof(boolean value);
+    public abstract int sizeof(short value);
+    public abstract int sizeof(int value);
+    public abstract int sizeof(long value);
+
+    public static class NativeDBConstants extends DBConstants
+    {
+        public int sizeof(boolean value)
+        {
+            return BOOL_SIZE;
+        }
+
+        public int sizeof(short value)
+        {
+            return SHORT_SIZE;
+        }
+
+        public int sizeof(int value)
+        {
+            return INT_SIZE;
+        }
+
+        public int sizeof(long value)
+        {
+            return LONG_SIZE;
+        }
+    }
 }

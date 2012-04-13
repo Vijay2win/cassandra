@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLongArray;
 
 import com.google.common.base.Objects;
 
+import org.apache.cassandra.db.DBConstants;
 import org.apache.cassandra.io.ISerializer;
 
 public class EstimatedHistogram
@@ -272,7 +273,7 @@ public class EstimatedHistogram
             return new EstimatedHistogram(offsets, buckets);
         }
 
-        public long serializedSize(EstimatedHistogram object)
+        public long serializedSize(EstimatedHistogram object, DBConstants constants)
         {
             throw new UnsupportedOperationException();
         }

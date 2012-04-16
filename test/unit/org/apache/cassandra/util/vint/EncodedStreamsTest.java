@@ -1,4 +1,4 @@
-package org.apache.cassandra.io.util;
+package org.apache.cassandra.util.vint;
 
 import static org.apache.cassandra.Util.*;
 
@@ -10,6 +10,8 @@ import java.io.IOException;
 
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.db.ColumnFamily;
+import org.apache.cassandra.util.vint.EncodedDataInputStream;
+import org.apache.cassandra.util.vint.EncodedDataOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -105,7 +107,7 @@ public class EncodedStreamsTest extends SchemaLoader
         EncodedDataInputStream odis = new EncodedDataInputStream(new DataInputStream(byteArrayIStream1));
         ColumnFamily cf = ColumnFamily.serializer.deserialize(odis);
         Assert.assertEquals(cf, createCF());
-        Assert.assertEquals(byteArrayOStream1.size(), (int)cf.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
+        Assert.assertEquals(byteArrayOStream1.size(), (int)ColumnFamily.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
     }
     
     @Test
@@ -119,7 +121,7 @@ public class EncodedStreamsTest extends SchemaLoader
         EncodedDataInputStream odis = new EncodedDataInputStream(new DataInputStream(byteArrayIStream1));
         ColumnFamily cf = ColumnFamily.serializer.deserialize(odis);
         Assert.assertEquals(cf, createCounterCF());
-        Assert.assertEquals(byteArrayOStream1.size(), (int)cf.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
+        Assert.assertEquals(byteArrayOStream1.size(), (int)ColumnFamily.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
     }
     
     @Test
@@ -133,6 +135,6 @@ public class EncodedStreamsTest extends SchemaLoader
         EncodedDataInputStream odis = new EncodedDataInputStream(new DataInputStream(byteArrayIStream1));
         ColumnFamily cf = ColumnFamily.serializer.deserialize(odis);
         Assert.assertEquals(cf, createSuperCF());
-        Assert.assertEquals(byteArrayOStream1.size(), (int)cf.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
+        Assert.assertEquals(byteArrayOStream1.size(), (int)ColumnFamily.serializer().serializedSize(cf, new EncodedDataOutputStream.EncodedDBConstant()));
     }
 }

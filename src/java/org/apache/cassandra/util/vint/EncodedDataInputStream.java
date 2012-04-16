@@ -1,7 +1,9 @@
-package org.apache.cassandra.io.util;
+package org.apache.cassandra.util.vint;
 
 import java.io.DataInput;
 import java.io.IOException;
+
+import org.apache.cassandra.io.util.AbstractDataInput;
 
 /**
  * Borrows idea from
@@ -18,25 +20,7 @@ public class EncodedDataInputStream extends AbstractDataInput
         this.input = input;
     }
 
-    @Override
-    public int readInt() throws IOException
-    {
-        return (int) readVLong();
-    }
-
-    @Override
-    public long readLong() throws IOException
-    {
-        return readVLong();
-    }
-
-    @Override
-    public short readShort() throws IOException
-    {
-        return (short) readVLong();
-    }
-
-    public long readVLong() throws IOException
+    public long decodeVInt() throws IOException
     {
         byte firstByte = input.readByte();
         int len = decodeVIntSize(firstByte);
@@ -68,6 +52,24 @@ public class EncodedDataInputStream extends AbstractDataInput
             return -119 - value;
         }
         return -111 - value;
+    }
+
+    @Override
+    public int readInt() throws IOException
+    {
+        return (int) decodeVInt();
+    }
+
+    @Override
+    public long readLong() throws IOException
+    {
+        return decodeVInt();
+    }
+
+    @Override
+    public short readShort() throws IOException
+    {
+        return (short) decodeVInt();
     }
 
     public int skipBytes(int n) throws IOException

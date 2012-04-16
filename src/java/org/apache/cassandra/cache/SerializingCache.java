@@ -30,8 +30,8 @@ import org.apache.cassandra.db.DBConstants;
 import org.apache.cassandra.io.ISerializer;
 import org.apache.cassandra.io.util.MemoryInputStream;
 import org.apache.cassandra.io.util.MemoryOutputStream;
-import org.apache.cassandra.io.util.EncodedDataInputStream;
-import org.apache.cassandra.io.util.EncodedDataOutputStream;
+import org.apache.cassandra.util.vint.EncodedDataInputStream;
+import org.apache.cassandra.util.vint.EncodedDataOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

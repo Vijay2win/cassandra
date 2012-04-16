@@ -1,9 +1,10 @@
-package org.apache.cassandra.io.util;
+package org.apache.cassandra.util.vint;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 import org.apache.cassandra.db.DBConstants;
+import org.apache.cassandra.io.util.AbstractDataOutput;
 
 /**
  * Borrows idea from
@@ -36,7 +37,7 @@ public class EncodedDataOutputStream extends AbstractDataOutput
         out.write(b, off, len);
     }
 
-    public void writeVLong(long i) throws IOException
+    public void encodeVInt(long i) throws IOException
     {
         if (i >= -112 && i <= 127)
         {
@@ -68,24 +69,24 @@ public class EncodedDataOutputStream extends AbstractDataOutput
     @Override
     public void writeInt(int v) throws IOException
     {
-        writeVLong(v);
+        encodeVInt(v);
     }
 
     @Override
     public void writeLong(long v) throws IOException
     {
-        writeVLong(v);
+        encodeVInt(v);
     }
 
     @Override
     public void writeShort(int v) throws IOException
     {
-        writeVLong(v);
+        encodeVInt(v);
     }
 
     public static class EncodedDBConstant extends DBConstants
     {
-        public int sizeofVLong(long i)
+        public int sizeofVInt(long i)
         {
             if (i >= -112 && i <= 127)
                 return 1;
@@ -111,7 +112,7 @@ public class EncodedDataOutputStream extends AbstractDataOutput
 
         public int sizeof(long i)
         {
-            return sizeofVLong(i);
+            return sizeofVInt(i);
         }
 
         @Override
@@ -123,13 +124,13 @@ public class EncodedDataOutputStream extends AbstractDataOutput
         @Override
         public int sizeof(short i)
         {
-            return sizeofVLong(i);
+            return sizeofVInt(i);
         }
 
         @Override
         public int sizeof(int i)
         {
-            return sizeofVLong(i);
+            return sizeofVInt(i);
         }
     }
 }

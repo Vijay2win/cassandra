@@ -453,7 +453,7 @@ public class RowMutation implements IMutation, MessageProducer
             for (Map.Entry<Integer,ColumnFamily> entry : rm.modifications.entrySet())
             {
                 size += DBConstants.INT_SIZE;
-                size += entry.getValue().serializedSize();
+                size += ColumnFamily.serializer.serializedSize(entry.getValue(), DBConstants.nativeConstants);
             }
 
             return size;

@@ -256,12 +256,12 @@ public class ColumnFamily extends AbstractColumnContainer implements IRowCacheEn
         return null;
     }
 
-    int size()
+    int size(DBConstants constants)
     {
         int size = 0;
         for (IColumn column : columns)
         {
-            size += column.size();
+            size += column.size(constants);
         }
         return size;
     }
@@ -351,23 +351,6 @@ public class ColumnFamily extends AbstractColumnContainer implements IRowCacheEn
         if (cf == null)
             return;
         addAll(cf, allocator);
-    }
-
-    public long serializedSize()
-    {
-        return BOOL_SIZE // nullness bool
-               + INT_SIZE // id
-               + serializedSizeForSSTable();
-    }
-
-    public long serializedSizeForSSTable()
-    {
-        int size = INT_SIZE // local deletion time
-                 + LONG_SIZE // client deletion time
-                 + INT_SIZE; // column count
-        for (IColumn column : columns)
-            size += column.serializedSize();
-        return size;
     }
 
     /**

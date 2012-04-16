@@ -102,12 +102,12 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
     /**
      * This calculates the exact size of the sub columns on the fly
      */
-    public int size()
+    public int size(DBConstants constants)
     {
         int size = 0;
         for (IColumn subColumn : getSubColumns())
         {
-            size += subColumn.serializedSize();
+            size += subColumn.serializedSize(constants);
         }
         return size;
     }
@@ -116,13 +116,23 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
      * This returns the size of the super-column when serialized.
      * @see org.apache.cassandra.db.IColumn#serializedSize()
     */
-    public int serializedSize()
+    public int serializedSize(DBConstants constants)
     {
         /*
          * We need to keep the way we are calculating the column size in sync with the
          * way we are calculating the size for the column family serializer.
+         * 
+         * 2 bytes for name size
+         * n bytes for the name
+         * 4 bytes for getLocalDeletionTime
+         * 8 bytes for getMarkedForDeleteAt
+         * 4 bytes for the subcolumns size
+         * size(constants) of subcolumns.
          */
-        return DBConstants.SHORT_SIZE + name.remaining() + DBConstants.INT_SIZE + DBConstants.LONG_SIZE + DBConstants.INT_SIZE + size();
+        // TODO fixme: change writeWithShortLength to understand encodings.
+        int sizeName = name.remaining();
+        int sizeSubColumns = size(constants);
+        return DBConstants.SHORT_SIZE + sizeName + constants.sizeof(getLocalDeletionTime()) + constants.sizeof(getMarkedForDeleteAt()) + constants.sizeof(sizeSubColumns) + sizeSubColumns;
     }
 
     public long timestamp()
@@ -400,8 +410,8 @@ class SuperColumnSerializer implements IColumnSerializer
         return superColumn;
     }
 
-    public long serializedSize(IColumn object)
+    public long serializedSize(IColumn object, DBConstants constants)
     {
-        return object.serializedSize();
+        return object.serializedSize(constants);
     }
 }

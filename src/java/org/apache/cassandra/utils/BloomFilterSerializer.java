@@ -72,7 +72,7 @@ abstract class BloomFilterSerializer implements ISerializer<BloomFilter>
      *
      * @return serialized size of the given bloom filter
      */
-    public long serializedSize(BloomFilter bf)
+    public long serializedSize(BloomFilter bf, DBConstants constants)
     {
         return DBConstants.INT_SIZE // hash count
                + DBConstants.INT_SIZE // length

@@ -60,12 +60,12 @@ public class SerializingCacheProvider implements IRowCacheProvider
             return ColumnFamily.serializer.deserialize(in);
         }
 
-        public long serializedSize(IRowCacheEntry cf)
+        public long serializedSize(IRowCacheEntry cf, DBConstants constants)
         {
             return DBConstants.BOOL_SIZE
                    + (cf instanceof RowCacheSentinel
                       ? DBConstants.INT_SIZE + DBConstants.LONG_SIZE
-                      : ColumnFamily.serializer().serializedSize((ColumnFamily) cf));
+                      : ColumnFamily.serializer().serializedSize((ColumnFamily) cf, constants));
         }
     }
 }

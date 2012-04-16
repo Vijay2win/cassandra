@@ -193,7 +193,7 @@ public class StreamingHistogram
             return new StreamingHistogram(maxBinSize, tmp);
         }
 
-        public long serializedSize(StreamingHistogram histogram)
+        public long serializedSize(StreamingHistogram histogram, DBConstants constants)
         {
             throw new UnsupportedOperationException();
         }

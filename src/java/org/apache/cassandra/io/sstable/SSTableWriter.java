@@ -49,6 +49,7 @@ public class SSTableWriter extends SSTable
     private DecoratedKey lastWrittenKey;
     private FileMark dataMark;
     private final SSTableMetadata.Collector sstableMetadataCollector;
+    private final DBConstants constants = new DBConstants.NativeDBConstants();
 
     public SSTableWriter(String filename, long keyCount) throws IOException
     {
@@ -170,7 +171,7 @@ public class SSTableWriter extends SSTable
         ColumnIndex index = new ColumnIndex.Builder(cf.getComparator(), decoratedKey.key, cf.getColumnCount()).build(cf);
 
         // write out row size + data
-        dataFile.stream.writeLong(cf.serializedSizeForSSTable());
+        dataFile.stream.writeLong(ColumnFamily.serializer().serializedSizeForSSTable(cf, constants));
         ColumnFamily.serializer().serializeForSSTable(cf, dataFile.stream);
 
         afterAppend(decoratedKey, startPosition, cf.deletionInfo(), index);

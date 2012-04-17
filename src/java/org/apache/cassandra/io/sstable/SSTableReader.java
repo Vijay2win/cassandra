@@ -363,7 +363,7 @@ public class SSTableReader extends SSTable
                 // when primary index file contains info other than data position, there is noway to determine
                 // the last key without deserializing index entry
                 boolean firstKey = left == null;
-                boolean lastKeyForUnpromoted = indexPosition + DBConstants.SHORT_SIZE + len + DBConstants.LONG_SIZE == indexSize;
+                boolean lastKeyForUnpromoted = indexPosition + DBConstants.nativeConstants.sizeof(Short.MAX_VALUE) + len + DBConstants.nativeConstants.sizeof(Long.MAX_VALUE) == indexSize;
                 boolean shouldAddEntry = indexSummary.shouldAddEntry();
                 if (shouldAddEntry || cacheLoading || recreatebloom || firstKey || lastKeyForUnpromoted || descriptor.hasPromotedIndexes)
                 {

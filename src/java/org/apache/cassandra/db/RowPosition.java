@@ -103,9 +103,17 @@ public abstract class RowPosition implements RingPosition<RowPosition>
         public long serializedSize(RowPosition pos, DBConstants constants)
         {
             Kind kind = pos.kind();
-            return DBConstants.BOOL_SIZE
-                + (kind == Kind.ROW_KEY ? DBConstants.SHORT_SIZE + ((DecoratedKey)pos).key.remaining()
-                                        : Token.serializer().serializedSize(pos.getToken(), constants));
+            int size = 1; // 1 byte for enum
+            if (kind == Kind.ROW_KEY)
+            {
+                Integer keySize = ((DecoratedKey)pos).key.remaining();
+                size += (constants.sizeof(keySize.shortValue()) + keySize);
+            }
+            else
+            {
+                Token.serializer().serializedSize(pos.getToken(), constants);
+            }
+            return size;
         }
     }
 }

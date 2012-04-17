@@ -94,11 +94,42 @@ public class QueryPath
                              cName.remaining() == 0 ? null : cName);
     }
 
-    public int serializedSize()
+    public int serializedSize(DBConstants constants)
     {
-        int size = DBConstants.SHORT_SIZE + (columnFamilyName == null ? 0 : FBUtilities.encodedUTF8Length(columnFamilyName));
-        size += DBConstants.SHORT_SIZE + (superColumnName == null ? 0 : superColumnName.remaining());
-        size += DBConstants.SHORT_SIZE + (columnName == null ? 0 : columnName.remaining());
+        int size = 0;
+        if (columnFamilyName == null)
+        {
+            size += constants.sizeof((short) 0);
+        }
+        else
+        {
+            int cfNameSize = FBUtilities.encodedUTF8Length(columnFamilyName);
+            size += constants.sizeof((short) cfNameSize);
+            size += cfNameSize;
+            
+        }
+        if (superColumnName == null)
+        {
+            size += constants.sizeof((short) 0);
+        }
+        else
+        {
+            int scNameSize = superColumnName.remaining();
+            size += constants.sizeof((short) scNameSize);
+            size += scNameSize;
+            
+        }
+        if (columnName == null)
+        {
+            size += constants.sizeof((short) 0);
+        }
+        else
+        {
+            int cNameSize = columnName.remaining();
+            size += constants.sizeof((short) cNameSize);
+            size += cNameSize;
+            
+        }
         return size;
     }
 }

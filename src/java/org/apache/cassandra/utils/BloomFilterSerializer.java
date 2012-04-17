@@ -74,8 +74,20 @@ abstract class BloomFilterSerializer implements ISerializer<BloomFilter>
      */
     public long serializedSize(BloomFilter bf, DBConstants constants)
     {
-        return DBConstants.INT_SIZE // hash count
-               + DBConstants.INT_SIZE // length
-               + bf.bitset.getNumWords() * DBConstants.LONG_SIZE; // buckets
+        int bitLength = bf.bitset.getNumWords();
+        int pageSize = bf.bitset.getPageSize();
+        int pageCount = bf.bitset.getPageCount();
+
+        int size = 0;
+        size += constants.sizeof(bf.getHashCount()); // hash count
+        size += constants.sizeof(bitLength); // length
+
+        for (int p = 0; p < pageCount; p++)
+        {
+            long[] bits = bf.bitset.getPage(p);
+            for (int i = 0; i < pageSize && bitLength-- > 0; i++)
+                size += constants.sizeof(bits[i]); // bucket
+        }
+        return size; 
     }
 }

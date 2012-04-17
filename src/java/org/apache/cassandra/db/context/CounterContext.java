@@ -70,10 +70,10 @@ import org.apache.cassandra.utils.NodeId;
  */
 public class CounterContext implements IContext
 {
-    private static final int HEADER_SIZE_LENGTH = DBConstants.SHORT_SIZE;
-    private static final int HEADER_ELT_LENGTH = DBConstants.SHORT_SIZE;
-    private static final int CLOCK_LENGTH = DBConstants.LONG_SIZE;
-    private static final int COUNT_LENGTH = DBConstants.LONG_SIZE;
+    private static final int HEADER_SIZE_LENGTH = DBConstants.nativeConstants.sizeof(Short.MAX_VALUE);
+    private static final int HEADER_ELT_LENGTH = DBConstants.nativeConstants.sizeof(Short.MAX_VALUE);
+    private static final int CLOCK_LENGTH = DBConstants.nativeConstants.sizeof(Long.MAX_VALUE);
+    private static final int COUNT_LENGTH = DBConstants.nativeConstants.sizeof(Long.MAX_VALUE);
     private static final int STEP_LENGTH = NodeId.LENGTH + CLOCK_LENGTH + COUNT_LENGTH;
 
     private static final Logger logger = LoggerFactory.getLogger(CounterContext.class);

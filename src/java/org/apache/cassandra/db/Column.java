@@ -134,10 +134,9 @@ public class Column implements IColumn
          * + 4 bytes which basically indicates the size of the byte array
          * + entire byte array.
         */
-        // TODO fixme: DB.writeWithShortLength
         int nameSize = name.remaining();
         int valueSize = value.remaining();
-        return DBConstants.SHORT_SIZE + nameSize + 1 + constants.sizeof(timestamp) + constants.sizeof(valueSize) + valueSize;
+        return constants.sizeof((short) nameSize) + nameSize + 1 + constants.sizeof(timestamp) + constants.sizeof(valueSize) + valueSize;
     }
 
     /*

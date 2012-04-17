@@ -52,7 +52,7 @@ public class KeyCacheKey implements CacheKey
 
     public int serializedSize()
     {
-        return key.length + DBConstants.INT_SIZE;
+        return DBConstants.nativeConstants.sizeof(key.length) + key.length;
     }
 
     public String toString()

@@ -58,7 +58,7 @@ public class RowCacheKey implements CacheKey, Comparable<RowCacheKey>
 
     public int serializedSize()
     {
-        return key.length + DBConstants.INT_SIZE;
+        return key.length + DBConstants.nativeConstants.sizeof(key.length);
     }
 
     @Override

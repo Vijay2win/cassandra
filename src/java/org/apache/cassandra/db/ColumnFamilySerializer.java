@@ -143,13 +143,13 @@ public class ColumnFamilySerializer implements ISerializer<ColumnFamily>
     {
         if (cf == null)
         {
-            return DBConstants.BOOL_SIZE;
+            return constant.sizeof(false);
         }
         else
         {
-            return DBConstants.BOOL_SIZE /* nullness bool */
-                    + constant.sizeof(cf.id()) /* id */
-                    + serializedSizeForSSTable(cf, constant);
+            return constant.sizeof(true) +      /* nullness bool */
+                   constant.sizeof(cf.id()) +   /* id */
+                   serializedSizeForSSTable(cf, constant);
         }
     }
 

@@ -110,16 +110,23 @@ class SliceByNamesReadCommandSerializer implements IVersionedSerializer<ReadComm
 
     public long serializedSize(ReadCommand cmd, int version)
     {
+        DBConstants constants = DBConstants.nativeConstants;
         SliceByNamesReadCommand command = (SliceByNamesReadCommand) cmd;
-        int size = DBConstants.BOOL_SIZE;
-        size += DBConstants.SHORT_SIZE + FBUtilities.encodedUTF8Length(command.table);
-        size += DBConstants.SHORT_SIZE + command.key.remaining();
-        size += command.queryPath.serializedSize();
-        size += DBConstants.INT_SIZE;
+        int size = constants.sizeof(command.isDigestQuery());
+        Integer tableSize = FBUtilities.encodedUTF8Length(command.table);
+        Integer keySize = command.key.remaining();
+
+        size += constants.sizeof(tableSize.shortValue()) + tableSize;
+        size += constants.sizeof(keySize) + keySize;
+        size += command.queryPath.serializedSize(constants);
+        size += constants.sizeof(command.columnNames.size());
         if (!command.columnNames.isEmpty())
         {
             for (ByteBuffer cName : command.columnNames)
-                size += DBConstants.SHORT_SIZE + cName.remaining();
+            {
+                Integer cNameSize = cName.remaining();
+                size += constants.sizeof(cNameSize.shortValue()) + cNameSize;
+            }
         }
         return size;
     }

@@ -129,10 +129,9 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
          * 4 bytes for the subcolumns size
          * size(constants) of subcolumns.
          */
-        // TODO fixme: change writeWithShortLength to understand encodings.
-        int sizeName = name.remaining();
-        int sizeSubColumns = size(constants);
-        return DBConstants.SHORT_SIZE + sizeName + constants.sizeof(getLocalDeletionTime()) + constants.sizeof(getMarkedForDeleteAt()) + constants.sizeof(sizeSubColumns) + sizeSubColumns;
+        int nameSize = name.remaining();
+        int subColumnsSize = size(constants);
+        return constants.sizeof((short) nameSize) + nameSize + constants.sizeof(getLocalDeletionTime()) + constants.sizeof(getMarkedForDeleteAt()) + constants.sizeof(subColumnsSize) + subColumnsSize;
     }
 
     public long timestamp()

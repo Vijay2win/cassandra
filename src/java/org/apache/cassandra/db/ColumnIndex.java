@@ -73,10 +73,13 @@ public class ColumnIndex
          */
         private static long rowHeaderSize(ByteBuffer key)
         {
-            return DBConstants.SHORT_SIZE + key.remaining()     // Row key
-                 + DBConstants.LONG_SIZE                        // Row data size
-                 + DBConstants.INT_SIZE + DBConstants.LONG_SIZE // Deletion info
-                 + DBConstants.INT_SIZE;                        // Column count
+            DBConstants constants = DBConstants.nativeConstants;
+            // TODO fix constants when changing the nativeconststs.
+            int keysize = key.remaining();
+            return constants.sizeof((short) keysize) + keysize + // Row key
+                 + constants.sizeof(0L)                        // Row data size
+                 + constants.sizeof(0) + constants.sizeof(0L) // Deletion info
+                 + constants.sizeof(0);                        // Column count
         }
 
         /**

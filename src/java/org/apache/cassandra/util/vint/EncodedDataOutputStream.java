@@ -86,6 +86,8 @@ public class EncodedDataOutputStream extends AbstractDataOutput
 
     public static class EncodedDBConstant extends DBConstants
     {
+        private static final int BOOL_SIZE = 1;
+
         public int sizeofVInt(long i)
         {
             if (i >= -112 && i <= 127)
@@ -118,7 +120,7 @@ public class EncodedDataOutputStream extends AbstractDataOutput
         @Override
         public int sizeof(boolean i)
         {
-            return DBConstants.BOOL_SIZE;
+            return BOOL_SIZE;
         }
 
         @Override

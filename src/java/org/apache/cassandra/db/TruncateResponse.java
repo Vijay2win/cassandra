@@ -76,7 +76,7 @@ public class TruncateResponse
             return new TruncateResponse(keyspace, columnFamily, success);
         }
 
-        public long serializedSize(TruncateResponse truncateResponse, int version)
+        public long serializedSize(TruncateResponse truncateResponse, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

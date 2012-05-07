@@ -108,15 +108,13 @@ class SliceByNamesReadCommandSerializer implements IVersionedSerializer<ReadComm
         return command;
     }
 
-    public long serializedSize(ReadCommand cmd, int version)
+    public long serializedSize(ReadCommand cmd, DBTypeSizes typeSizes, int version)
     {
-        DBTypeSizes typeSizes = DBTypeSizes.NATIVE;
         SliceByNamesReadCommand command = (SliceByNamesReadCommand) cmd;
-        int size = typeSizes.sizeof(command.isDigestQuery());
-        int tableSize = FBUtilities.encodedUTF8Length(command.table);
+        int size = typeSizes.sizeof(command.isDigestQuery()); 
         int keySize = command.key.remaining();
 
-        size += typeSizes.sizeof((short) tableSize) + tableSize;
+        size += FBUtilities.encodedUTF8Length(command.table);
         size += typeSizes.sizeof(keySize) + keySize;
         size += command.queryPath.serializedSize(typeSizes);
         size += typeSizes.sizeof(command.columnNames.size());

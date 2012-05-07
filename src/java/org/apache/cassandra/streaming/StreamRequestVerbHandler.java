@@ -15,17 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package org.apache.cassandra.streaming;
+package org.apache.cassandra.streaming;
 
- import java.io.DataInputStream;
- import java.io.IOError;
- import java.io.IOException;
+import java.io.IOError;
+import java.io.IOException;
 
- import org.slf4j.Logger;
- import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
- import org.apache.cassandra.net.IVerbHandler;
+import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 
  /**
@@ -40,12 +38,9 @@ public class StreamRequestVerbHandler implements IVerbHandler
     {
         if (logger.isDebugEnabled())
             logger.debug("Received a StreamRequestMessage from {}", message.getFrom());
-
-        byte[] body = message.getMessageBody();
-        FastByteArrayInputStream bufIn = new FastByteArrayInputStream(body);
         try
         {
-            StreamRequestMessage srm = StreamRequestMessage.serializer().deserialize(new DataInputStream(bufIn), message.getVersion());
+            StreamRequestMessage srm = StreamRequestMessage.serializer().deserialize(message.getMessageBodyInput(), message.getVersion());
             if (logger.isDebugEnabled())
                 logger.debug(srm.toString());
 

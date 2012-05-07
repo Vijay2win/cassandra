@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.io.IVersionedSerializer;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -114,7 +115,7 @@ public class CounterMutation implements IMutation
 
     public Message makeMutationMessage(int version) throws IOException
     {
-        byte[] bytes = FBUtilities.serialize(this, serializer, version);
+        byte[] bytes = SerializationFactory.get(version).serialize(this, serializer);
         return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.COUNTER_MUTATION, bytes, version);
     }
 
@@ -184,10 +185,9 @@ class CounterMutationSerializer implements IVersionedSerializer<CounterMutation>
         return new CounterMutation(rm, consistency);
     }
 
-    public long serializedSize(CounterMutation cm, int version)
+    public long serializedSize(CounterMutation cm, DBTypeSizes typeSizes, int version)
     {
-        int tableSize = FBUtilities.encodedUTF8Length(cm.consistency().name());
-        return RowMutation.serializer().serializedSize(cm.rowMutation(), version)
-               + DBTypeSizes.NATIVE.sizeof((short) tableSize) + tableSize;
+        return RowMutation.serializer().serializedSize(cm.rowMutation(), typeSizes, version)
+               + FBUtilities.encodedUTF8Length(cm.consistency().name());
     }
 }

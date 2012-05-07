@@ -1,6 +1,5 @@
 package org.apache.cassandra.db.commitlog;
 
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +24,7 @@ import org.apache.cassandra.io.IColumnSerializer;
 import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
@@ -181,7 +181,7 @@ private final AtomicInteger replayedCount;
                 {
                     // assuming version here. We've gone to lengths to make sure what gets written to the CL is in
                     // the current version. so do make sure the CL is drained prior to upgrading a node.
-                    rm = RowMutation.serializer().deserialize(new DataInputStream(bufIn), MessagingService.current_version, IColumnSerializer.Flag.LOCAL);
+                    rm = RowMutation.serializer().deserialize(SerializationFactory.get(MessagingService.VERSION_11).getDataInput(bufIn), MessagingService.VERSION_11, IColumnSerializer.Flag.LOCAL);
                 }
                 catch (UnknownColumnFamilyException ex)
                 {

@@ -21,6 +21,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTableReader;
@@ -147,7 +148,7 @@ public class PendingFile
             return new PendingFile(null, desc, component, sections, type, estimatedKeys);
         }
 
-        public long serializedSize(PendingFile pendingFile, int version)
+        public long serializedSize(PendingFile pendingFile, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

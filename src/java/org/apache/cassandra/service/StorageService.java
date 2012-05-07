@@ -36,6 +36,7 @@ import com.google.common.collect.*;
 
 import org.apache.cassandra.metrics.ClientRequestMetrics;
 import org.apache.log4j.Level;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1463,7 +1464,7 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
     private void sendReplicationNotification(InetAddress local, InetAddress remote)
     {
         // notify the remote token
-        Message msg = new Message(local, StorageService.Verb.REPLICATION_FINISHED, new byte[0], Gossiper.instance.getVersion(remote));
+        Message msg = new Message(local, StorageService.Verb.REPLICATION_FINISHED, ArrayUtils.EMPTY_BYTE_ARRAY, Gossiper.instance.getVersion(remote));
         IFailureDetector failureDetector = FailureDetector.instance;
         if (logger.isDebugEnabled())
             logger.debug("Notifying " + remote.toString() + " of replication completion\n");

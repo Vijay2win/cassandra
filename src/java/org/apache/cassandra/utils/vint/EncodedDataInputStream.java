@@ -57,7 +57,10 @@ public class EncodedDataInputStream extends AbstractDataInput
         throw new UnsupportedOperationException();
     }
 
-    /* as all of the integer types could be decoded using VInt we can use single method vintEncode */
+    /*
+     * as all of the integer types could be decoded using VInt we can use single
+     * method vintEncode
+     */
 
     public int readInt() throws IOException
     {
@@ -73,7 +76,7 @@ public class EncodedDataInputStream extends AbstractDataInput
     {
         return (short) vintDecode();
     }
-    
+
     public short readShort() throws IOException
     {
         return (short) vintDecode();
@@ -111,5 +114,14 @@ public class EncodedDataInputStream extends AbstractDataInput
     private boolean vintIsNegative(byte value)
     {
         return value < -120 || (value >= -112 && value < 0);
+    }
+
+    /**
+     * Override this method in order to avoid DataInputStream.readUTF(this)
+     * let input deal with this.
+     */
+    public String readUTF() throws IOException
+    {
+        return input.readUTF(); 
     }
 }

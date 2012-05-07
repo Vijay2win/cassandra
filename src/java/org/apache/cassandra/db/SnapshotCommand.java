@@ -18,14 +18,12 @@
 package org.apache.cassandra.db;
 
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.service.StorageService;
@@ -50,16 +48,13 @@ public class SnapshotCommand implements MessageProducer
 
     public Message getMessage(Integer version) throws IOException
     {
-        DataOutputBuffer dob = new DataOutputBuffer();
-        serializer.serialize(this, dob, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.SNAPSHOT, Arrays.copyOf(dob.getData(), dob.getLength()), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.SNAPSHOT, Arrays.copyOf(data, data.length), version);
     }
 
     public static SnapshotCommand read(Message message) throws IOException
     {
-        byte[] bytes = message.getMessageBody();
-        FastByteArrayInputStream bis = new FastByteArrayInputStream(bytes);
-        return serializer.deserialize(new DataInputStream(bis), message.getVersion());
+        return serializer.deserialize(message.getMessageBodyInput(), message.getVersion());
     }
 
     @Override
@@ -91,7 +86,7 @@ class SnapshotCommandSerializer implements IVersionedSerializer<SnapshotCommand>
         return new SnapshotCommand(keyspace, column_family, snapshot_name, clear_snapshot);
     }
 
-    public long serializedSize(SnapshotCommand snapshot_command, int version)
+    public long serializedSize(SnapshotCommand snapshot_command, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

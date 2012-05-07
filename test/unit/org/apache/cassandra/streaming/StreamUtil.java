@@ -19,8 +19,6 @@
 
 package org.apache.cassandra.streaming;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.net.InetAddress;
 
 import org.apache.cassandra.net.Message;
@@ -35,12 +33,9 @@ public class StreamUtil
      */
     static public void finishStreamRequest(Message msg, InetAddress to)
     {
-        byte[] body = msg.getMessageBody();
-        ByteArrayInputStream bufIn = new ByteArrayInputStream(body);
-
         try
         {
-            StreamRequestMessage srm = StreamRequestMessage.serializer().deserialize(new DataInputStream(bufIn), MessagingService.current_version);
+            StreamRequestMessage srm = StreamRequestMessage.serializer().deserialize(msg.getMessageBodyInput(), MessagingService.current_version);
             StreamInSession session = StreamInSession.get(to, srm.sessionId);
             session.closeIfFinished();
         }

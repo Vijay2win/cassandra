@@ -46,9 +46,6 @@ import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
-import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.locator.PropertyFileSnitch;
 import org.apache.cassandra.net.IAsyncResult;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
@@ -56,7 +53,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 
 public class FBUtilities
 {
@@ -320,6 +316,8 @@ public class FBUtilities
             else
                 utflen += 2;
         }
+        // DataOutput writes 2 constant bytes for length
+        utflen += 2;
         return utflen;
     }
 
@@ -602,17 +600,6 @@ public class FBUtilities
         }
 
         public void close() {}
-    }
-
-    public static <T> byte[] serialize(T object, IVersionedSerializer<T> serializer, int version) throws IOException
-    {
-        int size = (int) serializer.serializedSize(object, version);
-        DataOutputBuffer buffer = new DataOutputBuffer(size);
-        serializer.serialize(object, buffer, version);
-        assert buffer.getLength() == size && buffer.getData().length == size
-               : String.format("Final buffer length %s to accomodate data size of %s (predicted %s) for %s",
-                               buffer.getData().length, buffer.getLength(), size, object);
-        return buffer.getData();
     }
 
     public static RuntimeException unchecked(Exception e)

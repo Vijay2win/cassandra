@@ -17,11 +17,9 @@
  */
 package org.apache.cassandra.db;
 
-import java.io.DataInputStream;
 import java.io.IOError;
 import java.io.IOException;
 
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessagingService;
@@ -30,12 +28,9 @@ public class ReadRepairVerbHandler implements IVerbHandler
 {
     public void doVerb(Message message, String id)
     {
-        byte[] body = message.getMessageBody();
-        FastByteArrayInputStream buffer = new FastByteArrayInputStream(body);
-
         try
         {
-            RowMutation rm = RowMutation.serializer().deserialize(new DataInputStream(buffer), message.getVersion());
+            RowMutation rm = RowMutation.serializer().deserialize(message.getMessageBodyInput(), message.getVersion());
             rm.apply();
 
             WriteResponse response = new WriteResponse(rm.getTable(), rm.key(), true);

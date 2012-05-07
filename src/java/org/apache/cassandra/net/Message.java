@@ -17,11 +17,15 @@
  */
 package org.apache.cassandra.net;
 
+import java.io.DataInput;
+import java.io.DataInputStream;
 import java.net.InetAddress;
 
 import org.apache.cassandra.concurrent.Stage;
+import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.vint.EncodedDataInputStream;
 
 public class Message
 {
@@ -62,6 +66,15 @@ public class Message
     public byte[] getMessageBody()
     {
         return body;
+    }
+
+    public DataInput getMessageBodyInput()
+    {
+        DataInputStream dataInput = new DataInputStream(new FastByteArrayInputStream(body));
+        if (version >= MessagingService.VERSION_12)
+            return new EncodedDataInputStream(dataInput);
+        else
+            return dataInput;
     }
 
     public int getVersion()

@@ -17,7 +17,7 @@
  */
 package org.apache.cassandra.db;
 
-import java.io.DataInputStream;
+import java.io.DataInput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.utils.FBUtilities;
 
@@ -43,7 +43,7 @@ public class RangeSliceReply
         int rowCount = rows.size();
         int size = DBTypeSizes.NATIVE.sizeof(rowCount);
         for (Row row : rows)
-            size += Row.serializer().serializedSize(row, originalMessage.getVersion());
+            size += Row.serializer().serializedSize(row, SerializationFactory.get(originalMessage.getVersion()).getDBTypeSizes(), originalMessage.getVersion());
 
         DataOutputBuffer buffer = new DataOutputBuffer(size);
         buffer.writeInt(rowCount);
@@ -61,10 +61,8 @@ public class RangeSliceReply
                '}';
     }
 
-    public static RangeSliceReply read(byte[] body, int version) throws IOException
+    public static RangeSliceReply read(DataInput dis, int version) throws IOException
     {
-        FastByteArrayInputStream bufIn = new FastByteArrayInputStream(body);
-        DataInputStream dis = new DataInputStream(bufIn);
         int rowCount = dis.readInt();
         List<Row> rows = new ArrayList<Row>(rowCount);
         for (int i = 0; i < rowCount; i++)

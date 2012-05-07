@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.net.CompactEndpointSerializationHelper;
 
@@ -129,7 +130,7 @@ class GossipDigestSynMessageSerializer implements IVersionedSerializer<GossipDig
         return new GossipDigestSynMessage(clusterId, gDigests);
     }
 
-    public long serializedSize(GossipDigestSynMessage gossipDigestSynMessage, int version)
+    public long serializedSize(GossipDigestSynMessage gossipDigestSynMessage, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

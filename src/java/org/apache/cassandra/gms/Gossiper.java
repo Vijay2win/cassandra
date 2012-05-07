@@ -17,7 +17,6 @@
  */
 package org.apache.cassandra.gms;
 
-import java.io.DataOutputStream;
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -31,7 +30,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.cassandra.dht.Token;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.utils.FBUtilities;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
@@ -511,34 +510,26 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
     Message makeGossipDigestSynMessage(List<GossipDigest> gDigests, int version) throws IOException
     {
         GossipDigestSynMessage gDigestMessage = new GossipDigestSynMessage(DatabaseDescriptor.getClusterName(), gDigests);
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream( bos );
-        GossipDigestSynMessage.serializer().serialize(gDigestMessage, dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_SYN, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(gDigestMessage, GossipDigestSynMessage.serializer()); 
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_SYN, data, version);
     }
 
     Message makeGossipDigestAckMessage(GossipDigestAckMessage gDigestAckMessage, int version) throws IOException
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        GossipDigestAckMessage.serializer().serialize(gDigestAckMessage, dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_ACK, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(gDigestAckMessage, GossipDigestAckMessage.serializer()); 
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_ACK, data, version);
     }
 
     Message makeGossipDigestAck2Message(GossipDigestAck2Message gDigestAck2Message, int version) throws IOException
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        GossipDigestAck2Message.serializer().serialize(gDigestAck2Message, dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_ACK2, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(gDigestAck2Message, GossipDigestAck2Message.serializer());
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_DIGEST_ACK2, data, version);
     }
     
     Message makeGossipShutdownMessage(int version) throws IOException
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        GossipShutdownMessage.serializer().serialize(new GossipShutdownMessage(), dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_SHUTDOWN, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(new GossipShutdownMessage(), GossipShutdownMessage.serializer());
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.GOSSIP_SHUTDOWN, data, version);
     }
 
     /**

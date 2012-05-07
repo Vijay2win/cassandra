@@ -23,6 +23,7 @@ import java.util.*;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.PeekingIterator;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
@@ -81,11 +82,17 @@ public class MerkleTree implements Serializable
 
     public static class MerkleTreeSerializer
     {
-        public void serialize(MerkleTree mt, DataOutputStream dos, int version) throws IOException
+        public void serialize(MerkleTree mt, final DataOutput dos, int version) throws IOException
         {
             if (version == MessagingService.VERSION_07)
             {
-                ObjectOutputStream out = new ObjectOutputStream(dos);
+                ObjectOutputStream out = new ObjectOutputStream(new OutputStream()
+                {
+                    public void write(int b) throws IOException
+                    {
+                        dos.writeByte(b);
+                    }
+                });
                 out.writeObject(mt);
             }
             else
@@ -97,11 +104,17 @@ public class MerkleTree implements Serializable
             }
         }
 
-        public MerkleTree deserialize(DataInputStream dis, int version) throws IOException
+        public MerkleTree deserialize(final DataInput dis, int version) throws IOException
         {
             if (version == MessagingService.VERSION_07)
             {
-                ObjectInputStream in = new ObjectInputStream(dis);
+                ObjectInputStream in = new ObjectInputStream(new InputStream()
+                {
+                    public int read() throws IOException
+                    {
+                        return dis.readByte() & 0xFF;
+                    }
+                });
                 try
                 {
                     return (MerkleTree)in.readObject();
@@ -910,7 +923,7 @@ public class MerkleTree implements Serializable
                     throw new IOException("Unexpected Hashable: " + ident);
             }
 
-            public long serializedSize(Hashable hashable, int version)
+            public long serializedSize(Hashable hashable, DBTypeSizes typeSizes, int version)
             {
                 throw new UnsupportedOperationException();
             }

@@ -20,7 +20,7 @@ package org.apache.cassandra.db;
 import java.io.*;
 
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.service.StorageService;
@@ -54,10 +54,8 @@ public class Truncation implements MessageProducer
 
     public Message getMessage(Integer version) throws IOException
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        serializer().serialize(this, dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.TRUNCATE, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.TRUNCATE, data, version);
     }
 
     public String toString()
@@ -81,7 +79,7 @@ class TruncationSerializer implements IVersionedSerializer<Truncation>
         return new Truncation(keyspace, columnFamily);
     }
 
-    public long serializedSize(Truncation truncation, int version)
+    public long serializedSize(Truncation truncation, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

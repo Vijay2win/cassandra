@@ -44,7 +44,7 @@ public class DefinitionsUpdateVerbHandler implements IVerbHandler
         {
             public void runMayThrow() throws Exception
             {
-                DefsTable.mergeRemoteSchema(message.getMessageBody(), message.getVersion());
+                DefsTable.mergeRemoteSchema(message.getMessageBodyInput(), message.getVersion());
             }
         });
     }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.db.RowPosition;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.net.MessagingService;
@@ -159,7 +160,7 @@ public abstract class AbstractBounds<T extends RingPosition> implements Serializ
             return new Bounds(left, right);
         }
 
-        public long serializedSize(AbstractBounds<?> abstractBounds, int version)
+        public long serializedSize(AbstractBounds<?> abstractBounds, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

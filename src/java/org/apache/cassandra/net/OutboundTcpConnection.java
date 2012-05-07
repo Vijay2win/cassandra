@@ -198,7 +198,7 @@ public class OutboundTcpConnection extends Thread
 
     public static int messageLength(Header header, String id, byte[] bytes)
     {
-        return 2 + FBUtilities.encodedUTF8Length(id) + header.serializedSize() + 4 + bytes.length;
+        return FBUtilities.encodedUTF8Length(id) + header.serializedSize() + 4 + bytes.length;
     }
 
     private void disconnect()

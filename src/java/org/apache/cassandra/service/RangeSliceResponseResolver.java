@@ -69,7 +69,7 @@ public class RangeSliceResponseResolver implements IResponseResolver<Iterable<Ro
     public List<Row> getData() throws IOException
     {
         Message response = responses.iterator().next();
-        RangeSliceReply reply = RangeSliceReply.read(response.getMessageBody(), response.getVersion());
+        RangeSliceReply reply = RangeSliceReply.read(response.getMessageBodyInput(), response.getVersion());
         return reply.rows;
     }
 
@@ -81,7 +81,7 @@ public class RangeSliceResponseResolver implements IResponseResolver<Iterable<Ro
         int n = 0;
         for (Message response : responses)
         {
-            RangeSliceReply reply = RangeSliceReply.read(response.getMessageBody(), response.getVersion());
+            RangeSliceReply reply = RangeSliceReply.read(response.getMessageBodyInput(), response.getVersion());
             n = Math.max(n, reply.rows.size());
             iters.add(new RowIterator(reply.rows.iterator(), response.getFrom()));
         }

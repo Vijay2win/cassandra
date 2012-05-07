@@ -24,12 +24,13 @@ import java.util.*;
 import com.google.common.collect.Iterables;
 
 import org.apache.cassandra.db.ColumnFamilyStore;
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.db.Table;
 import org.apache.cassandra.dht.AbstractBounds;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.CompactEndpointSerializationHelper;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
@@ -93,17 +94,16 @@ class StreamRequestMessage implements MessageProducer
 
     public Message getMessage(Integer version)
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
+        byte[] data;
         try
         {
-            StreamRequestMessage.serializer().serialize(this, dos, version);
+            data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
         }
         catch (IOException e)
         {
             throw new IOError(e);
         }
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAM_REQUEST, bos.toByteArray(), version);
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAM_REQUEST, data, version);
     }
 
     public String toString()
@@ -199,7 +199,7 @@ class StreamRequestMessage implements MessageProducer
             }
         }
 
-        public long serializedSize(StreamRequestMessage streamRequestMessage, int version)
+        public long serializedSize(StreamRequestMessage streamRequestMessage, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

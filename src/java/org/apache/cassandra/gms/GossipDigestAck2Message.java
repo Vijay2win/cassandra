@@ -21,6 +21,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.util.Map;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 
 
@@ -69,7 +70,7 @@ class GossipDigestAck2MessageSerializer implements IVersionedSerializer<GossipDi
         return new GossipDigestAck2Message(epStateMap);
     }
 
-    public long serializedSize(GossipDigestAck2Message gossipDigestAck2Message, int version)
+    public long serializedSize(GossipDigestAck2Message gossipDigestAck2Message, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

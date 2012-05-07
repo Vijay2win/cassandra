@@ -17,13 +17,12 @@
  */
 package org.apache.cassandra.db;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessagingService;
@@ -44,13 +43,12 @@ public class ReadVerbHandler implements IVerbHandler
 
         try
         {
-            FastByteArrayInputStream in = new FastByteArrayInputStream(message.getMessageBody());
-            ReadCommand command = ReadCommand.serializer().deserialize(new DataInputStream(in), message.getVersion());
+            ReadCommand command = ReadCommand.serializer().deserialize(message.getMessageBodyInput(), message.getVersion());
             Table table = Table.open(command.table);
             Row row = command.getRow(table);
 
             ReadResponse response = getResponse(command, row);
-            byte[] bytes = FBUtilities.serialize(response, ReadResponse.serializer(), message.getVersion());
+            byte[] bytes = SerializationFactory.get(message.getVersion()).serialize(response, ReadResponse.serializer());
             Message reply = message.getReply(FBUtilities.getBroadcastAddress(), bytes, message.getVersion());
 
             if (logger.isDebugEnabled())

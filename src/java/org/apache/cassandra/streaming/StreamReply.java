@@ -19,8 +19,9 @@ package org.apache.cassandra.streaming;
 
 import java.io.*;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.service.StorageService;
@@ -51,10 +52,8 @@ class StreamReply implements MessageProducer
 
     public Message getMessage(Integer version) throws IOException
     {
-        FastByteArrayOutputStream bos = new FastByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream( bos );
-        serializer.serialize(this, dos, version);
-        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAM_REPLY, bos.toByteArray(), version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
+        return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAM_REPLY, data, version);
     }
 
     @Override
@@ -84,7 +83,7 @@ class StreamReply implements MessageProducer
             return new StreamReply(targetFile, sessionId, action);
         }
 
-        public long serializedSize(StreamReply streamReply, int version)
+        public long serializedSize(StreamReply streamReply, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.net.CompactEndpointSerializationHelper;
 import org.apache.cassandra.net.MessagingService;
@@ -110,7 +111,7 @@ public class StreamHeader
             return new StreamHeader(table, sessionId, file, pendingFiles, bca);
         }
 
-        public long serializedSize(StreamHeader streamHeader, int version)
+        public long serializedSize(StreamHeader streamHeader, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

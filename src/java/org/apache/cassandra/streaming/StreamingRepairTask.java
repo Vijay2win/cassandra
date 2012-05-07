@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.db.ColumnFamilyStore;
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.db.Table;
 import org.apache.cassandra.dht.AbstractBounds;
 import org.apache.cassandra.dht.Range;
@@ -35,6 +36,7 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.*;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.FBUtilities;
@@ -196,13 +198,10 @@ public class StreamingRepairTask implements Runnable
     {
         public void doVerb(Message message, String id)
         {
-            byte[] bytes = message.getMessageBody();
-            DataInputStream dis = new DataInputStream(new ByteArrayInputStream(bytes));
-
             StreamingRepairTask task;
             try
             {
-                task = StreamingRepairTask.serializer.deserialize(dis, message.getVersion());
+                task = StreamingRepairTask.serializer.deserialize(message.getMessageBodyInput(), message.getVersion());
             }
             catch (IOException e)
             {
@@ -220,10 +219,8 @@ public class StreamingRepairTask implements Runnable
         private static void send(StreamingRepairTask task) throws IOException
         {
             int version = Gossiper.instance.getVersion(task.src);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(bos);
-            StreamingRepairTask.serializer.serialize(task, dos, version);
-            Message msg = new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAMING_REPAIR_REQUEST, bos.toByteArray(), version);
+            byte[] body = SerializationFactory.get(version).serializeWithoutSize(task, serializer);
+            Message msg = new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.STREAMING_REPAIR_REQUEST, body, version);
             MessagingService.instance().sendOneWay(msg, task.src);
         }
     }
@@ -232,13 +229,10 @@ public class StreamingRepairTask implements Runnable
     {
         public void doVerb(Message message, String id)
         {
-            byte[] bytes = message.getMessageBody();
-            DataInputStream dis = new DataInputStream(new ByteArrayInputStream(bytes));
-
             UUID taskid;
             try
             {
-                 taskid = UUIDGen.read(dis);
+                 taskid = UUIDGen.read(message.getMessageBodyInput());
             }
             catch (IOException e)
             {
@@ -306,7 +300,7 @@ public class StreamingRepairTask implements Runnable
             return new StreamingRepairTask(id, owner, src, dst, tableName, cfName, ranges, makeReplyingCallback(owner, id));
         }
 
-        public long serializedSize(StreamingRepairTask task, int version)
+        public long serializedSize(StreamingRepairTask task, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

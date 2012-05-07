@@ -23,6 +23,7 @@ package org.apache.cassandra.net;
 
 import java.io.*;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 
 public class MessageSerializer implements IVersionedSerializer<Message>
@@ -44,7 +45,7 @@ public class MessageSerializer implements IVersionedSerializer<Message>
         return new Message(header, bytes, version);
     }
 
-    public long serializedSize(Message message, int version)
+    public long serializedSize(Message message, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

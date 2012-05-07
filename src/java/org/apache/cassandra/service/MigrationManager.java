@@ -17,8 +17,8 @@
  */
 package org.apache.cassandra.service;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOError;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -47,8 +47,8 @@ import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.filter.QueryFilter;
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.gms.*;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
+import org.apache.cassandra.io.util.DataOutputBuffer;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.IAsyncResult;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessagingService;
@@ -270,16 +270,14 @@ public class MigrationManager implements IEndpointStateChangeSubscriber
      */
     public static byte[] serializeSchema(Collection<RowMutation> schema, int version) throws IOException
     {
-        FastByteArrayOutputStream bout = new FastByteArrayOutputStream();
-        DataOutputStream dout = new DataOutputStream(bout);
+        DataOutputBuffer bout = new DataOutputBuffer();
+        DataOutput dout = SerializationFactory.get(version).getDataOutput(bout);
         dout.writeInt(schema.size());
 
         for (RowMutation mutation : schema)
             RowMutation.serializer().serialize(mutation, dout, version);
 
-        dout.close();
-
-        return bout.toByteArray();
+        return bout.getData();
     }
 
     /**
@@ -292,11 +290,9 @@ public class MigrationManager implements IEndpointStateChangeSubscriber
      *
      * @throws IOException if message is of incompatible version or data is corrupted
      */
-    public static Collection<RowMutation> deserializeMigrationMessage(byte[] data, int version) throws IOException
+    public static Collection<RowMutation> deserializeMigrationMessage(DataInput in, int version) throws IOException
     {
         Collection<RowMutation> schema = new ArrayList<RowMutation>();
-        DataInputStream in = new DataInputStream(new FastByteArrayInputStream(data));
-
         int count = in.readInt();
 
         for (int i = 0; i < count; i++)
@@ -412,7 +408,7 @@ public class MigrationManager implements IEndpointStateChangeSubscriber
                 {
                     byte[] reply = iar.get(DatabaseDescriptor.getRpcTimeout(), TimeUnit.MILLISECONDS);
 
-                    DefsTable.mergeRemoteSchema(reply, message.getVersion());
+                    DefsTable.mergeRemoteSchema(SerializationFactory.get(message.getVersion()).getDataInput(reply), message.getVersion());
                     return;
                 }
                 catch(TimeoutException e)

@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.IVersionedSerializer;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.service.IReadCommand;
@@ -49,7 +50,7 @@ public abstract class ReadCommand implements MessageProducer, IReadCommand
 
     public Message getMessage(Integer version) throws IOException
     {
-        byte[] bytes = FBUtilities.serialize(this, serializer, version);
+        byte[] bytes = SerializationFactory.get(version).serialize(this, serializer);
         return new Message(FBUtilities.getBroadcastAddress(), StorageService.Verb.READ, bytes, version);
     }
 
@@ -131,8 +132,8 @@ class ReadCommandSerializer implements IVersionedSerializer<ReadCommand>
         return CMD_SERIALIZER_MAP.get(msgType).deserialize(dis, version);
     }
 
-    public long serializedSize(ReadCommand command, int version)
+    public long serializedSize(ReadCommand command, DBTypeSizes typeSizes, int version)
     {
-        return 1 + CMD_SERIALIZER_MAP.get(command.commandType).serializedSize(command, version);
+        return 1 + CMD_SERIALIZER_MAP.get(command.commandType).serializedSize(command, typeSizes, version);
     }
 }

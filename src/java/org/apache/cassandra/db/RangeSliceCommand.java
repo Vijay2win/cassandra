@@ -43,8 +43,7 @@ import java.util.List;
 
 import org.apache.cassandra.dht.AbstractBounds;
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.net.MessagingService;
@@ -116,11 +115,10 @@ public class RangeSliceCommand implements MessageProducer, IReadCommand
 
     public Message getMessage(Integer version) throws IOException
     {
-        DataOutputBuffer dob = new DataOutputBuffer();
-        serializer.serialize(this, dob, version);
+        byte[] data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
         return new Message(FBUtilities.getBroadcastAddress(),
                            StorageService.Verb.RANGE_SLICE,
-                           Arrays.copyOf(dob.getData(), dob.getLength()), version);
+                           Arrays.copyOf(data, data.length), version);
     }
 
     @Override
@@ -140,9 +138,7 @@ public class RangeSliceCommand implements MessageProducer, IReadCommand
 
     public static RangeSliceCommand read(Message message) throws IOException
     {
-        byte[] bytes = message.getMessageBody();
-        FastByteArrayInputStream bis = new FastByteArrayInputStream(bytes);
-        return serializer.deserialize(new DataInputStream(bis), message.getVersion());
+        return serializer.deserialize(message.getMessageBodyInput(), message.getVersion());
     }
 
     public String getKeyspace()
@@ -230,7 +226,7 @@ class RangeSliceCommandSerializer implements IVersionedSerializer<RangeSliceComm
         return new RangeSliceCommand(keyspace, columnFamily, superColumn, pred, range, rowFilter, maxResults, maxIsColumns, isPaging);
     }
 
-    public long serializedSize(RangeSliceCommand rangeSliceCommand, int version)
+    public long serializedSize(RangeSliceCommand rangeSliceCommand, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

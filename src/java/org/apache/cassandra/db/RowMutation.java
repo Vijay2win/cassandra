@@ -18,7 +18,6 @@
 package org.apache.cassandra.db;
 
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -32,7 +31,7 @@ import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.io.IColumnSerializer;
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.net.MessagingService;
@@ -311,7 +310,7 @@ public class RowMutation implements IMutation, MessageProducer
         byte[] bytes = preserializedBuffers.get(version);
         if (bytes == null)
         {
-            bytes = FBUtilities.serialize(this, serializer(), version);
+            bytes = SerializationFactory.get(version).serialize(this, serializer());
             preserializedBuffers.put(version, bytes);
         }
         return bytes;
@@ -389,7 +388,7 @@ public class RowMutation implements IMutation, MessageProducer
 
     public static RowMutation fromBytes(byte[] raw, int version) throws IOException
     {
-        RowMutation rm = serializer.deserialize(new DataInputStream(new FastByteArrayInputStream(raw)), version);
+        RowMutation rm = SerializationFactory.get(version).deserialize(raw, serializer);
         boolean hasCounters = false;
         for (Map.Entry<Integer, ColumnFamily> entry : rm.modifications.entrySet())
         {
@@ -432,7 +431,7 @@ public class RowMutation implements IMutation, MessageProducer
             int size = dis.readInt();
             for (int i = 0; i < size; ++i)
             {
-                Integer cfid = Integer.valueOf(dis.readInt());
+                Integer cfid = dis.readInt();
                 ColumnFamily cf = ColumnFamily.serializer().deserialize(dis, flag, TreeMapBackedSortedColumns.factory());
                 modifications.put(cfid, cf);
             }
@@ -444,19 +443,17 @@ public class RowMutation implements IMutation, MessageProducer
             return deserialize(dis, version, IColumnSerializer.Flag.FROM_REMOTE);
         }
 
-        public long serializedSize(RowMutation rm, int version)
+        public long serializedSize(RowMutation rm, DBTypeSizes typeSizes, int version)
         {
-            DBTypeSizes typeSizes = DBTypeSizes.NATIVE;
-            int tableSize = FBUtilities.encodedUTF8Length(rm.getTable());
+            int size = FBUtilities.encodedUTF8Length(rm.getTable());
             int keySize = rm.key().remaining();
-            int size = typeSizes.sizeof((short) tableSize) + tableSize;
             size += typeSizes.sizeof((short) keySize) + keySize;
 
             size += typeSizes.sizeof(rm.modifications.size());
             for (Map.Entry<Integer,ColumnFamily> entry : rm.modifications.entrySet())
             {
                 size += typeSizes.sizeof(entry.getKey());
-                size += ColumnFamily.serializer.serializedSize(entry.getValue(), DBTypeSizes.NATIVE);
+                size += ColumnFamily.serializer.serializedSize(entry.getValue(), typeSizes);
             }
 
             return size;

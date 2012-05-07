@@ -27,7 +27,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,7 +35,6 @@ import javax.management.ObjectName;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import org.apache.cassandra.concurrent.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +68,8 @@ public final class MessagingService implements MessagingServiceMBean
     public static final int VERSION_080 = 2;
     public static final int VERSION_10 = 3;
     public static final int VERSION_11 = 4;
-    public static final int current_version = VERSION_11;
+    public static final int VERSION_12 = 5;
+    public static final int current_version = VERSION_12;
 
     static SerializerType serializerType = SerializerType.BINARY;
 

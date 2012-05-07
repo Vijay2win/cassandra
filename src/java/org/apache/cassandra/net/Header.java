@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.FBUtilities;
@@ -105,7 +106,7 @@ public class Header
         size += 4;
         for (String key : details.keySet())
         {
-            size += 2 + FBUtilities.encodedUTF8Length(key);
+            size += FBUtilities.encodedUTF8Length(key);
             byte[] value = details.get(key);
             size += 4 + value.length;
         }
@@ -146,7 +147,7 @@ class HeaderSerializer implements IVersionedSerializer<Header>
         return new Header(from, StorageService.VERBS[verbOrdinal], details);
     }
 
-    public long serializedSize(Header header, int version)
+    public long serializedSize(Header header, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

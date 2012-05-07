@@ -77,10 +77,10 @@ public class Row
             return deserialize(dis, version, IColumnSerializer.Flag.LOCAL, TreeMapBackedSortedColumns.factory());
         }
 
-        public long serializedSize(Row row, int version)
+        public long serializedSize(Row row, DBTypeSizes typeSizes, int version)
         {
             int keySize = row.key.key.remaining();
-            return DBTypeSizes.NATIVE.sizeof((short) keySize) + keySize + ColumnFamily.serializer().serializedSize(row.cf, DBTypeSizes.NATIVE);
+            return typeSizes.sizeof((short) keySize) + keySize + ColumnFamily.serializer().serializedSize(row.cf, typeSizes);
         }
     }
 }

@@ -20,6 +20,7 @@ package org.apache.cassandra.gms;
 import java.io.*;
 import java.net.InetAddress;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.net.CompactEndpointSerializationHelper;
 
@@ -103,7 +104,7 @@ class GossipDigestSerializer implements IVersionedSerializer<GossipDigest>
         return new GossipDigest(endpoint, generation, maxVersion);
     }
 
-    public long serializedSize(GossipDigest gossipDigest, int version)
+    public long serializedSize(GossipDigest gossipDigest, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

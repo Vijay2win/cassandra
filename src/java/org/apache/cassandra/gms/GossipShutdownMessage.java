@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.gms;
 
+import org.apache.cassandra.db.DBTypeSizes;
 import org.apache.cassandra.io.IVersionedSerializer;
 
 import java.io.DataInput;
@@ -56,7 +57,7 @@ class GossipShutdownMessageSerializer implements IVersionedSerializer<GossipShut
         return new GossipShutdownMessage();
     }
 
-    public long serializedSize(GossipShutdownMessage gossipShutdownMessage, int version)
+    public long serializedSize(GossipShutdownMessage gossipShutdownMessage, DBTypeSizes typeSizes, int version)
     {
         throw new UnsupportedOperationException();
     }

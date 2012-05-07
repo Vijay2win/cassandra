@@ -17,7 +17,6 @@
  */
 package org.apache.cassandra.gms;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
@@ -26,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessagingService;
@@ -47,12 +45,9 @@ public class GossipDigestSynVerbHandler implements IVerbHandler
             return;
         }
 
-        byte[] bytes = message.getMessageBody();
-        DataInputStream dis = new DataInputStream( new FastByteArrayInputStream(bytes) );
-
         try
         {
-            GossipDigestSynMessage gDigestMessage = GossipDigestSynMessage.serializer().deserialize(dis, message.getVersion());
+            GossipDigestSynMessage gDigestMessage = GossipDigestSynMessage.serializer().deserialize(message.getMessageBodyInput(), message.getVersion());
             /* If the message is from a different cluster throw it away. */
             if ( !gDigestMessage.clusterId.equals(DatabaseDescriptor.getClusterName()) )
             {

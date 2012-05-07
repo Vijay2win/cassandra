@@ -38,6 +38,7 @@ import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.io.util.FileUtils;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.PureJavaCrc32;
 
@@ -206,7 +207,7 @@ public class CommitLogSegment
      */
     public boolean hasCapacityFor(RowMutation mutation)
     {
-        long totalSize = RowMutation.serializer().serializedSize(mutation, MessagingService.current_version) + ENTRY_OVERHEAD_SIZE;
+        long totalSize = RowMutation.serializer().serializedSize(mutation, SerializationFactory.get(MessagingService.VERSION_11).getDBTypeSizes(), MessagingService.VERSION_11) + ENTRY_OVERHEAD_SIZE;
         return totalSize <= buffer.remaining();
     }
 

@@ -27,7 +27,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessagingService;
@@ -48,12 +47,9 @@ public class GossipDigestAckVerbHandler implements IVerbHandler
             return;
         }
 
-        byte[] bytes = message.getMessageBody();
-        DataInputStream dis = new DataInputStream( new FastByteArrayInputStream(bytes) );
-
         try
         {
-            GossipDigestAckMessage gDigestAckMessage = GossipDigestAckMessage.serializer().deserialize(dis, message.getVersion());
+            GossipDigestAckMessage gDigestAckMessage = GossipDigestAckMessage.serializer().deserialize(message.getMessageBodyInput(), message.getVersion());
             List<GossipDigest> gDigestList = gDigestAckMessage.getGossipDigestList();
             Map<InetAddress, EndpointState> epStateMap = gDigestAckMessage.getEndpointStateMap();
 

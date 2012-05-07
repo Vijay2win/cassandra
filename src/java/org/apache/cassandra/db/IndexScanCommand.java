@@ -22,8 +22,7 @@ import java.util.Arrays;
 
 import org.apache.cassandra.dht.AbstractBounds;
 import org.apache.cassandra.io.IVersionedSerializer;
-import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
+import org.apache.cassandra.io.util.SerializationFactory;
 import org.apache.cassandra.net.Message;
 import org.apache.cassandra.net.MessageProducer;
 import org.apache.cassandra.service.StorageService;
@@ -56,10 +55,10 @@ public class IndexScanCommand implements MessageProducer
 
     public Message getMessage(Integer version)
     {
-        DataOutputBuffer dob = new DataOutputBuffer();
+        byte[] data;
         try
         {
-            serializer.serialize(this, dob, version);
+            data = SerializationFactory.get(version).serializeWithoutSize(this, serializer);
         }
         catch (IOException e)
         {
@@ -67,15 +66,13 @@ public class IndexScanCommand implements MessageProducer
         }
         return new Message(FBUtilities.getBroadcastAddress(),
                            StorageService.Verb.INDEX_SCAN,
-                           Arrays.copyOf(dob.getData(), dob.getLength()),
+                           Arrays.copyOf(data, data.length),
                            version);
     }
 
     public static IndexScanCommand read(Message message) throws IOException
     {
-        byte[] bytes = message.getMessageBody();
-        FastByteArrayInputStream bis = new FastByteArrayInputStream(bytes);
-        return serializer.deserialize(new DataInputStream(bis), message.getVersion());
+        return serializer.deserialize(message.getMessageBodyInput(), message.getVersion());
     }
 
     private static class IndexScanCommandSerializer implements IVersionedSerializer<IndexScanCommand>
@@ -104,7 +101,7 @@ public class IndexScanCommand implements MessageProducer
             return new IndexScanCommand(keyspace, columnFamily, indexClause, predicate, range);
         }
 
-        public long serializedSize(IndexScanCommand object, int version)
+        public long serializedSize(IndexScanCommand object, DBTypeSizes typeSizes, int version)
         {
             throw new UnsupportedOperationException();
         }

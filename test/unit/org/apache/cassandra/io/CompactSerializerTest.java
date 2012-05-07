@@ -72,6 +72,8 @@ public class CompactSerializerTest extends SchemaLoader
         expectedClassNames.add("StreamingRepairTaskSerializer");
         expectedClassNames.add("AbstractBoundsSerializer");
         expectedClassNames.add("SnapshotCommandSerializer");
+        expectedClassNames.add("TreeRequestSerializer");
+        expectedClassNames.add("ValidatorSerializer");
 
         discoveredClassNames = new ArrayList<String>();
         String cp = System.getProperty("java.class.path");

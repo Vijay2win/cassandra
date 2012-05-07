@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.db;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -237,7 +238,7 @@ public class DefsTable
      * @throws ConfigurationException If one of metadata attributes has invalid value
      * @throws IOException If data was corrupted during transportation or failed to apply fs operations
      */
-    public static void mergeRemoteSchema(byte[] data, int version) throws ConfigurationException, IOException
+    public static void mergeRemoteSchema(DataInput data, int version) throws ConfigurationException, IOException
     {
         if (version < MessagingService.VERSION_11)
         {

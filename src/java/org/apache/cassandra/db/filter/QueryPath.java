@@ -96,19 +96,7 @@ public class QueryPath
 
     public int serializedSize(DBTypeSizes typeSizes)
     {
-        int size = 0;
-
-        if (columnFamilyName == null)
-        {
-            size += typeSizes.sizeof((short) 0);
-        }
-        else
-        {
-            int cfNameSize = FBUtilities.encodedUTF8Length(columnFamilyName);
-            size += typeSizes.sizeof((short) cfNameSize);
-            size += cfNameSize;
-        }
-
+        int size = FBUtilities.encodedUTF8Length((columnFamilyName == null) ? "" : columnFamilyName);
         if (superColumnName == null)
         {
             size += typeSizes.sizeof((short) 0);

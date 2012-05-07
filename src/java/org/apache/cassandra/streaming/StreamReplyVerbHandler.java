@@ -18,14 +18,12 @@
 package org.apache.cassandra.streaming;
 
 
-import java.io.DataInputStream;
 import java.io.IOError;
 import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.net.IVerbHandler;
 import org.apache.cassandra.net.Message;
 
@@ -35,12 +33,9 @@ public class StreamReplyVerbHandler implements IVerbHandler
 
     public void doVerb(Message message, String id)
     {
-        byte[] body = message.getMessageBody();
-        FastByteArrayInputStream bufIn = new FastByteArrayInputStream(body);
-
         try
         {
-            StreamReply reply = StreamReply.serializer.deserialize(new DataInputStream(bufIn), message.getVersion());
+            StreamReply reply = StreamReply.serializer.deserialize(message.getMessageBodyInput(), message.getVersion());
             logger.debug("Received StreamReply {}", reply);
             StreamOutSession session = StreamOutSession.get(message.getFrom(), reply.sessionId);
             if (session == null)

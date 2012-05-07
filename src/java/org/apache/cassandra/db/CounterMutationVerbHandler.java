@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.net.*;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.service.StorageProxy;
@@ -36,12 +35,9 @@ public class CounterMutationVerbHandler implements IVerbHandler
 
     public void doVerb(Message message, String id)
     {
-        byte[] bytes = message.getMessageBody();
-        FastByteArrayInputStream buffer = new FastByteArrayInputStream(bytes);
-
         try
         {
-            DataInputStream is = new DataInputStream(buffer);
+            DataInput is = message.getMessageBodyInput();
             CounterMutation cm = CounterMutation.serializer().deserialize(is, message.getVersion());
             if (logger.isDebugEnabled())
               logger.debug("Applying forwarded " + cm);

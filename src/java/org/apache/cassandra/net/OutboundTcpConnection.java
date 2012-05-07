@@ -55,6 +55,7 @@ public class OutboundTcpConnection extends Thread
     private Socket socket;
     private volatile long completed;
     private final AtomicLong dropped = new AtomicLong();
+    private volatile long bytesSent = 0;
 
     public OutboundTcpConnection(OutboundTcpConnectionPool pool)
     {
@@ -141,11 +142,17 @@ public class OutboundTcpConnection extends Thread
         return dropped.get();
     }
 
+    public long getBytesSent()
+    {
+        return bytesSent;
+    }
+
     private void writeConnected(Message message, String id)
     {
         try
         {
-            write(message, id, out);
+            int bytesWritten = write(message, id, out);
+            bytesSent += bytesWritten;
             completed++;
             if (active.peek() == null)
             {
@@ -163,7 +170,7 @@ public class OutboundTcpConnection extends Thread
         }
     }
 
-    public static void write(Message message, String id, DataOutputStream out) throws IOException
+    public static int write(Message message, String id, DataOutputStream out) throws IOException
     {
         /*
          Setting up the protocol header. This is 4 bytes long
@@ -194,6 +201,7 @@ public class OutboundTcpConnection extends Thread
         Header.serializer().serialize(message.header, out, message.getVersion());
         out.writeInt(bytes.length);
         out.write(bytes);
+        return total;
     }
 
     public static int messageLength(Header header, String id, byte[] bytes)

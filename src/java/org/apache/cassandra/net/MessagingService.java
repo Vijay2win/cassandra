@@ -747,6 +747,22 @@ public final class MessagingService implements MessagingServiceMBean
         return completedTasks;
     }
 
+    public Map<String, Long> getCommandSentBytes()
+    {
+        Map<String, Long> bytesSent = new HashMap<String, Long>();
+        for (Map.Entry<InetAddress, OutboundTcpConnectionPool> entry : connectionManagers.entrySet())
+            bytesSent.put(entry.getKey().getHostAddress(), entry.getValue().cmdCon.getBytesSent());
+        return bytesSent;
+    }
+
+    public Map<String, Long> getResponseSentBytes()
+    {
+        Map<String, Long> bytesSent = new HashMap<String, Long>();
+        for (Map.Entry<InetAddress, OutboundTcpConnectionPool> entry : connectionManagers.entrySet())
+            bytesSent.put(entry.getKey().getHostAddress(), entry.getValue().ackCon.getBytesSent());
+        return bytesSent;
+    }
+
     public static long getDefaultCallbackTimeout()
     {
         return DEFAULT_CALLBACK_TIMEOUT;

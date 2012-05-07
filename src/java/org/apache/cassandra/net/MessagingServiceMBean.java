@@ -42,6 +42,8 @@ public interface MessagingServiceMBean
      */
     public Map<String, Long> getCommandDroppedTasks();
 
+    public Map<String, Long> getCommandSentBytes();
+
     /**
      * Pending tasks for Response(GOSSIP & RESPONSE) TCP Connections
      */
@@ -51,6 +53,8 @@ public interface MessagingServiceMBean
      * Completed tasks for Response(GOSSIP & RESPONSE) TCP Connections
      */
     public Map<String, Long> getResponseCompletedTasks();
+
+    public Map<String, Long> getResponseSentBytes();
 
     /**
      * dropped message counts for server lifetime

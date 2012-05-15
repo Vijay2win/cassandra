@@ -113,7 +113,8 @@ public class PendingFile
             dos.writeInt(sc.sections.size());
             for (Pair<Long,Long> section : sc.sections)
             {
-                dos.writeLong(section.left); dos.writeLong(section.right);
+                dos.writeLong(section.left); 
+                dos.writeLong(section.right);
             }
             if (version > MessagingService.VERSION_07)
                 dos.writeUTF(sc.type.name());
@@ -145,18 +146,19 @@ public class PendingFile
 
         public long serializedSize(PendingFile pf, int version)
         {
+            TypeSizes typeSizes = TypeSizes.get(version);
             if (pf == null)
-                return TypeSizes.NATIVE.sizeof(0);
+                return typeSizes.sizeof("");
 
-            long size = TypeSizes.NATIVE.sizeof(pf.desc.filenameFor(pf.component));
-            size += TypeSizes.NATIVE.sizeof(pf.component);
-            size += TypeSizes.NATIVE.sizeof(pf.sections.size());
+            long size = typeSizes.sizeof(pf.desc.filenameFor(pf.component));
+            size += typeSizes.sizeof(pf.component);
+            size += typeSizes.sizeof(pf.sections.size());
             for (Pair<Long,Long> section : pf.sections)
-                size += TypeSizes.NATIVE.sizeof(section.left + TypeSizes.NATIVE.sizeof(section.right));
+                size += (typeSizes.sizeof(section.left) + typeSizes.sizeof(section.right));
             if (version > MessagingService.VERSION_07)
-                size += TypeSizes.NATIVE.sizeof(pf.type.name());
+                size += typeSizes.sizeof(pf.type.name());
             if (version > MessagingService.VERSION_080)
-                size += TypeSizes.NATIVE.sizeof(pf.estimatedKeys);
+                size += typeSizes.sizeof(pf.estimatedKeys);
             return size;
         }
     }

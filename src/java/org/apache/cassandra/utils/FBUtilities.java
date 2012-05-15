@@ -42,7 +42,6 @@ import org.apache.cassandra.cache.IRowCacheProvider;
 import org.apache.cassandra.concurrent.CreationTimeAwareFuture;
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Range;
@@ -50,6 +49,9 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.io.util.DataOutputBuffer;
 import org.apache.cassandra.net.IAsyncResult;
+import org.apache.cassandra.net.MessagingService;
+import org.apache.cassandra.utils.vint.EncodedDataInputStream;
+import org.apache.cassandra.utils.vint.EncodedDataOutputStream;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -590,11 +592,21 @@ public class FBUtilities
     {
         int size = (int) serializer.serializedSize(object, version);
         DataOutputBuffer buffer = new DataOutputBuffer(size);
-        serializer.serialize(object, buffer, version);
+        serializer.serialize(object, getDataOutput(buffer, version), version);
         assert buffer.getLength() == size && buffer.getData().length == size
                : String.format("Final buffer length %s to accomodate data size of %s (predicted %s) for %s",
                                buffer.getData().length, buffer.getLength(), size, object);
         return buffer.getData();
+    }
+
+    public static DataOutput getDataOutput(DataOutput out, int version)
+    {
+        return (version >= MessagingService.VERSION_12) ? new EncodedDataOutputStream(out): out;
+    }
+
+    public static DataInput getDataInput(DataInput in, int version)
+    {
+        return (version >= MessagingService.VERSION_12) ? new EncodedDataInputStream(in) : in; 
     }
 
     public static RuntimeException unchecked(Exception e)

@@ -104,11 +104,9 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
      */
     public int size(TypeSizes typeSizes)
     {
-        int size = 0;
+        int size = typeSizes.sizeof(getSubColumns().size());
         for (IColumn subColumn : getSubColumns())
-        {
             size += subColumn.serializedSize(typeSizes);
-        }
         return size;
     }
 
@@ -130,11 +128,10 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
          * size(constantSize) of subcolumns.
          */
         int nameSize = name.remaining();
-        int subColumnsSize = size(typeSizes);
         return typeSizes.sizeof((short) nameSize) + nameSize
                 + typeSizes.sizeof(getLocalDeletionTime())
                 + typeSizes.sizeof(getMarkedForDeleteAt())
-                + typeSizes.sizeof(subColumnsSize) + subColumnsSize;
+                + size(typeSizes);
     }
 
     public long timestamp()

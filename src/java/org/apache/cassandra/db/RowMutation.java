@@ -383,7 +383,8 @@ public class RowMutation implements IMutation
 
     public static RowMutation fromBytes(byte[] raw, int version) throws IOException
     {
-        RowMutation rm = serializer.deserialize(new DataInputStream(new FastByteArrayInputStream(raw)), version);
+        DataInput in = FBUtilities.getDataInput(new DataInputStream(new FastByteArrayInputStream(raw)), version);
+        RowMutation rm = serializer.deserialize(in, version);
         boolean hasCounters = false;
         for (Map.Entry<Integer, ColumnFamily> entry : rm.modifications.entrySet())
         {
@@ -440,7 +441,7 @@ public class RowMutation implements IMutation
 
         public long serializedSize(RowMutation rm, int version)
         {
-            TypeSizes sizes = TypeSizes.NATIVE;
+            TypeSizes sizes = TypeSizes.get(version);
             int size = sizes.sizeof(rm.getTable());
             int keySize = rm.key().remaining();
             size += sizes.sizeof((short) keySize) + keySize;
@@ -449,7 +450,7 @@ public class RowMutation implements IMutation
             for (Map.Entry<Integer,ColumnFamily> entry : rm.modifications.entrySet())
             {
                 size += sizes.sizeof(entry.getKey());
-                size += ColumnFamily.serializer.serializedSize(entry.getValue(), TypeSizes.NATIVE);
+                size += ColumnFamily.serializer.serializedSize(entry.getValue(), sizes);
             }
 
             return size;

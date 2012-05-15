@@ -193,7 +193,7 @@ public class OutboundTcpConnection extends Thread
             out.writeInt(-1);
 
         out.writeUTF(id);
-        message.serialize(out, version);
+        message.serialize(FBUtilities.getDataOutput(out, version), version);
     }
 
     private void disconnect()

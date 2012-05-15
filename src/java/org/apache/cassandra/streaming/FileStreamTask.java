@@ -37,6 +37,7 @@ import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.net.MessageIn;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
 import org.apache.cassandra.utils.Throttle;
 import org.apache.cassandra.utils.WrappedRunnable;
@@ -198,7 +199,7 @@ public class FileStreamTask extends WrappedRunnable
         if (version <= MessagingService.VERSION_11)
             input.readInt(); // Read total size
         String id = input.readUTF();
-        MessageIn message = MessageIn.read(input, version, id);
+        MessageIn message = MessageIn.read(FBUtilities.getDataInput(input, version), version, id);
         assert message.verb == MessagingService.Verb.STREAM_REPLY : "Non-reply message received on stream socket";
         handler.doVerb(message, id);
     }

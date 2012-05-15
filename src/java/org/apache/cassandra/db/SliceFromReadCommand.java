@@ -184,7 +184,7 @@ class SliceFromReadCommandSerializer implements IVersionedSerializer<ReadCommand
 
     public long serializedSize(ReadCommand cmd, int version)
     {
-        TypeSizes sizes = TypeSizes.NATIVE;
+        TypeSizes sizes = TypeSizes.get(version);
         SliceFromReadCommand command = (SliceFromReadCommand) cmd;
         int keySize = command.key.remaining();
         int startSize = command.start.remaining();

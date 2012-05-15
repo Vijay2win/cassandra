@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.io.util.*;
 import org.apache.cassandra.net.MessagingService;
@@ -200,7 +199,7 @@ public class CommitLog implements CommitLogMBean
      */
     public void add(RowMutation rm) throws IOException
     {
-        long totalSize = RowMutation.serializer.serializedSize(rm, MessagingService.current_version) + CommitLogSegment.ENTRY_OVERHEAD_SIZE;
+        long totalSize = RowMutation.serializer.serializedSize(rm, MessagingService.VERSION_11) + CommitLogSegment.ENTRY_OVERHEAD_SIZE;
         if (totalSize > DatabaseDescriptor.getCommitLogSegmentSize())
         {
             logger.warn("Skipping commitlog append of extremely large mutation ({} bytes)", totalSize);

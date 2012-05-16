@@ -17,27 +17,24 @@
  */
 package org.apache.cassandra.cache;
 
-import com.googlecode.concurrentlinkedhashmap.Weigher;
-import com.googlecode.concurrentlinkedhashmap.Weighers;
+import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
 
 public class ConcurrentLinkedHashCacheProvider implements IRowCacheProvider
 {
-    public ICache<RowCacheKey, IRowCacheEntry> create(long capacity, boolean useMemoryWeigher)
+    public ICache<RowCacheKey, IRowCacheEntry> create(long capacity)
     {
-        return ConcurrentLinkedHashCache.create(capacity, useMemoryWeigher
-                                                            ? createMemoryWeigher()
-                                                            : Weighers.<IRowCacheEntry>singleton());
+        return ConcurrentLinkedHashCache.create(capacity, createMemoryWeigher());
     }
 
-    private static Weigher<IRowCacheEntry> createMemoryWeigher()
+    private static EntryWeigher<RowCacheKey, IRowCacheEntry> createMemoryWeigher()
     {
-        return new Weigher<IRowCacheEntry>()
+        return new EntryWeigher<RowCacheKey, IRowCacheEntry>()
         {
-            public int weightOf(IRowCacheEntry value)
+            public int weightOf(RowCacheKey key, IRowCacheEntry value)
             {
-                int size = value.dataSize();
-                assert size > 0;
-                return size;
+                int size = key.serializedSize() + value.dataSize();
+                assert size > 0 : "Row cache size cannot be zero or greater than Integer.MAX_VALUE";
+                return (int) Math.min(size, Integer.MAX_VALUE);
             }
         };
     }

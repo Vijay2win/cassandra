@@ -26,11 +26,26 @@ import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.io.ISerializer;
 
+import com.googlecode.concurrentlinkedhashmap.Weigher;
+
 public class SerializingCacheProvider implements IRowCacheProvider
 {
-    public ICache<RowCacheKey, IRowCacheEntry> create(long capacity, boolean useMemoryWeigher)
+    public ICache<RowCacheKey, IRowCacheEntry> create(long capacity)
     {
-        return new SerializingCache<RowCacheKey, IRowCacheEntry>(capacity, useMemoryWeigher, new RowCacheSerializer());
+        return SerializingCache.create(capacity, createMemoryWeigher(), new RowCacheSerializer());
+    }
+
+    private static Weigher<FreeableMemory> createMemoryWeigher()
+    {
+        return new Weigher<FreeableMemory>()
+        {
+            public int weightOf(FreeableMemory value)
+            {
+                long size = value.size();
+                assert size < Integer.MAX_VALUE : "Row cache size cannot be greater than Integer.MAX_VALUE";
+                return (int) size;
+            }
+        };
     }
 
     private static class RowCacheSerializer implements ISerializer<IRowCacheEntry>

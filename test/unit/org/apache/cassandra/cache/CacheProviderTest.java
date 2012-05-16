@@ -28,6 +28,9 @@ import org.junit.Test;
 
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.db.ColumnFamily;
+
+import com.googlecode.concurrentlinkedhashmap.Weighers;
+
 import static org.apache.cassandra.Util.column;
 import static org.junit.Assert.*;
 
@@ -111,7 +114,7 @@ public class CacheProviderTest extends SchemaLoader
     @Test
     public void testSerializingCache() throws InterruptedException
     {
-        ICache<String, ColumnFamily> cache = new SerializingCache<String, ColumnFamily>(CAPACITY, false, ColumnFamily.serializer);
+        ICache<String, ColumnFamily> cache = SerializingCache.create(CAPACITY, Weighers.<FreeableMemory>singleton(), ColumnFamily.serializer);
         ColumnFamily cf = createCF();
         simpleCase(cf, cache);
         concurrentCase(cf, cache);

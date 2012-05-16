@@ -69,6 +69,11 @@ public class RowIndexEntry
         throw new UnsupportedOperationException();
     }
 
+    public int serializedSize()
+    {
+        return TypeSizes.NATIVE.sizeof(position);
+    }
+
     public static class Serializer
     {
         public void serialize(RowIndexEntry rie, DataOutput dos) throws IOException

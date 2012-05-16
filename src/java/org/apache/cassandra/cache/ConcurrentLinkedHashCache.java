@@ -20,7 +20,7 @@ package org.apache.cassandra.cache;
 import java.util.Set;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.googlecode.concurrentlinkedhashmap.Weigher;
+import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
 
 import com.googlecode.concurrentlinkedhashmap.Weighers;
 
@@ -31,7 +31,7 @@ public class ConcurrentLinkedHashCache<K, V> implements ICache<K, V>
     public static final int DEFAULT_CONCURENCY_LEVEL = 64;
     private final ConcurrentLinkedHashMap<K, V> map;
 
-    public ConcurrentLinkedHashCache(ConcurrentLinkedHashMap<K, V> map)
+    private ConcurrentLinkedHashCache(ConcurrentLinkedHashMap<K, V> map)
     {
         this.map = map;
     }
@@ -48,7 +48,7 @@ public class ConcurrentLinkedHashCache<K, V> implements ICache<K, V>
      */
     public static <K, V> ConcurrentLinkedHashCache<K, V> create(long capacity)
     {
-        return create(capacity, Weighers.<V>singleton());
+        return create(capacity, Weighers.<K, V>entrySingleton());
     }
 
     /**
@@ -62,7 +62,7 @@ public class ConcurrentLinkedHashCache<K, V> implements ICache<K, V>
      *
      * @return initialized cache
      */
-    public static <K, V> ConcurrentLinkedHashCache<K, V> create(long weightedCapacity, Weigher<V> weigher)
+    public static <K, V> ConcurrentLinkedHashCache<K, V> create(long weightedCapacity, EntryWeigher<K, V> weigher)
     {
         ConcurrentLinkedHashMap<K, V> map = new ConcurrentLinkedHashMap.Builder<K, V>()
                                             .weigher(weigher)

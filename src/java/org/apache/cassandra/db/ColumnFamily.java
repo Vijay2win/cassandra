@@ -250,7 +250,7 @@ public class ColumnFamily extends AbstractColumnContainer implements IRowCacheEn
     }
 
     /** the size of user-provided data, not including internal overhead */
-    int dataSize()
+    public int dataSize()
     {
         int size = TypeSizes.NATIVE.sizeof(getMarkedForDeleteAt());
         for (IColumn column : columns)

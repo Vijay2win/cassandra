@@ -17,14 +17,11 @@
  */
 package org.apache.cassandra.cache;
 
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Objects;
 
-import org.apache.cassandra.config.CFMetaData;
-import org.apache.cassandra.db.ArrayBackedSortedColumns;
-import org.apache.cassandra.db.ColumnFamily;
+import org.apache.cassandra.db.TypeSizes;
 
 /**
  * A sentinel object for row caches.  See comments to getThroughCache and CASSANDRA-3862.
@@ -58,5 +55,11 @@ public class RowCacheSentinel implements IRowCacheEntry
     public int hashCode()
     {
         return Objects.hashCode(sentinelId);
+    }
+
+    @Override
+    public int dataSize()
+    {
+        return TypeSizes.NATIVE.sizeof(sentinelId);
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.cassandra.net;
 
 import java.io.BufferedInputStream;
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -39,6 +40,9 @@ public class IncomingTcpConnection extends Thread
 
     private final Socket socket;
     public InetAddress from;
+
+    private DataInput cached;
+    private int knownVersion = -1;
 
     public IncomingTcpConnection(Socket socket)
     {
@@ -72,7 +76,7 @@ public class IncomingTcpConnection extends Thread
                     int size = input.readInt();
                     byte[] headerBytes = new byte[size];
                     input.readFully(headerBytes);
-                    stream(StreamHeader.serializer.deserialize(new DataInputStream(new FastByteArrayInputStream(headerBytes)), version), input);
+                    stream(StreamHeader.serializer.deserialize(new DataInputStream(new FastByteArrayInputStream(headerBytes)), version));
                 }
                 else
                 {
@@ -132,7 +136,7 @@ public class IncomingTcpConnection extends Thread
             input.readInt(); // size of entire message. in 1.0+ this is just a placeholder
 
         String id = input.readUTF();
-        MessageIn message = MessageIn.read(FBUtilities.getDataInput(input, version), version, id);
+        MessageIn message = MessageIn.read(getCachedDataInput(input, version), version, id);
         if (message == null)
         {
             // callback expired; nothing to do
@@ -147,6 +151,19 @@ public class IncomingTcpConnection extends Thread
             logger.debug("Received connection from newer protocol version {}. Ignoring message", version);
         }
         return message.from;
+    }
+
+    /**
+     * Optimization to avoid creating multiple EDIS
+     */
+    private DataInput getCachedDataInput(DataInput input, int version)
+    {
+        if (version != knownVersion)
+        {
+            cached = FBUtilities.getDataInput(input, version);
+            knownVersion = version;
+        }
+        return cached;
     }
 
     private void close()
@@ -165,7 +182,7 @@ public class IncomingTcpConnection extends Thread
         }
     }
 
-    private void stream(StreamHeader streamHeader, DataInputStream input) throws IOException
+    private void stream(StreamHeader streamHeader) throws IOException
     {
         new IncomingStreamReader(streamHeader, socket).read();
     }

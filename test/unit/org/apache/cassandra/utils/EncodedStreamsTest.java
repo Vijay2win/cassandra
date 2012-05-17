@@ -227,5 +227,15 @@ public class EncodedStreamsTest extends SchemaLoader
         Assert.assertEquals(rm.getColumnFamilies().iterator().next(), rm.getColumnFamilies().iterator().next());
         Assert.assertEquals(size, dob.getLength());
     }
+
+    @Test
+    public void testIntegerWrite() throws IOException
+    {
+        DataOutputBuffer buffer = new DataOutputBuffer();
+        FBUtilities.writeFixedSizeInt(0, new EncodedDataOutputStream(buffer));
+        
+        DataInputStream stream = new DataInputStream(new FastByteArrayInputStream(buffer.getData()));
+        Assert.assertEquals(0, stream.readInt());
+    }
 }
 

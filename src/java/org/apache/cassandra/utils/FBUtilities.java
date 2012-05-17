@@ -609,6 +609,21 @@ public class FBUtilities
         return (version >= MessagingService.VERSION_12) ? new EncodedDataInputStream(in) : in; 
     }
 
+    public static void writeFixedSizeInt(int v, DataOutput out) throws IOException
+    {
+        byte[] buffer = new byte[4];
+        buffer[0] = (byte) (v >>> 24);
+        buffer[1] = (byte) (v >>> 16);
+        buffer[2] = (byte) (v >>>  8);
+        buffer[3] = (byte) (v >>>  0);
+        out.write(buffer);
+    }
+
+    public static int readFixedSizeInt(DataInput input) throws IOException
+    {
+        return ((input.readByte() & 0xff) << 24) + ((input.readByte() & 0xff) << 16) + ((input.readByte() & 0xff) << 8) + (input.readByte() & 0xff);
+    }
+
     public static RuntimeException unchecked(Exception e)
     {
         return e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);

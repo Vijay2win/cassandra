@@ -64,6 +64,11 @@ public class EncodedDataInputStream extends AbstractDataInput
         return (int) vintDecode();
     }
 
+    public int readFixedSizeInt() throws IOException
+    {
+        return input.readInt();
+    }
+
     public long readLong() throws IOException
     {
         return vintDecode();

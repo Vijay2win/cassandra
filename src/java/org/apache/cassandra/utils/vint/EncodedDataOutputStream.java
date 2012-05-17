@@ -37,11 +37,6 @@ public class EncodedDataOutputStream extends AbstractDataOutput
 
     public void write(int b) throws IOException
     {
-        out.writeByte(b);
-    }
-
-    public void write(byte[] b) throws IOException
-    {
         out.write(b);
     }
 
@@ -55,6 +50,11 @@ public class EncodedDataOutputStream extends AbstractDataOutput
     public void writeInt(int v) throws IOException
     {
         vintEncode(v);
+    }
+
+    public void writeFixedSizeInt(int v) throws IOException
+    {
+        out.writeInt(v);
     }
 
     public void writeLong(long v) throws IOException

@@ -18,6 +18,7 @@
 package org.apache.cassandra.net;
 
 import java.io.BufferedOutputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -51,6 +52,9 @@ public class OutboundTcpConnection extends Thread
     private Socket socket;
     private volatile long completed;
     private final AtomicLong dropped = new AtomicLong();
+
+    private DataOutput cached;
+    private int knownVersion = -1;
 
     public OutboundTcpConnection(OutboundTcpConnectionPool pool)
     {
@@ -161,37 +165,59 @@ public class OutboundTcpConnection extends Thread
 
     public void write(MessageOut<?> message, String id, DataOutputStream out) throws IOException
     {
-        write(message, id, out, Gossiper.instance.getVersion(poolReference.endPoint()));
+        int version = Gossiper.instance.getVersion(poolReference.endPoint());
+        writeInternal(message, id, out, version);
     }
 
-    public static void write(MessageOut message, String id, DataOutputStream out, int version) throws IOException
+    private DataOutput getCachedDataOut(int version)
+    {
+        if (version != knownVersion)
+        {
+            cached = FBUtilities.getDataOutput(out, version);
+            knownVersion = version;
+        }
+        return cached;
+    }
+
+    private void writeInternal(MessageOut message, String id, DataOutput output, int version) throws IOException
+    {
+        writeHeader(message, output, version);
+        output.writeUTF(id);
+        message.serialize(FBUtilities.getDataOutput(out, version), version);
+    }
+
+    private static void writeHeader(MessageOut message, DataOutput out, int version) throws IOException
     {
         /*
-         Setting up the protocol header. This is 4 bytes long
-         represented as an integer. The first 2 bits indicate
-         the serializer type. The 3rd bit indicates if compression
-         is turned on or off. It is turned off by default. The 4th
-         bit indicates if we are in streaming mode. It is turned off
-         by default. The 5th-8th bits are reserved for future use.
-         The next 8 bits indicate a version number. Remaining 15 bits
-         are not used currently.
-        */
-        int header = 0;
-        // Setting up the serializer bit
-        header |= MessagingService.serializerType.ordinal();
-        // set compression bit.
-        if (false)
-            header |= 4;
-        // Setting up the version bit
-        header |= (version << 8);
+        Setting up the protocol header. This is 4 bytes long
+        represented as an integer. The first 2 bits indicate
+        the serializer type. The 3rd bit indicates if compression
+        is turned on or off. It is turned off by default. The 4th
+        bit indicates if we are in streaming mode. It is turned off
+        by default. The 5th-8th bits are reserved for future use.
+        The next 8 bits indicate a version number. Remaining 15 bits
+        are not used currently.
+       */
+       int header = 0;
+       // Setting up the serializer bit
+       header |= MessagingService.serializerType.ordinal();
+       // set compression bit.
+       if (false)
+           header |= 4;
+       // Setting up the version bit
+       header |= (version << 8);
 
-        out.writeInt(MessagingService.PROTOCOL_MAGIC);
-        out.writeInt(header);
+       out.writeInt(MessagingService.PROTOCOL_MAGIC);
+       out.writeInt(header);
 
-        // 0.8 included a total message size int.  1.0 doesn't need it but expects it to be there.
-        if (version <= MessagingService.VERSION_11)
-            out.writeInt(-1);
+       // 0.8 included a total message size int.  1.0 doesn't need it but expects it to be there.
+       if (version <= MessagingService.VERSION_11)
+           out.writeInt(-1);
+    }
 
+    public static void write(MessageOut message, String id, DataOutput out, int version) throws IOException
+    {
+        writeHeader(message, out, version);
         out.writeUTF(id);
         message.serialize(FBUtilities.getDataOutput(out, version), version);
     }

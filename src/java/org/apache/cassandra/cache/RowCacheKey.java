@@ -61,6 +61,15 @@ public class RowCacheKey implements CacheKey, Comparable<RowCacheKey>
         return key.length + TypeSizes.NATIVE.sizeof(key.length);
     }
 
+    public int memorySize()
+    {
+        // 8 bytes for this
+        // 4 byte for cfId reference.
+        // 8 byte for byte[] reference.
+        // size of bytes
+        return 8 + 4 + 8 + TypeSizes.NATIVE.sizeof(key.length);
+    }
+
     @Override
     public boolean equals(Object o)
     {

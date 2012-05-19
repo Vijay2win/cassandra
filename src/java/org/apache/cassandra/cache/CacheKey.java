@@ -34,6 +34,8 @@ public interface CacheKey
      */
     public int serializedSize();
 
+    public int memorySize();
+
     /**
      * @return The keyspace and ColumnFamily names to which this key belongs
      */

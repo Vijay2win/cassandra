@@ -55,6 +55,14 @@ public class KeyCacheKey implements CacheKey
         return TypeSizes.NATIVE.sizeof(key.length) + key.length;
     }
 
+    public int memorySize()
+    {
+        // 8 byte for descriptor reference.
+        // 8 byte for byte[] reference.
+        // 8 byte for the key itself
+        return 8 + 8 + TypeSizes.NATIVE.sizeof(key.length);
+    }
+
     public String toString()
     {
         try

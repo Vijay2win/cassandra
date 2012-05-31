@@ -108,12 +108,14 @@ public class SuperColumn extends AbstractColumnContainer implements IColumn
     /**
      * This calculates the exact size of the sub columns on the fly
      */
-    public int dataSize()
+    public long memorySize()
     {
         int size = TypeSizes.NATIVE.sizeof(getMarkedForDeleteAt());
+        long subColSize = 0;
         for (IColumn subColumn : getSubColumns())
-            size += subColumn.dataSize();
-        return size;
+            subColSize += subColumn.memorySize();
+        size += ObjectSizes.getArraySize(getSubColumns().size(), subColSize);
+        return ObjectSizes.getFieldSize(size);
     }
 
     /**

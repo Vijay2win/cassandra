@@ -93,13 +93,15 @@ public class CounterColumn extends Column
     }
 
     @Override
-    public int dataSize()
+    public long memorySize()
     {
         /*
          * A counter column adds to a Column :
          *  + 8 bytes for timestampOfLastDelete
          */
-        return super.dataSize() + TypeSizes.NATIVE.sizeof(timestampOfLastDelete);
+        long size = ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        size += TypeSizes.NATIVE.sizeof(timestampOfLastDelete);
+        return ObjectSizes.getFieldSize(size);
     }
 
     @Override

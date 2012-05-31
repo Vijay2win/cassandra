@@ -19,13 +19,17 @@ package org.apache.cassandra.db;
 
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Function;
+
 import edu.stanford.ppl.concurrent.SnapTreeMap;
 
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.BytesType;
 import org.apache.cassandra.utils.Allocator;
+import org.github.jamm.MemoryMeter;
 
 
 /**
@@ -286,6 +290,14 @@ public class AtomicSortedColumns implements ISortedColumns
         return false;
     }
 
+    public long memorySize()
+    {
+        MemoryMeter meter = new MemoryMeter();
+        long holderSize = ref.get().memorySize();
+        long size = ObjectSizes.getFieldSize(ObjectSizes.getReferenceSize() + holderSize); // ref   
+        return ObjectSizes.getFieldSize(size);
+    }
+
     private static class Holder
     {
         final SnapTreeMap<ByteBuffer, IColumn> map;
@@ -327,6 +339,16 @@ public class AtomicSortedColumns implements ISortedColumns
         Holder clear()
         {
             return new Holder(new SnapTreeMap<ByteBuffer, IColumn>(map.comparator()), deletionInfo);
+        }
+
+        public long memorySize()
+        {
+            long elementTotalSizes = 0;
+            for (Entry<ByteBuffer, IColumn> entry : map.entrySet())
+                elementTotalSizes += entry.getValue().memorySize(); // Key (ref) + Value
+            long size = ObjectSizes.getSize(map, elementTotalSizes) + ObjectSizes.getReferenceSize();
+            size += deletionInfo.memorySize() + ObjectSizes.getReferenceSize();
+            return ObjectSizes.getFieldSize(size);
         }
 
         void addColumn(IColumn column, Allocator allocator)

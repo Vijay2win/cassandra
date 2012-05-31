@@ -42,6 +42,11 @@ public class Interval<C, D>
         return new Interval(min, max, data);
     }
 
+    public long memorySize()
+    {
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public String toString()
     {

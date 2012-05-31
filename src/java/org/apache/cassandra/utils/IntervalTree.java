@@ -31,6 +31,7 @@ import com.google.common.collect.Ordering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.cassandra.db.ObjectSizes;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.io.ISerializer;
 import org.apache.cassandra.io.IVersionedSerializer;
@@ -152,6 +153,30 @@ public class IntervalTree<C, D, I extends Interval<C, D>> implements Iterable<I>
             return Iterators.<I>emptyIterator();
 
         return new TreeIterator(head);
+    }
+
+    public Iterator<I> iteratorInternal()
+    {
+        if (head == null)
+            return Iterators.<I>emptyIterator();
+
+        return new TreeIterator(head);
+    }
+
+    public long memorySize()
+    {
+        long size = 2 * ObjectSizes.getReferenceSize(); // head + comparator
+        size += 2 * (ObjectSizes.getFieldSize(0) + ObjectSizes.getReferenceSize()); // minOrdering + maxOrdering
+        if (comparator != null)
+            size += ObjectSizes.getReferenceSize(); // comparator size
+        size += TypeSizes.NATIVE.sizeof(count);
+        Iterator<IntervalNode> it = new InternalIterator(head);
+        while (it.hasNext())
+            size += it.next().referenceSize();
+        // now calculate the datasize
+        for (I interval : this)
+            size += interval.memorySize();
+        return ObjectSizes.getFieldSize(size);
     }
 
     @Override
@@ -332,6 +357,16 @@ public class IntervalTree<C, D, I extends Interval<C, D>> implements Iterable<I>
                     left.searchInternal(searchInterval, results);
             }
         }
+
+        public long referenceSize()
+        {
+            long size = 3 * ObjectSizes.getReferenceSize(); // center + low + right
+            size += 2 *ObjectSizes.getReferenceSize(); // left + right
+            size += ObjectSizes.getSize(intersectsLeft, 0) + ObjectSizes.getReferenceSize(); // all the nodes hear are references
+            if (intersectsLeft != intersectsRight) // all the nodes are references
+                size += ObjectSizes.getSize(intersectsRight, 0) + ObjectSizes.getReferenceSize();
+            return ObjectSizes.getFieldSize(size);
+        }
     }
 
     private class TreeIterator extends AbstractIterator<I>
@@ -355,6 +390,50 @@ public class IntervalTree<C, D, I extends Interval<C, D>> implements Iterable<I>
                 return endOfData();
 
             current = node.intersectsLeft.iterator();
+
+            // We know this is the smaller not returned yet, but before doing
+            // its parent, we must do everyone on it's right.
+            gotoMinOf(node.right);
+
+            return computeNext();
+        }
+
+        private void gotoMinOf(IntervalNode node)
+        {
+            while (node != null)
+            {
+                stack.offerFirst(node);
+                node = node.left;
+            }
+
+        }
+    }
+
+    private class InternalIterator extends AbstractIterator<IntervalNode>
+    {
+        private final Deque<IntervalNode> stack = new ArrayDeque<IntervalNode>();
+        private IntervalNode current;
+
+        InternalIterator(IntervalNode node)
+        {
+            super();
+            gotoMinOf(node);
+        }
+
+        protected IntervalNode computeNext()
+        {
+            if (current != null)
+            {
+                IntervalNode temp = current;
+                current = null;
+                return temp;
+            }
+
+            IntervalNode node = stack.pollFirst();
+            if (node == null)
+                return endOfData();
+
+            current = node;
 
             // We know this is the smaller not returned yet, but before doing
             // its parent, we must do everyone on it's right.

@@ -38,4 +38,6 @@ public interface CacheKey
      * @return The keyspace and ColumnFamily names to which this key belongs
      */
     public Pair<String, String> getPathInfo();
+
+    public long memorySize();
 }

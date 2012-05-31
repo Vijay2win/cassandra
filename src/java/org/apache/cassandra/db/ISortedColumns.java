@@ -170,4 +170,6 @@ public interface ISortedColumns extends IIterableColumns
          */
         public ISortedColumns fromSorted(SortedMap<ByteBuffer, IColumn> sm, boolean insertReversed);
     }
+
+    public long memorySize();
 }

@@ -76,6 +76,13 @@ public class DeletedColumn extends Column
     }
 
     @Override
+    public long memorySize()
+    {
+        long size = ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        return ObjectSizes.getFieldSize(size);
+    }
+
+    @Override
     public void validateFields(CFMetaData metadata) throws MarshalException
     {
         validateName(metadata);

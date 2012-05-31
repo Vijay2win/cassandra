@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.cassandra.db.ObjectSizes;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.util.FileDataInput;
@@ -212,6 +213,13 @@ public class IndexHelper
         public static IndexInfo deserialize(DataInput dis) throws IOException
         {
             return new IndexInfo(ByteBufferUtil.readWithShortLength(dis), ByteBufferUtil.readWithShortLength(dis), dis.readLong(), dis.readLong());
+        }
+
+        public long memorySize()
+        {
+            long size  = ObjectSizes.getSizeWithRef(lastName) + ObjectSizes.getSizeWithRef(firstName);
+            size += TypeSizes.NATIVE.sizeof(width) + TypeSizes.NATIVE.sizeof(offset);
+            return ObjectSizes.getFieldSize(size);
         }
     }
 }

@@ -109,4 +109,9 @@ public abstract class AbstractThreadUnsafeSortedColumns implements ISortedColumn
     {
         return size();
     }
+
+    public long referenceSize()
+    {
+        return getDeletionInfo().memorySize() + ObjectSizes.getReferenceSize();
+    }
 }

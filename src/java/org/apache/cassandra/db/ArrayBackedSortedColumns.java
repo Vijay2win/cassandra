@@ -32,7 +32,7 @@ import org.apache.cassandra.utils.Allocator;
  * main operations performed are iterating over the map and adding columns
  * (especially if insertion is in sorted order).
  */
-public class ArrayBackedSortedColumns extends AbstractThreadUnsafeSortedColumns implements ISortedColumns
+public class ArrayBackedSortedColumns extends AbstractThreadUnsafeSortedColumns
 {
     private final AbstractType<?> comparator;
     private final boolean reversed;
@@ -467,5 +467,19 @@ public class ArrayBackedSortedColumns extends AbstractThreadUnsafeSortedColumns 
         {
             throw new UnsupportedOperationException();
         }
+    }
+
+    @Override
+    public long memorySize()
+    {
+        // comparator
+        long size = ObjectSizes.getReferenceSize() + TypeSizes.NATIVE.sizeof(reversed);
+        long elementSizes = 0;
+        for (IColumn col: columns)
+            elementSizes += col.memorySize();
+        size += ObjectSizes.getSize(columns, elementSizes);
+        size += ObjectSizes.getReferenceSize();
+        size += ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        return ObjectSizes.getFieldSize(size);
     }
 }

@@ -19,8 +19,10 @@ package org.apache.cassandra.cache;
 
 import java.util.Set;
 
+import org.github.jamm.MemoryMeter;
+
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import com.googlecode.concurrentlinkedhashmap.Weigher;
+import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
 
 import com.googlecode.concurrentlinkedhashmap.Weighers;
 
@@ -37,40 +39,33 @@ public class ConcurrentLinkedHashCache<K, V> implements ICache<K, V>
     }
 
     /**
-     * Initialize a cache with weigher = Weighers.singleton() and initial capacity 0
-     *
-     * @param capacity cache weighted capacity
-     *
-     * @param <K> key type
-     * @param <V> value type
-     *
+     * Initialize a cache with initial capacity with weightedCapacity
      * @return initialized cache
      */
-    public static <K, V> ConcurrentLinkedHashCache<K, V> create(long capacity)
-    {
-        return create(capacity, Weighers.<V>singleton());
-    }
-
-    /**
-     * Initialize a cache with initial capacity set to 0
-     *
-     * @param weightedCapacity cache weighted capacity
-     * @param weigher The weigher to use
-     *
-     * @param <K> key type
-     * @param <V> value type
-     *
-     * @return initialized cache
-     */
-    public static <K, V> ConcurrentLinkedHashCache<K, V> create(long weightedCapacity, Weigher<V> weigher)
+    public static <K, V> ConcurrentLinkedHashCache<K, V> create(long weightedCapacity, EntryWeigher<K, V> weighter)
     {
         ConcurrentLinkedHashMap<K, V> map = new ConcurrentLinkedHashMap.Builder<K, V>()
-                                            .weigher(weigher)
+                                            .weigher(weighter)
                                             .maximumWeightedCapacity(weightedCapacity)
                                             .concurrencyLevel(DEFAULT_CONCURENCY_LEVEL)
                                             .build();
 
         return new ConcurrentLinkedHashCache<K, V>(map);
+    }
+
+    private static <K, V> EntryWeigher<K, V> createMemoryWeigher()
+    {
+        return new EntryWeigher<K, V>()
+        {
+            final MemoryMeter meter = new MemoryMeter();
+            public int weightOf(K key, V value)
+            {
+                if (!MemoryMeter.isInitialized())
+                    return 48;
+                long size = meter.measure(key) + meter.measure(value);
+                return (int) Math.min(size, Integer.MAX_VALUE);
+            }
+        };
     }
 
     public long capacity()

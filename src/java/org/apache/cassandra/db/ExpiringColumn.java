@@ -74,9 +74,11 @@ public class ExpiringColumn extends Column
     }
 
     @Override
-    public int dataSize()
+    public long memorySize()
     {
-        return super.dataSize() + TypeSizes.NATIVE.sizeof(localExpirationTime) + TypeSizes.NATIVE.sizeof(timeToLive);
+        long size = ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        size += TypeSizes.NATIVE.sizeof(localExpirationTime) + TypeSizes.NATIVE.sizeof(timeToLive);
+        return ObjectSizes.getFieldSize(size); 
     }
 
     @Override

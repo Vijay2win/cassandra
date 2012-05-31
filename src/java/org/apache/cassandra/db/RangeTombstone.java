@@ -62,6 +62,14 @@ public class RangeTombstone extends Interval<ByteBuffer, DeletionTime> implement
         return data.markedForDeleteAt;
     }
 
+    public long memorySize()
+    {
+        long size = ObjectSizes.getSizeWithRef(min);
+        size += ObjectSizes.getSizeWithRef(max);
+        size += data.memorySize() + ObjectSizes.getReferenceSize();
+        return ObjectSizes.getFieldSize(ObjectSizes.getSuperClassFieldSize(size));
+    }
+
     public int serializedSize(TypeSizes typeSizes)
     {
         throw new UnsupportedOperationException();

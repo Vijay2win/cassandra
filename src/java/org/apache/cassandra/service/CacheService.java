@@ -28,12 +28,14 @@ import javax.management.ObjectName;
 
 import org.apache.cassandra.cache.*;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.RowIndexEntry;
 import org.apache.cassandra.utils.FBUtilities;
+import org.github.jamm.MemoryMeter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.googlecode.concurrentlinkedhashmap.EntryWeigher;
 
 public class CacheService implements CacheServiceMBean
 {
@@ -95,22 +97,23 @@ public class CacheService implements CacheServiceMBean
     private AutoSavingCache<KeyCacheKey, RowIndexEntry> initKeyCache()
     {
         logger.info("Initializing key cache with capacity of {} MBs.", DatabaseDescriptor.getKeyCacheSizeInMB());
-
         long keyCacheInMemoryCapacity = DatabaseDescriptor.getKeyCacheSizeInMB() * 1024 * 1024;
-
-        // as values are constant size we can use singleton weigher
-        // where 48 = 40 bytes (average size of the key) + 8 bytes (size of value)
-        ICache<KeyCacheKey, RowIndexEntry> kc = ConcurrentLinkedHashCache.create(keyCacheInMemoryCapacity / AVERAGE_KEY_CACHE_ROW_SIZE);
+        EntryWeigher<KeyCacheKey, RowIndexEntry> weighter = new EntryWeigher<KeyCacheKey, RowIndexEntry>()
+        {
+            public int weightOf(KeyCacheKey key, RowIndexEntry value)
+            {
+                long size = key.memorySize() + value.memorySize();
+                assert size < Integer.MAX_VALUE : "Size cannot be greater than Integer";
+                return (int) size;
+            }
+        };
+        ICache<KeyCacheKey, RowIndexEntry> kc = ConcurrentLinkedHashCache.create(keyCacheInMemoryCapacity, weighter);
         AutoSavingCache<KeyCacheKey, RowIndexEntry> keyCache = new AutoSavingCache<KeyCacheKey, RowIndexEntry>(kc, CacheType.KEY_CACHE);
-
         int keyCacheKeysToSave = DatabaseDescriptor.getKeyCacheKeysToSave();
-
-        logger.info("Scheduling key cache save to each {} seconds (going to save {} keys).",
-                    keyCacheSavePeriod,
+        logger.info("Scheduling key cache save to each {} seconds (going to save {} keys).", keyCacheSavePeriod,
                     keyCacheKeysToSave == Integer.MAX_VALUE ? "all" : keyCacheKeysToSave);
 
         keyCache.scheduleSaving(keyCacheSavePeriod, keyCacheKeysToSave);
-
         return keyCache;
     }
 
@@ -228,7 +231,7 @@ public class CacheService implements CacheServiceMBean
 
     public long getKeyCacheCapacityInBytes()
     {
-        return keyCache.getCapacity() * AVERAGE_KEY_CACHE_ROW_SIZE;
+        return MemoryMeter.isInitialized() ? keyCache.getCapacity() : keyCache.getCapacity() * AVERAGE_KEY_CACHE_ROW_SIZE;
     }
 
     public long getKeyCacheCapacityInMB()
@@ -241,7 +244,8 @@ public class CacheService implements CacheServiceMBean
         if (capacity < 0)
             throw new RuntimeException("capacity should not be negative.");
 
-        keyCache.setCapacity(capacity * 1024 * 1024 / 48);
+        long weightedCapacity = capacity * 1024 * 1024;
+        keyCache.setCapacity(MemoryMeter.isInitialized() ? weightedCapacity : (weightedCapacity / 48));
     }
 
     public long getRowCacheSize()

@@ -29,7 +29,7 @@ import com.google.common.base.Function;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.utils.Allocator;
 
-public class ThreadSafeSortedColumns extends AbstractThreadUnsafeSortedColumns implements ISortedColumns
+public class ThreadSafeSortedColumns extends AbstractThreadUnsafeSortedColumns
 {
     private final ConcurrentSkipListMap<ByteBuffer, IColumn> map;
 
@@ -180,5 +180,17 @@ public class ThreadSafeSortedColumns extends AbstractThreadUnsafeSortedColumns i
     public Iterator<IColumn> reverseIterator(ByteBuffer start)
     {
         return map.descendingMap().tailMap(start).values().iterator();
+    }
+
+    @Override
+    public long memorySize()
+    {
+        long elementsSize = 0;
+        for (IColumn col: getSortedColumns())
+            elementsSize += col.memorySize();
+        long size = ObjectSizes.getSize(map, elementsSize);
+        size += ObjectSizes.getReferenceSize();
+        size += ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        return ObjectSizes.getFieldSize(size);
     }
 }

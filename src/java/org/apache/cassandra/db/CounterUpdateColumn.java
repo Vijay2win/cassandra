@@ -95,4 +95,11 @@ public class CounterUpdateColumn extends Column
                                  timestamp(),
                                  Long.MIN_VALUE);
     }
+
+    @Override
+    public long memorySize()
+    {
+        long size = ObjectSizes.getSuperClassFieldSize(referenceSize());
+        return ObjectSizes.getFieldSize(size);
+    }
 }

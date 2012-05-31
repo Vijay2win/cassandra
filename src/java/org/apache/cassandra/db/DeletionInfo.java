@@ -209,6 +209,17 @@ public class DeletionInfo
         return size;
     }
 
+    public long memorySize()
+    {
+        if (this == LIVE)
+            return 0L;
+        long size = topLevel.memorySize() + ObjectSizes.getReferenceSize();
+        if (IntervalTree.<ByteBuffer, DeletionTime, RangeTombstone>emptyTree() != ranges)
+            size += ranges.memorySize();
+        size += ObjectSizes.getReferenceSize();
+        return ObjectSizes.getFieldSize(size);
+    }
+
     @Override
     public String toString()
     {

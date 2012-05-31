@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 
+import org.apache.cassandra.db.ObjectSizes;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -85,5 +86,11 @@ public class KeyCacheKey implements CacheKey
         int result = desc != null ? desc.hashCode() : 0;
         result = 31 * result + (key != null ? Arrays.hashCode(key) : 0);
         return result;
+    }
+
+    public long memorySize()
+    {
+        long fields = ObjectSizes.getReferenceSize() + ObjectSizes.getSizeWithRef(key); 
+        return ObjectSizes.getFieldSize(fields);
     }
 }

@@ -20,6 +20,7 @@ package org.apache.cassandra.db;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -29,7 +30,7 @@ import com.google.common.base.Function;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.utils.Allocator;
 
-public class TreeMapBackedSortedColumns extends AbstractThreadUnsafeSortedColumns implements ISortedColumns
+public class TreeMapBackedSortedColumns extends AbstractThreadUnsafeSortedColumns
 {
     private final TreeMap<ByteBuffer, IColumn> map;
 
@@ -198,5 +199,17 @@ public class TreeMapBackedSortedColumns extends AbstractThreadUnsafeSortedColumn
     public Iterator<IColumn> reverseIterator(ByteBuffer start)
     {
         return map.descendingMap().tailMap(start).values().iterator();
+    }
+
+    @Override
+    public long memorySize()
+    {
+        long elementsSize = 0;
+        for (Entry<ByteBuffer, IColumn> entry: map.entrySet())
+            elementsSize += entry.getValue().memorySize();
+        long size = ObjectSizes.getSize(map, elementsSize);
+        size += ObjectSizes.getReferenceSize();
+        size += ObjectSizes.getSuperClassFieldSize(super.referenceSize());
+        return ObjectSizes.getFieldSize(size);
     }
 }

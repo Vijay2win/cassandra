@@ -41,7 +41,7 @@ public interface IColumn extends OnDiskAtom
     public long mostRecentLiveChangeAt();
     public long mostRecentNonGCableChangeAt(int gcbefore);
     /** the size of user-provided data, not including internal overhead */
-    public int dataSize();
+    public long memorySize();
     public int serializationFlags();
     public long timestamp();
     public ByteBuffer value();

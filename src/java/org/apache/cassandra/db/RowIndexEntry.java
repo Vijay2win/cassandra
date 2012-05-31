@@ -20,10 +20,8 @@ package org.apache.cassandra.db;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.cassandra.io.sstable.Descriptor;
@@ -69,6 +67,11 @@ public class RowIndexEntry
     public Filter bloomFilter()
     {
         throw new UnsupportedOperationException();
+    }
+
+    public long memorySize()
+    {
+        return ObjectSizes.getFieldSize(TypeSizes.NATIVE.sizeof(position));
     }
 
     public static class Serializer
@@ -192,6 +195,26 @@ public class RowIndexEntry
             size += FilterFactory.serializedSize(bloomFilter);
             assert size <= Integer.MAX_VALUE;
             return (int)size;
+        }
+
+        @Override
+        public long memorySize()
+        {
+            /*
+             * private final DeletionInfo deletionInfo; 
+             * private final List<IndexHelper.IndexInfo> columnsIndex; 
+             * private final Filter bloomFilter;
+             */
+            long elementsSize = 0;
+            for (IndexHelper.IndexInfo info: columnsIndex)
+                elementsSize += info.memorySize();
+
+            long size = ObjectSizes.getSize(columnsIndex, elementsSize);
+            size += ObjectSizes.getReferenceSize();
+            size += deletionInfo.memorySize() + ObjectSizes.getReferenceSize();
+            size += bloomFilter.memorySize() + ObjectSizes.getReferenceSize();
+            
+            return ObjectSizes.getFieldSize(size) + ObjectSizes.getSuperClassFieldSize(TypeSizes.NATIVE.sizeof(position));
         }
     }
 }

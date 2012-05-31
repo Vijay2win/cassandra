@@ -85,6 +85,13 @@ public class DeletionTime implements Comparable<DeletionTime>
         return column.isMarkedForDelete() && column.getMarkedForDeleteAt() <= markedForDeleteAt;
     }
 
+    public long memorySize()
+    {
+        long size = TypeSizes.NATIVE.sizeof(markedForDeleteAt);
+        size += TypeSizes.NATIVE.sizeof(localDeletionTime);
+        return ObjectSizes.getFieldSize(size);
+    }
+
     private static class Serializer implements ISerializer<DeletionTime>
     {
         public void serialize(DeletionTime delTime, DataOutput out) throws IOException

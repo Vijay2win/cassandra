@@ -32,8 +32,6 @@ import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.io.IColumnSerializer;
 import org.apache.cassandra.io.sstable.ColumnStats;
-import org.apache.cassandra.io.sstable.SSTable;
-import org.apache.cassandra.utils.*;
 
 public class ColumnFamily extends AbstractColumnContainer implements IRowCacheEntry
 {
@@ -267,14 +265,12 @@ public class ColumnFamily extends AbstractColumnContainer implements IRowCacheEn
     }
 
     /** the size of user-provided data, not including internal overhead */
-    int dataSize()
+    long memorySize()
     {
-        int size = deletionInfo().dataSize();
-        for (IColumn column : columns)
-        {
-            size += column.dataSize();
-        }
-        return size;
+        long size = ObjectSizes.getSuperClassFieldSize(columns.memorySize() + ObjectSizes.getReferenceSize());
+        // cfm
+        size += ObjectSizes.getReferenceSize();
+        return ObjectSizes.getFieldSize(size);
     }
 
     public long maxTimestamp()

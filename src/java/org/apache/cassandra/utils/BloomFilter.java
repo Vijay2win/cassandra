@@ -19,6 +19,8 @@ package org.apache.cassandra.utils;
 
 import java.nio.ByteBuffer;
 
+import org.apache.cassandra.db.ObjectSizes;
+import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.utils.obs.OpenBitSet;
 
 public abstract class BloomFilter extends Filter
@@ -85,5 +87,12 @@ public abstract class BloomFilter extends Filter
     public void clear()
     {
         bitset.clear(0, bitset.size());
+    }
+
+    public long memorySize()
+    {
+        long size = ObjectSizes.getSuperClassFieldSize(TypeSizes.NATIVE.sizeof(hashCount));
+        size += ObjectSizes.getReferenceSize() + ObjectSizes.getSize(bitset);
+        return ObjectSizes.getFieldSize(ObjectSizes.getSuperClassFieldSize(size));
     }
 }

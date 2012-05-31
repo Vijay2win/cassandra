@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.db.marshal.*;
 import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.Allocator;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.HeapAllocator;
@@ -131,9 +130,17 @@ public class Column implements IColumn
         return timestamp;
     }
 
-    public int dataSize()
+    public long referenceSize()
     {
-        return name().remaining() + value.remaining() + TypeSizes.NATIVE.sizeof(timestamp);
+        long size = ObjectSizes.getSizeWithRef(name);
+        size += ObjectSizes.getSizeWithRef(value);
+        size += TypeSizes.NATIVE.sizeof(timestamp);
+        return size;
+    }
+
+    public long memorySize()
+    {
+        return ObjectSizes.getFieldSize(referenceSize());
     }
 
     public int serializedSize(TypeSizes typeSizes)

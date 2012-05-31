@@ -29,20 +29,32 @@ import org.apache.cassandra.utils.FilterFactory;
 
 public class ColumnIndex
 {
-    public final List<IndexHelper.IndexInfo> columnsIndex;
+    public final ArrayList<IndexHelper.IndexInfo> columnsIndex;
     public final Filter bloomFilter;
 
-    private static final ColumnIndex EMPTY = new ColumnIndex(Collections.<IndexHelper.IndexInfo>emptyList(), FilterFactory.emptyFilter());
+    private static final ColumnIndex EMPTY = new ColumnIndex(new ArrayList<IndexHelper.IndexInfo>(0), FilterFactory.emptyFilter());
 
     private ColumnIndex(int estimatedColumnCount)
     {
         this(new ArrayList<IndexHelper.IndexInfo>(), FilterFactory.getFilter(estimatedColumnCount, 4));
     }
 
-    private ColumnIndex(List<IndexHelper.IndexInfo> columnsIndex, Filter bloomFilter)
+    private ColumnIndex(ArrayList<IndexHelper.IndexInfo> columnsIndex, Filter bloomFilter)
     {
         this.columnsIndex = columnsIndex;
         this.bloomFilter = bloomFilter;
+    }
+
+    public long memorySize()
+    {
+        long elementsTotalSize = 0;
+        for (IndexHelper.IndexInfo info: columnsIndex)
+            elementsTotalSize += info.memorySize();
+
+        long size = ObjectSizes.getSize(columnsIndex, elementsTotalSize);
+        size += ObjectSizes.getReferenceSize();
+        size += bloomFilter.memorySize() + ObjectSizes.getReferenceSize();
+        return ObjectSizes.getFieldSize(size);
     }
 
     /**
@@ -194,6 +206,7 @@ public class ColumnIndex
                 result.columnsIndex.add(cIndexInfo);
             }
 
+            result.columnsIndex.trimToSize();
             // we should always have at least one computed index block, but we only write it out if there is more than that.
             assert result.columnsIndex.size() > 0;
             return result;

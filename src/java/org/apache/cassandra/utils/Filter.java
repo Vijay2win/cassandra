@@ -33,4 +33,6 @@ public abstract class Filter
     public abstract boolean isPresent(ByteBuffer key);
 
     public abstract void clear();
+
+    public abstract long memorySize();
 }

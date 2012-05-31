@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.db.ObjectSizes;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -90,5 +91,11 @@ public class RowCacheKey implements CacheKey, Comparable<RowCacheKey>
     public String toString()
     {
         return String.format("RowCacheKey(cfId:%d, key:%s)", cfId, key);
+    }
+
+    @Override
+    public long memorySize()
+    {
+        return ObjectSizes.getFieldSize(TypeSizes.NATIVE.sizeof(cfId) + ObjectSizes.getSizeWithRef(key));
     }
 }

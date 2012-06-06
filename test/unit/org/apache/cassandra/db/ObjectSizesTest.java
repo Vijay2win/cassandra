@@ -200,7 +200,7 @@ public class ObjectSizesTest extends SchemaLoader
         assertTrue(measureSize(cols) <= cols.memorySize());
 
         ColumnFamily cf = createCounterCF();
-        System.out.println(meter.measureDeep(cf) - meter.measureDeep(Schema.instance.getCFMetaData(tableName, counterCFName)));
+        System.out.println(meter.measureDeep(cf) - meter.measureDeep(Schema.instance.getCFMetaData(tableName, counterCFName)) - meter.measureDeep(DeletionInfo.LIVE));
         System.out.println(cf.memorySize());
     }
 

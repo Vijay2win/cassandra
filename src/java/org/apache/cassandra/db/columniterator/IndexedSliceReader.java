@@ -19,9 +19,9 @@ package org.apache.cassandra.db.columniterator;
 
 import java.io.IOError;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.AbstractIterator;
@@ -51,21 +51,30 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
     private final List<IndexHelper.IndexInfo> indexes;
     private final FileDataInput originalInput;
     private FileDataInput file;
-    private final ByteBuffer startColumn;
-    private final ByteBuffer finishColumn;
+    private ColumnSlice current;
+    private final Iterator<ColumnSlice> rangeIterator;
     private final boolean reversed;
 
     private final BlockFetcher fetcher;
     private final Deque<OnDiskAtom> blockColumns = new ArrayDeque<OnDiskAtom>();
     private final AbstractType<?> comparator;
 
-    public IndexedSliceReader(SSTableReader sstable, RowIndexEntry indexEntry, FileDataInput input, ByteBuffer startColumn, ByteBuffer finishColumn, boolean reversed)
+    /**
+    * This slice reader assumes that ranges are sorted correctly, 
+    * 
+    * e.g. that for forward lookup ranges are in lexicographic order of start elements and that 
+    * for reverse lookup they are in reverse lexicographic order of finish (reverse start) elements. 
+    * i.e. forward: [a,b],[d,e],[g,h] reverse: [h,g],[e,d],[b,a].
+    *  
+    * This reader also assumes that validation has been performed in terms of intervals (no overlapping intervals).
+    */
+    public IndexedSliceReader(SSTableReader sstable, RowIndexEntry indexEntry, FileDataInput input, List<ColumnSlice> ranges, boolean reversed)
     {
         this.sstable = sstable;
         this.originalInput = input;
-        this.startColumn = startColumn;
-        this.finishColumn = finishColumn;
+        this.rangeIterator = ranges.iterator();
         this.reversed = reversed;
+        this.current = rangeIterator.next();
         this.comparator = sstable.metadata.comparator;
 
         try
@@ -131,20 +140,20 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
 
     private boolean isColumnNeeded(OnDiskAtom column)
     {
-        if (startColumn.remaining() == 0 && finishColumn.remaining() == 0)
+        if (current.left.remaining() == 0 && current.right.remaining() == 0)
             return true;
-        else if (startColumn.remaining() == 0 && !reversed)
-            return comparator.compare(column.name(), finishColumn) <= 0;
-        else if (startColumn.remaining() == 0 && reversed)
-            return comparator.compare(column.name(), finishColumn) >= 0;
-        else if (finishColumn.remaining() == 0 && !reversed)
-            return comparator.compare(column.name(), startColumn) >= 0;
-        else if (finishColumn.remaining() == 0 && reversed)
-            return comparator.compare(column.name(), startColumn) <= 0;
+        else if (current.left.remaining() == 0 && !reversed)
+            return comparator.compare(column.name(), current.right) <= 0;
+        else if (current.left.remaining() == 0 && reversed)
+            return comparator.compare(column.name(), current.right) >= 0;
+        else if (current.right.remaining() == 0 && !reversed)
+            return comparator.compare(column.name(), current.left) >= 0;
+        else if (current.right.remaining() == 0 && reversed)
+            return comparator.compare(column.name(), current.left) <= 0;
         else if (!reversed)
-            return comparator.compare(column.name(), startColumn) >= 0 && comparator.compare(column.name(), finishColumn) <= 0;
+            return comparator.compare(column.name(), current.left) >= 0 && comparator.compare(column.name(), current.right) <= 0;
         else // if reversed
-            return comparator.compare(column.name(), startColumn) <= 0 && comparator.compare(column.name(), finishColumn) >= 0;
+            return comparator.compare(column.name(), current.left) <= 0 && comparator.compare(column.name(), current.right) >= 0;
     }
 
     protected OnDiskAtom computeNext()
@@ -152,12 +161,32 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
         while (true)
         {
             OnDiskAtom column = blockColumns.poll();
-            if (column != null && isColumnNeeded(column))
-                return column;
+            if (column != null)
+            {
+                while (true)
+                {
+                    if (isColumnNeeded(column))
+                        return column;
+                    if ((!reversed && comparator.compare(current.right, column.name()) < 0) ||
+                            (reversed && comparator.compare(column.name(), current.right) < 0))
+                    {
+                        if (rangeIterator.hasNext())
+                        {
+                            current = rangeIterator.next();
+                            continue;
+                        }
+                    }
+                    break;
+                }
+            }
             try
             {
                 if (column == null && !fetcher.getNextBlock())
-                    return endOfData();
+                {
+                    if (!rangeIterator.hasNext())
+                        return endOfData();
+                    current = rangeIterator.next();
+                }
             }
             catch (IOException e)
             {
@@ -186,13 +215,13 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
         {
             file.readInt(); // column count
             basePosition = file.getFilePointer();
-            curRangeIndex = IndexHelper.indexFor(startColumn, indexes, comparator, reversed);
+            curRangeIndex = IndexHelper.indexFor(current.left, indexes, comparator, reversed);
         }
 
         IndexedBlockFetcher(RowIndexEntry indexEntry)
         {
             basePosition = indexEntry.position;
-            curRangeIndex = IndexHelper.indexFor(startColumn, indexes, comparator, reversed);
+            curRangeIndex = IndexHelper.indexFor(current.left, indexes, comparator, reversed);
         }
 
         public boolean getNextBlock() throws IOException
@@ -206,14 +235,14 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
             /* see if this read is really necessary. */
             if (reversed)
             {
-                if ((finishColumn.remaining() > 0 && comparator.compare(finishColumn, curColPosition.lastName) > 0) ||
-                    (startColumn.remaining() > 0 && comparator.compare(startColumn, curColPosition.firstName) < 0))
+                if ((current.right.remaining() > 0 && comparator.compare(current.right, curColPosition.lastName) > 0) ||
+                    (current.left.remaining() > 0 && comparator.compare(current.left, curColPosition.firstName) < 0))
                     return false;
             }
             else
             {
-                if ((startColumn.remaining() > 0 && comparator.compare(startColumn, curColPosition.lastName) > 0) ||
-                    (finishColumn.remaining() > 0 && comparator.compare(finishColumn, curColPosition.firstName) < 0))
+                if ((current.left.remaining() > 0 && comparator.compare(current.left, curColPosition.lastName) > 0) ||
+                    (current.right.remaining() > 0 && comparator.compare(current.right, curColPosition.firstName) < 0))
                     return false;
             }
 
@@ -235,11 +264,14 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
                 else
                     blockColumns.addLast(column);
 
-                /* see if we can stop seeking. */
-                if (!reversed && finishColumn.remaining() > 0)
-                    outOfBounds = comparator.compare(column.name(), finishColumn) >= 0;
-                else if (reversed && startColumn.remaining() > 0)
-                    outOfBounds = comparator.compare(column.name(), startColumn) >= 0;
+                if (!rangeIterator.hasNext())
+                {
+                    /* see if we can stop seeking. */
+                    if (!reversed && current.right.remaining() > 0)
+                        outOfBounds = comparator.compare(column.name(), current.right) >= 0;
+                    else if (reversed && current.left.remaining() > 0)
+                        outOfBounds = comparator.compare(column.name(), current.left) >= 0;
+                }
             }
 
             if (reversed)
@@ -264,14 +296,17 @@ class IndexedSliceReader extends AbstractIterator<OnDiskAtom> implements OnDiskA
                 else
                     blockColumns.addLast(column);
 
-                /* see if we can stop seeking. */
-                boolean outOfBounds = false;
-                if (!reversed && finishColumn.remaining() > 0)
-                    outOfBounds = comparator.compare(column.name(), finishColumn) >= 0;
-                else if (reversed && startColumn.remaining() > 0)
-                    outOfBounds = comparator.compare(column.name(), startColumn) >= 0;
-                if (outOfBounds)
-                    break;
+                if (!rangeIterator.hasNext())
+                {
+                    /* see if we can stop seeking. */
+                    boolean outOfBounds = false;
+                    if (!reversed && current.right.remaining() > 0)
+                        outOfBounds = comparator.compare(column.name(), current.right) >= 0;
+                    else if (reversed && current.left.remaining() > 0)
+                        outOfBounds = comparator.compare(column.name(), current.left) >= 0;
+                    if (outOfBounds)
+                        break;
+                }
             }
         }
 

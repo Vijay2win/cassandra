@@ -18,7 +18,8 @@
 package org.apache.cassandra.db.columniterator;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.List;
+
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.OnDiskAtom;
@@ -34,11 +35,11 @@ public class SSTableSliceIterator implements OnDiskAtomIterator
     private final OnDiskAtomIterator reader;
     private final DecoratedKey key;
 
-    public SSTableSliceIterator(SSTableReader sstable, DecoratedKey key, ByteBuffer startColumn, ByteBuffer finishColumn, boolean reversed)
+    public SSTableSliceIterator(SSTableReader sstable, DecoratedKey key, List<ColumnSlice> slices, boolean reversed)
     {
         this.key = key;
         RowIndexEntry indexEntry = sstable.getPosition(key, SSTableReader.Operator.EQ);
-        this.reader = indexEntry == null ? null : createReader(sstable, indexEntry, null, startColumn, finishColumn, reversed);
+        this.reader = indexEntry == null ? null : createReader(sstable, indexEntry, null, slices, reversed);
     }
 
     /**
@@ -53,17 +54,17 @@ public class SSTableSliceIterator implements OnDiskAtomIterator
      * @param finishColumn The end of the slice
      * @param reversed Results are returned in reverse order iff reversed is true.
      */
-    public SSTableSliceIterator(SSTableReader sstable, FileDataInput file, DecoratedKey key, ByteBuffer startColumn, ByteBuffer finishColumn, boolean reversed, RowIndexEntry indexEntry)
+    public SSTableSliceIterator(SSTableReader sstable, FileDataInput file, DecoratedKey key, List<ColumnSlice> slices, boolean reversed, RowIndexEntry indexEntry)
     {
         this.key = key;
-        reader = createReader(sstable, indexEntry, file, startColumn, finishColumn, reversed);
+        reader = createReader(sstable, indexEntry, file, slices, reversed);
     }
 
-    private static OnDiskAtomIterator createReader(SSTableReader sstable, RowIndexEntry indexEntry, FileDataInput file, ByteBuffer startColumn, ByteBuffer finishColumn, boolean reversed)
+    private static OnDiskAtomIterator createReader(SSTableReader sstable, RowIndexEntry indexEntry, FileDataInput file, List<ColumnSlice> slices, boolean reversed)
     {
-        return startColumn.remaining() == 0 && !reversed
-                 ? new SimpleSliceReader(sstable, indexEntry, file, finishColumn)
-                 : new IndexedSliceReader(sstable, indexEntry, file, startColumn, finishColumn, reversed);
+        return slices.size() == 1 && slices.get(0).left.remaining() == 0 && !reversed
+                ? new SimpleSliceReader(sstable, indexEntry, file, slices.get(0).right)
+                : new IndexedSliceReader(sstable, indexEntry, file, slices, reversed);
     }
 
     public DecoratedKey getKey()

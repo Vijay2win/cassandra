@@ -18,6 +18,7 @@
  */
 package org.apache.cassandra.db.commitlog;
 
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -190,12 +191,13 @@ private final AtomicInteger replayedCount;
 
                 /* deserialize the commit log entry */
                 FastByteArrayInputStream bufIn = new FastByteArrayInputStream(buffer, 0, serializedSize);
+                DataInput dout = FBUtilities.getDataInput(new DataInputStream(bufIn), MessagingService.current_version);
                 RowMutation rm;
                 try
                 {
                     // assuming version here. We've gone to lengths to make sure what gets written to the CL is in
                     // the current version. so do make sure the CL is drained prior to upgrading a node.
-                    rm = RowMutation.serializer.deserialize(new DataInputStream(bufIn), MessagingService.current_version, IColumnSerializer.Flag.LOCAL);
+                    rm = RowMutation.serializer.deserialize(dout, MessagingService.current_version, IColumnSerializer.Flag.LOCAL);
                 }
                 catch (UnknownColumnFamilyException ex)
                 {

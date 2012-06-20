@@ -200,7 +200,8 @@ public class OutboundTcpConnection extends Thread
             out.writeInt(-1);
 
         out.writeUTF(id);
-        message.serialize(out, version);
+        // Use encoded stream.
+        message.serialize(FBUtilities.getDataOutput(out, version), version);
     }
 
     private static void writeHeader(DataOutputStream out, int version, boolean compressionEnabled) throws IOException

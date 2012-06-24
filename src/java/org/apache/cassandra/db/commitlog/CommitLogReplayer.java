@@ -59,7 +59,7 @@ public class CommitLogReplayer
     private final Set<Table> tablesRecovered;
     private final List<Future<?>> futures;
     private final Map<UUID, AtomicInteger> invalidMutations;
-private final AtomicInteger replayedCount;
+    private final AtomicInteger replayedCount;
     private final Map<UUID, ReplayPosition> cfPositions;
     private final ReplayPosition globalPosition;
     private final Checksum checksum;
@@ -114,6 +114,7 @@ private final AtomicInteger replayedCount;
     {
         logger.info("Replaying " + file.getPath());
         final long segment = CommitLogSegment.idFromFilename(file.getName());
+        int version = CommitLogSegment.version(file.getName());
         RandomAccessReader reader = RandomAccessReader.open(new File(file.getAbsolutePath()), true);
         assert reader.length() <= Integer.MAX_VALUE;
         try
@@ -195,10 +196,12 @@ private final AtomicInteger replayedCount;
                 {
                     // assuming version here. We've gone to lengths to make sure what gets written to the CL is in
                     // the current version. so do make sure the CL is drained prior to upgrading a node.
-                    rm = RowMutation.serializer.deserialize(new DataInputStream(bufIn), MessagingService.current_version, IColumnSerializer.Flag.LOCAL);
+                    rm = RowMutation.serializer.deserialize(new DataInputStream(bufIn), version, IColumnSerializer.Flag.LOCAL);
                 }
                 catch (UnknownColumnFamilyException ex)
                 {
+                    if (ex.cfId == null)
+                        continue;
                     AtomicInteger i = invalidMutations.get(ex.cfId);
                     if (i == null)
                     {

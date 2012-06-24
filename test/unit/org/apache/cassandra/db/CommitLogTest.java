@@ -25,11 +25,15 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
+import junit.framework.Assert;
+
 import org.junit.Test;
 
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.db.commitlog.CommitLog;
+import org.apache.cassandra.db.commitlog.CommitLogSegment;
 import org.apache.cassandra.db.filter.QueryPath;
+import org.apache.cassandra.net.MessagingService;
 
 import static org.apache.cassandra.utils.ByteBufferUtil.bytes;
 
@@ -190,7 +194,7 @@ public class CommitLogTest extends SchemaLoader
 
     protected File tmpFile() throws IOException
     {
-        File logFile = File.createTempFile("testRecoveryWithPartiallyWrittenHeaderTestFile", null);
+        File logFile = File.createTempFile("CommitLog-" + MessagingService.current_version + "-", ".log");
         logFile.deleteOnExit();
         assert logFile.length() == 0;
         return logFile;
@@ -203,5 +207,18 @@ public class CommitLogTest extends SchemaLoader
         lout.write(logData);
         //statics make it annoying to test things correctly
         CommitLog.instance.recover(new File[]{ logFile }); //CASSANDRA-1119 / CASSANDRA-1179 throw on failure*/
+    }
+
+    @Test
+    public void testVersions()
+    {
+        Assert.assertTrue(CommitLogSegment.possibleCommitLogFile("CommitLog-1340512736956320000.log"));
+        Assert.assertTrue(CommitLogSegment.possibleCommitLogFile("CommitLog-5-1340512736956320000.log"));
+
+        Assert.assertEquals(1340512736956320000L, CommitLogSegment.idFromFilename("CommitLog-5-1340512736956320000.log"));
+        Assert.assertEquals(1340512736956320000L, CommitLogSegment.idFromFilename("CommitLog-1340512736956320000.log"));
+
+        Assert.assertEquals(MessagingService.current_version, CommitLogSegment.version("CommitLog-5-1340512736956320000.log"));
+        Assert.assertEquals(MessagingService.VERSION_11, CommitLogSegment.version("CommitLog-1340512736956320000.log"));
     }
 }

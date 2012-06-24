@@ -51,9 +51,12 @@ public class CommitLogSegment
 {
     private static final Logger logger = LoggerFactory.getLogger(CommitLogSegment.class);
 
-    static final String FILENAME_PREFIX = "CommitLog-";
+    static final String SEPERATOR = "-";
+    static final String FILENAME_PREFIX = "CommitLog" + SEPERATOR;
     static final String FILENAME_EXTENSION = ".log";
-    private static final Pattern COMMIT_LOG_FILE_PATTERN = Pattern.compile(FILENAME_PREFIX + "(\\d+)" + FILENAME_EXTENSION);
+    // match both legacy and new version of commitlogs Ex: CommitLog-12345.log and CommitLog-4-12345.log. 
+    private static final Pattern LEGACY_COMMIT_LOG_FILE_PATTERN = Pattern.compile(FILENAME_PREFIX + "(\\d+)" + FILENAME_EXTENSION);
+    private static final Pattern COMMIT_LOG_FILE_PATTERN = Pattern.compile(FILENAME_PREFIX + "((\\d+)" + SEPERATOR + "(\\d+))" + FILENAME_EXTENSION);
 
     // The commit log entry overhead in bytes (int: length + long: head checksum + long: tail checksum)
     static final int ENTRY_OVERHEAD_SIZE = 4 + 8 + 8;
@@ -87,7 +90,8 @@ public class CommitLogSegment
     CommitLogSegment(String filePath)
     {
         id = System.nanoTime();
-        logFile = new File(DatabaseDescriptor.getCommitLogLocation(), FILENAME_PREFIX + id + FILENAME_EXTENSION);
+        String logName = FILENAME_PREFIX + MessagingService.current_version + SEPERATOR + id + FILENAME_EXTENSION;
+        logFile = new File(DatabaseDescriptor.getCommitLogLocation(), logName);
         boolean isCreating = true;
 
         try
@@ -135,10 +139,13 @@ public class CommitLogSegment
     public static long idFromFilename(String filename)
     {
         Matcher matcher = COMMIT_LOG_FILE_PATTERN.matcher(filename);
+        Matcher legacy = LEGACY_COMMIT_LOG_FILE_PATTERN.matcher(filename);
         try
         {
             if (matcher.matches())
-                return Long.valueOf(matcher.group(1));
+                return Long.valueOf(matcher.group(3));
+            else if (legacy.matches())
+                return Long.valueOf(legacy.group(1));
             else
                 return -1L;
         }
@@ -148,13 +155,31 @@ public class CommitLogSegment
         }
     }
 
+    public static int version(String filename)
+    {
+        Matcher matcher = COMMIT_LOG_FILE_PATTERN.matcher(filename);
+        Matcher legacy = LEGACY_COMMIT_LOG_FILE_PATTERN.matcher(filename);
+        try
+        {
+            if (matcher.matches())
+                return Integer.valueOf(matcher.group(2));
+            else if (legacy.matches())
+                return MessagingService.VERSION_11;
+            throw new RuntimeException("error parsing version from commitlog: " + filename);
+        }
+        catch (NumberFormatException e)
+        {
+            throw new RuntimeException("error parsing version from commitlog: " + filename);
+        }
+    }
+
     /**
      * @param   filename  the filename to check
      * @return true if filename could be a commit log based on it's filename
      */
     public static boolean possibleCommitLogFile(String filename)
     {
-        return COMMIT_LOG_FILE_PATTERN.matcher(filename).matches();
+        return COMMIT_LOG_FILE_PATTERN.matcher(filename).matches() || LEGACY_COMMIT_LOG_FILE_PATTERN.matcher(filename).matches();
     }
 
     /**

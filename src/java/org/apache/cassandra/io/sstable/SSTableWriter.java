@@ -90,7 +90,7 @@ public class SSTableWriter extends SSTable
 
         if (compression)
         {
-            dbuilder = SegmentedFile.getCompressedBuilder();
+            dbuilder = SegmentedFile.getCompressedBuilder(DatabaseDescriptor.getDiskAccessMode());
             dataFile = CompressedSequentialWriter.open(getFilename(),
                                                        descriptor.filenameFor(Component.COMPRESSION_INFO),
                                                        !DatabaseDescriptor.populateIOCacheOnFlush(),

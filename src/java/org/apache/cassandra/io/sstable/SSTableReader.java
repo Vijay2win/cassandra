@@ -333,7 +333,7 @@ public class SSTableReader extends SSTable
     {
         SegmentedFile.Builder ibuilder = SegmentedFile.getBuilder(DatabaseDescriptor.getIndexAccessMode());
         SegmentedFile.Builder dbuilder = compression
-                                          ? SegmentedFile.getCompressedBuilder()
+                                          ? dbuilder = SegmentedFile.getCompressedBuilder(DatabaseDescriptor.getDiskAccessMode())
                                           : SegmentedFile.getBuilder(DatabaseDescriptor.getDiskAccessMode());
 
         // we read the positions in a BRAF so we don't have to worry about an entry spanning a mmap boundary.
@@ -485,7 +485,7 @@ public class SSTableReader extends SSTable
         if (!compression)
             throw new IllegalStateException(this + " is not compressed");
 
-        return ((CompressedSegmentedFile)dfile).metadata;
+        return CompressionMetadata.create(dfile.path);
     }
 
     /**

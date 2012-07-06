@@ -162,7 +162,18 @@ public class CompressionMetadata
                                 ? compressedFileLength
                                 : chunkOffsets.get(idx + 1);
 
-        return new Chunk(chunkOffset, (int) (nextChunkOffset - chunkOffset - 4)); // "4" bytes reserved for checksum
+        return new Chunk(chunkOffset, (int) (nextChunkOffset - chunkOffset - 4), idx * parameters.chunkLength()); // "4" bytes reserved for checksum
+    }
+
+    public long findStart(long offset)
+    {
+        for (int i = 0; i < chunkOffsets.size; i++)
+        {
+            if (offset > chunkOffsets.get(i))
+                continue;
+            return chunkOffsets.get(i - 1);
+        }
+        return 0;
     }
 
     /**
@@ -297,11 +308,19 @@ public class CompressionMetadata
 
         public final long offset;
         public final int length;
+        public Long startPosition = null;
 
         public Chunk(long offset, int length)
         {
             this.offset = offset;
             this.length = length;
+        }
+
+        public Chunk(long offset, int length, long position)
+        {
+            this.offset = offset;
+            this.length = length;
+            this.startPosition = position;
         }
 
         public boolean equals(Object o)

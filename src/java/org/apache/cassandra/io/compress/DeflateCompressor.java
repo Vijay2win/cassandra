@@ -18,6 +18,7 @@
 package org.apache.cassandra.io.compress;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -112,5 +113,23 @@ public class DeflateCompressor implements ICompressor
         {
             throw new IOException(e);
         }
+    }
+
+    @Override
+    public int compress(ByteBuffer uncompressed, ByteBuffer compressed) throws IOException
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int uncompress(ByteBuffer compressed, ByteBuffer uncompressed) throws IOException
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean handlesDirectByteBuffer()
+    {
+        return false;
     }
 }

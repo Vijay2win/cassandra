@@ -72,9 +72,11 @@ public abstract class SegmentedFile
                : new BufferedSegmentedFile.Builder();
     }
 
-    public static Builder getCompressedBuilder()
+    public static Builder getCompressedBuilder(Config.DiskAccessMode mode)
     {
-        return new CompressedSegmentedFile.Builder();
+        return mode == Config.DiskAccessMode.mmap
+                ? new CompressedMmappedSegmentedFile.Builder()
+                : new CompressedSegmentedFile.Builder();
     }
 
     public abstract FileDataInput getSegment(long position);
@@ -122,7 +124,7 @@ public abstract class SegmentedFile
         }
     }
 
-    static final class Segment extends Pair<Long, MappedByteBuffer> implements Comparable<Segment>
+    public static final class Segment extends Pair<Long, MappedByteBuffer> implements Comparable<Segment>
     {
         public Segment(long offset, MappedByteBuffer segment)
         {

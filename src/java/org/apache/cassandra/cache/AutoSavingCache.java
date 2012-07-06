@@ -138,6 +138,8 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
                 while (in.available() > 0)
                 {
                     Pair<K, V> entry = cacheLoader.deserialize(in, cfs);
+                    if (entry == null)
+                        continue;
                     put(entry.left, entry.right);
                     count++;
                 }

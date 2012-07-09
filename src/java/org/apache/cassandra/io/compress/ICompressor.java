@@ -18,7 +18,11 @@
 package org.apache.cassandra.io.compress;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.Maps;
 
 public interface ICompressor
 {
@@ -26,7 +30,13 @@ public interface ICompressor
 
     public int compress(byte[] input, int inputOffset, int inputLength, WrappedArray output, int outputOffset) throws IOException;
 
+    public int compress(ByteBuffer uncompressed, ByteBuffer compressed) throws IOException;
+
     public int uncompress(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset) throws IOException;
+
+    public int uncompress(ByteBuffer compressed, ByteBuffer uncompressed) throws IOException;
+
+    public boolean handlesDirectByteBuffer();
 
     public Set<String> supportedOptions();
 
@@ -45,6 +55,25 @@ public interface ICompressor
         public WrappedArray(byte[] buffer)
         {
             this.buffer = buffer;
+        }
+    }
+    
+    public static class DirectBufferThreadLocal extends ThreadLocal<Map<Integer, ByteBuffer>>
+    {
+        protected Map<Integer, ByteBuffer> initialValue()
+        {
+            return Maps.newHashMap();
+        }
+        
+        public ByteBuffer get(int length)
+        {
+            ByteBuffer buffer = get().get(length);
+            if (get().get(length) == null)
+            {
+                buffer = ByteBuffer.allocateDirect(length);
+                get().put(length, buffer);
+            }
+            return buffer;
         }
     }
 }

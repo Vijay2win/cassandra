@@ -163,6 +163,7 @@ public class SchemaLoader
                                            standardCFMD(ks1, "Standard2", withOldCfIds),
                                            standardCFMD(ks1, "Standard3", withOldCfIds),
                                            standardCFMD(ks1, "Standard4", withOldCfIds),
+                                           enableCompress(standardCFMD(ks1, "Standard5", withOldCfIds)),
                                            standardCFMD(ks1, "StandardLong1", withOldCfIds),
                                            standardCFMD(ks1, "StandardLong2", withOldCfIds),
                                            new CFMetaData(ks1,
@@ -292,6 +293,12 @@ public class SchemaLoader
             useCompression(schema);
 
         return schema;
+    }
+
+    private static CFMetaData enableCompress(CFMetaData cfm)
+    {
+        cfm.compressionParameters(new CompressionParameters(SnappyCompressor.instance));
+        return cfm;
     }
 
     private static void useCompression(List<KSMetaData> schema)

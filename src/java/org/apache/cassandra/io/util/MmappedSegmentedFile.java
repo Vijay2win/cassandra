@@ -47,7 +47,7 @@ public class MmappedSegmentedFile extends SegmentedFile
      * segment would be too long to mmap, the value for an offset will be null, indicating that we need to fall back
      * to a RandomAccessFile.
      */
-    private final Segment[] segments;
+    protected final Segment[] segments;
 
     public MmappedSegmentedFile(String path, long length, Segment[] segments)
     {
@@ -60,7 +60,6 @@ public class MmappedSegmentedFile extends SegmentedFile
      */
     private Segment floor(long position)
     {
-        assert 0 <= position && position < length: position + " vs " + length;
         Segment seg = new Segment(position, null);
         int idx = Arrays.binarySearch(segments, seg);
         assert idx != -1 : "Bad position " + position + " in segments " + Arrays.toString(segments);
@@ -75,6 +74,7 @@ public class MmappedSegmentedFile extends SegmentedFile
      */
     public FileDataInput getSegment(long position)
     {
+        assert 0 <= position && position < length: position + " vs " + length;
         Segment segment = floor(position);
         if (segment.right != null)
         {

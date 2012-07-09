@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 import org.junit.Test;
 
@@ -305,7 +304,7 @@ public class SSTableReaderTest extends SchemaLoader
 
         SegmentedFile.Builder ibuilder = SegmentedFile.getBuilder(DatabaseDescriptor.getIndexAccessMode());
         SegmentedFile.Builder dbuilder = sstable.compression
-                                          ? SegmentedFile.getCompressedBuilder()
+                                          ? SegmentedFile.getCompressedBuilder(DatabaseDescriptor.getDiskAccessMode())
                                           : SegmentedFile.getBuilder(DatabaseDescriptor.getDiskAccessMode());
         SSTableReader.saveSummary(sstable, ibuilder, dbuilder);
 

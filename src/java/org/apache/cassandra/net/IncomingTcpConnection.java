@@ -24,12 +24,15 @@ import java.net.Socket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.cassandra.utils.vint.EncodedDataInputStream;
+import org.apache.cassandra.utils.vint.EncodedDataOutputStream;
 import org.xerial.snappy.SnappyInputStream;
 
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.streaming.IncomingStreamReader;
 import org.apache.cassandra.streaming.StreamHeader;
+import org.apache.cassandra.utils.FBUtilities;
 
 public class IncomingTcpConnection extends Thread
 {
@@ -90,7 +93,7 @@ public class IncomingTcpConnection extends Thread
         out.writeInt(MessagingService.current_version);
         out.flush();
 
-        DataInputStream in = new DataInputStream(socket.getInputStream());
+        DataInput in = new EncodedDataInputStream(new DataInputStream(socket.getInputStream()));
         int maxVersion = in.readInt();
         from = CompactEndpointSerializationHelper.deserialize(in);
         boolean compressed = MessagingService.getBits(header, 2, 1) == 1;
@@ -173,13 +176,13 @@ public class IncomingTcpConnection extends Thread
         }
     }
 
-    private InetAddress receiveMessage(DataInputStream input, int version) throws IOException
+    private InetAddress receiveMessage(DataInput in, int version) throws IOException
     {
         if (version <= MessagingService.VERSION_11)
-            input.readInt(); // size of entire message. in 1.0+ this is just a placeholder
+            in.readInt(); // size of entire message. in 1.0+ this is just a placeholder
 
-        String id = input.readUTF();
-        MessageIn message = MessageIn.read(input, version, id);
+        String id = in.readUTF();
+        MessageIn message = MessageIn.read(in, version, id);
         if (message == null)
         {
             // callback expired; nothing to do

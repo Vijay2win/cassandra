@@ -17,27 +17,29 @@
  */
 package org.apache.cassandra.utils.vint;
 
+import java.io.DataOutput;
 import java.io.IOException;
-import java.io.OutputStream;
 
 import org.apache.cassandra.io.util.AbstractDataOutput;
 
 /**
  * Borrows idea from
  * https://developers.google.com/protocol-buffers/docs/encoding#varints
+ *
+ * Ideally this would extend DataOutpuStream but that's not an option since methods we need to override are final there.
  */
 public class EncodedDataOutputStream extends AbstractDataOutput
 {
-    private OutputStream out;
+    private DataOutput out;
 
-    public EncodedDataOutputStream(OutputStream out)
+    public EncodedDataOutputStream(DataOutput out)
     {
         this.out = out;
     }
 
     public void write(int b) throws IOException
     {
-        out.write(b);
+        out.writeByte(b);
     }
 
     public void write(byte[] b) throws IOException

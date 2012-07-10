@@ -19,6 +19,7 @@ package org.apache.cassandra.io.util;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 
 /**
@@ -37,6 +38,11 @@ public final class DataOutputBuffer extends DataOutputStream
     public DataOutputBuffer(int size)
     {
         super(new FastByteArrayOutputStream(size));
+    }
+
+    public DataOutputBuffer(OutputStream stream)
+    {
+        super(stream);
     }
 
     @Override
@@ -78,5 +84,10 @@ public final class DataOutputBuffer extends DataOutputStream
     public int getLength()
     {
         return ((FastByteArrayOutputStream) out).count;
+    }
+
+    public void reset()
+    {
+        ((FastByteArrayOutputStream) out).reset();
     }
 }

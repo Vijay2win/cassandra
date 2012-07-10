@@ -17,7 +17,10 @@
  */
 package org.apache.cassandra.net;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
@@ -28,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.utils.FBUtilities;
-import org.apache.cassandra.utils.vint.EncodedDataOutputStream;
 import org.xerial.snappy.SnappyOutputStream;
 
 import org.apache.cassandra.config.Config;
@@ -49,10 +51,8 @@ public class OutboundTcpConnection extends Thread
 
     private final OutboundTcpConnectionPool poolReference;
 
-    private OutputStream outStream;
-    private DataOutput out;
+    private DataOutputStream out;
     private Socket socket;
-
     private volatile long completed;
     private final AtomicLong dropped = new AtomicLong();
     private int targetVersion;
@@ -165,11 +165,11 @@ public class OutboundTcpConnection extends Thread
     {
         try
         {
-            write(message, id, out, targetVersion);
+            write(message, id, out);
             completed++;
             if (active.peek() == null)
             {
-                outStream.flush();
+                out.flush();
             }
         }
         catch (Exception e)
@@ -183,7 +183,12 @@ public class OutboundTcpConnection extends Thread
         }
     }
 
-    public static void write(MessageOut<?> message, String id, DataOutput out, int version) throws IOException
+    public void write(MessageOut<?> message, String id, DataOutputStream out) throws IOException
+    {
+        write(message, id, out, targetVersion);
+    }
+
+    public static void write(MessageOut message, String id, DataOutputStream out, int version) throws IOException
     {
         out.writeInt(MessagingService.PROTOCOL_MAGIC);
         if (version < MessagingService.VERSION_12)
@@ -193,10 +198,11 @@ public class OutboundTcpConnection extends Thread
             out.writeInt(-1);
 
         out.writeUTF(id);
-        message.serialize(out, version);
+        // Use encoded stream.
+        message.serialize(FBUtilities.getEncodedOutput(out, version), version);
     }
 
-    private static void writeHeader(DataOutput out, int version, boolean compressionEnabled) throws IOException
+    private static void writeHeader(DataOutputStream out, int version, boolean compressionEnabled) throws IOException
     {
         // 2 bits: unused.  used to be "serializer type," which was always Binary
         // 1 bit: compression
@@ -225,7 +231,6 @@ public class OutboundTcpConnection extends Thread
                     logger.debug("exception closing connection to " + poolReference.endPoint(), e);
             }
             out = null;
-            outStream = null;
             socket = null;
         }
     }
@@ -245,14 +250,13 @@ public class OutboundTcpConnection extends Thread
                 socket = poolReference.newSocket();
                 socket.setKeepAlive(true);
                 socket.setTcpNoDelay(true);
-                outStream = new BufferedOutputStream(socket.getOutputStream(), 4096);
-                out = new DataOutputStream(outStream);
+                out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), 4096));
 
                 if (targetVersion >= MessagingService.VERSION_12)
                 {
                     out.writeInt(MessagingService.PROTOCOL_MAGIC);
                     writeHeader(out, targetVersion, shouldCompressConnection());
-                    outStream.flush();
+                    out.flush();
 
                     DataInputStream in = new DataInputStream(socket.getInputStream());
                     int maxTargetVersion = in.readInt();
@@ -274,11 +278,9 @@ public class OutboundTcpConnection extends Thread
 
                     out.writeInt(MessagingService.current_version);
                     CompactEndpointSerializationHelper.serialize(FBUtilities.getBroadcastAddress(), out);
-
-                    out = new EncodedDataOutputStream(out);
                     if (shouldCompressConnection())
                     {
-                        outStream.flush();
+                        out.flush();
                         logger.debug("Upgrading OutputStream to be compressed");
                         out = new DataOutputStream(new SnappyOutputStream(new BufferedOutputStream(socket.getOutputStream())));
                     }

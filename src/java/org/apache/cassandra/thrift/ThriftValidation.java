@@ -25,8 +25,10 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.config.*;
 import org.apache.cassandra.db.*;
+import org.apache.cassandra.db.filter.ColumnSlice;
 import org.apache.cassandra.db.filter.IFilter;
 import org.apache.cassandra.db.filter.NamesQueryFilter;
+import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.db.filter.SliceQueryFilter;
 import org.apache.cassandra.db.index.SecondaryIndexManager;
 import org.apache.cassandra.db.marshal.AbstractType;
@@ -254,28 +256,30 @@ public class ThriftValidation
         validateColumnNames(metadata, column_parent.super_column, column_names);
     }
 
-    public static void validateRange(CFMetaData metadata, ColumnParent column_parent, SliceRange range) throws InvalidRequestException
+    public static void validateRange(CFMetaData metadata, ColumnParent column_parent, ByteBuffer start, ByteBuffer finish, boolean isReversed, int count) 
+            throws InvalidRequestException
     {
         AbstractType<?> comparator = metadata.getComparatorFor(column_parent.super_column);
         try
         {
-            comparator.validate(range.start);
-            comparator.validate(range.finish);
+            comparator.validate(start);
+            comparator.validate(finish);
         }
         catch (MarshalException e)
         {
             throw new InvalidRequestException(e.getMessage());
         }
 
-        if (range.count < 0)
+        if (count < 0)
             throw new InvalidRequestException("get_slice requires non-negative count");
 
-        Comparator<ByteBuffer> orderedComparator = range.isReversed() ? comparator.reverseComparator : comparator;
-        if (range.start.remaining() > 0
-            && range.finish.remaining() > 0
-            && orderedComparator.compare(range.start, range.finish) > 0)
+        Comparator<ByteBuffer> orderedComparator = isReversed ? comparator.reverseComparator : comparator;
+        if (start.remaining() > 0
+            && finish.remaining() > 0
+            && orderedComparator.compare(start, finish) > 0)
         {
-            throw new InvalidRequestException("range finish must come after start in the order of traversal");
+            throw new InvalidRequestException("range finish must come after start in the order of traversal. " +
+            		                          "In case of multi range slice, ranges should be in order and should not be overlapping");
         }
     }
 
@@ -404,7 +408,7 @@ public class ThriftValidation
             throw new InvalidRequestException("A SlicePredicate must be given a list of Columns, a SliceRange, or both");
 
         if (predicate.slice_range != null)
-            validateRange(metadata, new ColumnParent(metadata.cfName).setSuper_column(scName), predicate.slice_range);
+            validateRange(metadata, new ColumnParent(metadata.cfName).setSuper_column(scName), predicate.slice_range.start, predicate.slice_range.finish, predicate.slice_range.reversed, predicate.slice_range.count);
 
         if (predicate.column_names != null)
             validateColumnNames(metadata, scName, predicate.column_names);
@@ -464,13 +468,24 @@ public class ThriftValidation
     public static void validatePredicate(CFMetaData metadata, ColumnParent column_parent, SlicePredicate predicate)
             throws InvalidRequestException
     {
-        if (predicate.column_names == null && predicate.slice_range == null)
-            throw new InvalidRequestException("predicate column_names and slice_range may not both be null");
+        if (predicate.column_names == null && predicate.slice_range == null && predicate.multi_slice_ranges == null)
+            throw new InvalidRequestException("predicate multi_slice_ranges, column_names and slice_range may not be null");
         if (predicate.column_names != null && predicate.slice_range != null)
             throw new InvalidRequestException("predicate column_names and slice_range may not both be present");
 
-        if (predicate.getSlice_range() != null)
-            validateRange(metadata, column_parent, predicate.slice_range);
+        if (predicate.getMulti_slice_ranges() != null)
+        {
+            List<ColumnRange> column_ranges = predicate.getMulti_slice_ranges().column_ranges;
+            for (int i = 0; i < column_ranges.size(); i++)
+            {
+                ColumnRange range = column_ranges.get(i);
+                validateRange(metadata, column_parent, range.start, range.finish, predicate.getMulti_slice_ranges().reversed, predicate.getMulti_slice_ranges().count);
+                if (i != 0)
+                    validateRange(metadata, column_parent, column_ranges.get(i - 1).finish, range.start, predicate.getMulti_slice_ranges().reversed, predicate.getMulti_slice_ranges().count);
+            }
+        }
+        else if (predicate.getSlice_range() != null)
+            validateRange(metadata, column_parent, predicate.slice_range.start, predicate.slice_range.finish, predicate.slice_range.isReversed(), predicate.slice_range.count);
         else
             validateColumnNames(metadata, column_parent, predicate.column_names);
     }
@@ -608,6 +623,17 @@ public class ThriftValidation
 
     public static IFilter asIFilter(SlicePredicate sp, AbstractType<?> comparator)
     {
+        if (sp.multi_slice_ranges != null)
+        {
+            MultiSliceRange ranges = sp.multi_slice_ranges;
+            ColumnSlice[] slices = new ColumnSlice[ranges.column_ranges.size()];
+            for (int i = 0; i < ranges.column_ranges.size(); i++)
+            {
+                ColumnRange r = ranges.column_ranges.get(i);
+                slices[i] = new ColumnSlice(r.start , r.finish);
+            }
+            return new SliceQueryFilter(slices, ranges.reversed, ranges.count);
+        }
         SliceRange sr = sp.slice_range;
         if (sr == null)
         {

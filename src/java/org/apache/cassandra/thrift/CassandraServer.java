@@ -38,8 +38,10 @@ import org.apache.cassandra.cql.CQLStatement;
 import org.apache.cassandra.cql.QueryProcessor;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.context.CounterContext;
+import org.apache.cassandra.db.filter.ColumnSlice;
 import org.apache.cassandra.db.filter.IFilter;
 import org.apache.cassandra.db.filter.QueryPath;
+import org.apache.cassandra.db.filter.SliceQueryFilter;
 import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.dht.*;
 import org.apache.cassandra.io.util.DataOutputBuffer;
@@ -334,6 +336,23 @@ public class CassandraServer implements Cassandra.Iface
                 ThriftValidation.validateKey(metadata, key);
                 commands.add(new SliceByNamesReadCommand(keyspace, key, column_parent, predicate.column_names));
             }
+        }
+        else if (predicate.multi_slice_ranges != null)
+        {
+            MultiSliceRange ranges = predicate.multi_slice_ranges;
+
+            ColumnSlice[] slices = new ColumnSlice[ranges.column_ranges.size()];
+            for (int i = 0; i < ranges.column_ranges.size(); i++)
+            {
+                ColumnRange r = ranges.column_ranges.get(i);
+                slices[i] = new ColumnSlice(r.start , r.finish);
+            }
+            for (ByteBuffer key: keys)
+            {
+                ThriftValidation.validateKey(metadata, key);
+                SliceQueryFilter filter = new SliceQueryFilter(slices, ranges.reversed, ranges.count);
+                commands.add(new SliceFromReadCommand(keyspace, key, new QueryPath(column_parent), filter));
+            }            
         }
         else
         {
@@ -764,7 +783,7 @@ public class CassandraServer implements Cassandra.Iface
     private List<KeySlice> thriftifyKeySlices(List<Row> rows, ColumnParent column_parent, SlicePredicate predicate)
     {
         List<KeySlice> keySlices = new ArrayList<KeySlice>(rows.size());
-        boolean reversed = predicate.slice_range != null && predicate.slice_range.reversed;
+        boolean reversed = (predicate.multi_slice_ranges != null || predicate.slice_range != null) && predicate.slice_range.reversed;
         for (Row row : rows)
         {
             List<ColumnOrSuperColumn> thriftifiedColumns = thriftifyColumnFamily(row.cf, column_parent.super_column != null, reversed);

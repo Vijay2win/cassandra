@@ -245,6 +245,11 @@ struct ColumnPath {
     5: optional binary column,
 }
 
+struct ColumnRange {
+    1: required binary start,
+    2: required binary finish,
+}
+
 /**
     A slice range is a structure that stores basic range, ordering and limit information for a query that will return
     multiple columns. It could be thought of as Cassandra's version of LIMIT and ORDER BY
@@ -269,6 +274,26 @@ struct SliceRange {
 }
 
 /**
+    Multi slice range is similar to slice range except it contains multiple column ranges (start and finish). 
+    To be valid, the ranges must be sorted and non-overlapping and each range must be valid.
+
+    @param column_ranges. Contains start finish column pairs. 
+    @param finish. The column name to stop the slice at. This attribute is not required, though there is no default value,
+                   and can be safely set to an empty byte array to not stop until 'count' results are seen. Otherwise, it
+                   must also be a valid value to the ColumnFamily Comparator.
+    @param reversed. Whether the results should be ordered in reversed order. Similar to ORDER BY blah DESC in SQL.
+    @param count. How many columns to return. Similar to LIMIT in SQL. May be arbitrarily large, but Thrift will
+                  materialize the whole result into memory before returning it to the client, so be aware that you may
+                  be better served by iterating through slices by passing the last value of one call in as the 'start'
+                  of the next instead of increasing 'count' arbitrarily large.
+ */
+struct MultiSliceRange {
+    1: required list<ColumnRange> column_ranges,
+    2: required bool reversed=0,
+    3: required i32 count=100,
+}
+
+/**
     A SlicePredicate is similar to a mathematic predicate (see http://en.wikipedia.org/wiki/Predicate_(mathematical_logic)),
     which is described as "a property that the elements of a set have in common."
 
@@ -283,6 +308,7 @@ struct SliceRange {
 struct SlicePredicate {
     1: optional list<binary> column_names,
     2: optional SliceRange   slice_range,
+    3: optional MultiSliceRange multi_slice_ranges,
 }
 
 enum IndexOperator {

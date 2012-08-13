@@ -654,13 +654,13 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
         case 3: // ENDPOINTS
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list24 = iprot.readListBegin();
-              this.endpoints = new ArrayList<String>(_list24.size);
-              for (int _i25 = 0; _i25 < _list24.size; ++_i25)
+              org.apache.thrift.protocol.TList _list28 = iprot.readListBegin();
+              this.endpoints = new ArrayList<String>(_list28.size);
+              for (int _i29 = 0; _i29 < _list28.size; ++_i29)
               {
-                String _elem26; // required
-                _elem26 = iprot.readString();
-                this.endpoints.add(_elem26);
+                String _elem30; // required
+                _elem30 = iprot.readString();
+                this.endpoints.add(_elem30);
               }
               iprot.readListEnd();
             }
@@ -671,13 +671,13 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
         case 4: // RPC_ENDPOINTS
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list27 = iprot.readListBegin();
-              this.rpc_endpoints = new ArrayList<String>(_list27.size);
-              for (int _i28 = 0; _i28 < _list27.size; ++_i28)
+              org.apache.thrift.protocol.TList _list31 = iprot.readListBegin();
+              this.rpc_endpoints = new ArrayList<String>(_list31.size);
+              for (int _i32 = 0; _i32 < _list31.size; ++_i32)
               {
-                String _elem29; // required
-                _elem29 = iprot.readString();
-                this.rpc_endpoints.add(_elem29);
+                String _elem33; // required
+                _elem33 = iprot.readString();
+                this.rpc_endpoints.add(_elem33);
               }
               iprot.readListEnd();
             }
@@ -688,14 +688,14 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
         case 5: // ENDPOINT_DETAILS
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list30 = iprot.readListBegin();
-              this.endpoint_details = new ArrayList<EndpointDetails>(_list30.size);
-              for (int _i31 = 0; _i31 < _list30.size; ++_i31)
+              org.apache.thrift.protocol.TList _list34 = iprot.readListBegin();
+              this.endpoint_details = new ArrayList<EndpointDetails>(_list34.size);
+              for (int _i35 = 0; _i35 < _list34.size; ++_i35)
               {
-                EndpointDetails _elem32; // required
-                _elem32 = new EndpointDetails();
-                _elem32.read(iprot);
-                this.endpoint_details.add(_elem32);
+                EndpointDetails _elem36; // required
+                _elem36 = new EndpointDetails();
+                _elem36.read(iprot);
+                this.endpoint_details.add(_elem36);
               }
               iprot.readListEnd();
             }
@@ -732,9 +732,9 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
       oprot.writeFieldBegin(ENDPOINTS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.endpoints.size()));
-        for (String _iter33 : this.endpoints)
+        for (String _iter37 : this.endpoints)
         {
-          oprot.writeString(_iter33);
+          oprot.writeString(_iter37);
         }
         oprot.writeListEnd();
       }
@@ -745,9 +745,9 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
         oprot.writeFieldBegin(RPC_ENDPOINTS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.rpc_endpoints.size()));
-          for (String _iter34 : this.rpc_endpoints)
+          for (String _iter38 : this.rpc_endpoints)
           {
-            oprot.writeString(_iter34);
+            oprot.writeString(_iter38);
           }
           oprot.writeListEnd();
         }
@@ -759,9 +759,9 @@ public class TokenRange implements org.apache.thrift.TBase<TokenRange, TokenRang
         oprot.writeFieldBegin(ENDPOINT_DETAILS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.endpoint_details.size()));
-          for (EndpointDetails _iter35 : this.endpoint_details)
+          for (EndpointDetails _iter39 : this.endpoint_details)
           {
-            _iter35.write(oprot);
+            _iter39.write(oprot);
           }
           oprot.writeListEnd();
         }

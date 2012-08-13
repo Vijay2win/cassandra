@@ -557,13 +557,13 @@ public class CqlPreparedResult implements org.apache.thrift.TBase<CqlPreparedRes
         case 3: // VARIABLE_TYPES
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list87 = iprot.readListBegin();
-              this.variable_types = new ArrayList<String>(_list87.size);
-              for (int _i88 = 0; _i88 < _list87.size; ++_i88)
+              org.apache.thrift.protocol.TList _list91 = iprot.readListBegin();
+              this.variable_types = new ArrayList<String>(_list91.size);
+              for (int _i92 = 0; _i92 < _list91.size; ++_i92)
               {
-                String _elem89; // required
-                _elem89 = iprot.readString();
-                this.variable_types.add(_elem89);
+                String _elem93; // required
+                _elem93 = iprot.readString();
+                this.variable_types.add(_elem93);
               }
               iprot.readListEnd();
             }
@@ -574,13 +574,13 @@ public class CqlPreparedResult implements org.apache.thrift.TBase<CqlPreparedRes
         case 4: // VARIABLE_NAMES
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list90 = iprot.readListBegin();
-              this.variable_names = new ArrayList<String>(_list90.size);
-              for (int _i91 = 0; _i91 < _list90.size; ++_i91)
+              org.apache.thrift.protocol.TList _list94 = iprot.readListBegin();
+              this.variable_names = new ArrayList<String>(_list94.size);
+              for (int _i95 = 0; _i95 < _list94.size; ++_i95)
               {
-                String _elem92; // required
-                _elem92 = iprot.readString();
-                this.variable_names.add(_elem92);
+                String _elem96; // required
+                _elem96 = iprot.readString();
+                this.variable_names.add(_elem96);
               }
               iprot.readListEnd();
             }
@@ -620,9 +620,9 @@ public class CqlPreparedResult implements org.apache.thrift.TBase<CqlPreparedRes
         oprot.writeFieldBegin(VARIABLE_TYPES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.variable_types.size()));
-          for (String _iter93 : this.variable_types)
+          for (String _iter97 : this.variable_types)
           {
-            oprot.writeString(_iter93);
+            oprot.writeString(_iter97);
           }
           oprot.writeListEnd();
         }
@@ -634,9 +634,9 @@ public class CqlPreparedResult implements org.apache.thrift.TBase<CqlPreparedRes
         oprot.writeFieldBegin(VARIABLE_NAMES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.variable_names.size()));
-          for (String _iter94 : this.variable_names)
+          for (String _iter98 : this.variable_names)
           {
-            oprot.writeString(_iter94);
+            oprot.writeString(_iter98);
           }
           oprot.writeListEnd();
         }

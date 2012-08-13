@@ -42,24 +42,21 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @Deprecated: use a KeyRange with row_filter in get_range_slices instead
- */
-public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexClause._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IndexClause");
+public class MultiSliceRange implements org.apache.thrift.TBase<MultiSliceRange, MultiSliceRange._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("MultiSliceRange");
 
-  private static final org.apache.thrift.protocol.TField EXPRESSIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("expressions", org.apache.thrift.protocol.TType.LIST, (short)1);
-  private static final org.apache.thrift.protocol.TField START_KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("start_key", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField COLUMN_RANGES_FIELD_DESC = new org.apache.thrift.protocol.TField("column_ranges", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField REVERSED_FIELD_DESC = new org.apache.thrift.protocol.TField("reversed", org.apache.thrift.protocol.TType.BOOL, (short)2);
   private static final org.apache.thrift.protocol.TField COUNT_FIELD_DESC = new org.apache.thrift.protocol.TField("count", org.apache.thrift.protocol.TType.I32, (short)3);
 
-  public List<IndexExpression> expressions; // required
-  public ByteBuffer start_key; // required
+  public List<ColumnRange> column_ranges; // required
+  public boolean reversed; // required
   public int count; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    EXPRESSIONS((short)1, "expressions"),
-    START_KEY((short)2, "start_key"),
+    COLUMN_RANGES((short)1, "column_ranges"),
+    REVERSED((short)2, "reversed"),
     COUNT((short)3, "count");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -75,10 +72,10 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // EXPRESSIONS
-          return EXPRESSIONS;
-        case 2: // START_KEY
-          return START_KEY;
+        case 1: // COLUMN_RANGES
+          return COLUMN_RANGES;
+        case 2: // REVERSED
+          return REVERSED;
         case 3: // COUNT
           return COUNT;
         default:
@@ -121,36 +118,40 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
   }
 
   // isset id assignments
-  private static final int __COUNT_ISSET_ID = 0;
-  private BitSet __isset_bit_vector = new BitSet(1);
+  private static final int __REVERSED_ISSET_ID = 0;
+  private static final int __COUNT_ISSET_ID = 1;
+  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXPRESSIONS, new org.apache.thrift.meta_data.FieldMetaData("expressions", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.COLUMN_RANGES, new org.apache.thrift.meta_data.FieldMetaData("column_ranges", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, IndexExpression.class))));
-    tmpMap.put(_Fields.START_KEY, new org.apache.thrift.meta_data.FieldMetaData("start_key", org.apache.thrift.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ColumnRange.class))));
+    tmpMap.put(_Fields.REVERSED, new org.apache.thrift.meta_data.FieldMetaData("reversed", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     tmpMap.put(_Fields.COUNT, new org.apache.thrift.meta_data.FieldMetaData("count", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(IndexClause.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MultiSliceRange.class, metaDataMap);
   }
 
-  public IndexClause() {
+  public MultiSliceRange() {
+    this.reversed = false;
+
     this.count = 100;
 
   }
 
-  public IndexClause(
-    List<IndexExpression> expressions,
-    ByteBuffer start_key,
+  public MultiSliceRange(
+    List<ColumnRange> column_ranges,
+    boolean reversed,
     int count)
   {
     this();
-    this.expressions = expressions;
-    this.start_key = start_key;
+    this.column_ranges = column_ranges;
+    this.reversed = reversed;
+    setReversedIsSet(true);
     this.count = count;
     setCountIsSet(true);
   }
@@ -158,113 +159,100 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public IndexClause(IndexClause other) {
+  public MultiSliceRange(MultiSliceRange other) {
     __isset_bit_vector.clear();
     __isset_bit_vector.or(other.__isset_bit_vector);
-    if (other.isSetExpressions()) {
-      List<IndexExpression> __this__expressions = new ArrayList<IndexExpression>();
-      for (IndexExpression other_element : other.expressions) {
-        __this__expressions.add(new IndexExpression(other_element));
+    if (other.isSetColumn_ranges()) {
+      List<ColumnRange> __this__column_ranges = new ArrayList<ColumnRange>();
+      for (ColumnRange other_element : other.column_ranges) {
+        __this__column_ranges.add(new ColumnRange(other_element));
       }
-      this.expressions = __this__expressions;
+      this.column_ranges = __this__column_ranges;
     }
-    if (other.isSetStart_key()) {
-      this.start_key = org.apache.thrift.TBaseHelper.copyBinary(other.start_key);
-;
-    }
+    this.reversed = other.reversed;
     this.count = other.count;
   }
 
-  public IndexClause deepCopy() {
-    return new IndexClause(this);
+  public MultiSliceRange deepCopy() {
+    return new MultiSliceRange(this);
   }
 
   @Override
   public void clear() {
-    this.expressions = null;
-    this.start_key = null;
+    this.column_ranges = null;
+    this.reversed = false;
+
     this.count = 100;
 
   }
 
-  public int getExpressionsSize() {
-    return (this.expressions == null) ? 0 : this.expressions.size();
+  public int getColumn_rangesSize() {
+    return (this.column_ranges == null) ? 0 : this.column_ranges.size();
   }
 
-  public java.util.Iterator<IndexExpression> getExpressionsIterator() {
-    return (this.expressions == null) ? null : this.expressions.iterator();
+  public java.util.Iterator<ColumnRange> getColumn_rangesIterator() {
+    return (this.column_ranges == null) ? null : this.column_ranges.iterator();
   }
 
-  public void addToExpressions(IndexExpression elem) {
-    if (this.expressions == null) {
-      this.expressions = new ArrayList<IndexExpression>();
+  public void addToColumn_ranges(ColumnRange elem) {
+    if (this.column_ranges == null) {
+      this.column_ranges = new ArrayList<ColumnRange>();
     }
-    this.expressions.add(elem);
+    this.column_ranges.add(elem);
   }
 
-  public List<IndexExpression> getExpressions() {
-    return this.expressions;
+  public List<ColumnRange> getColumn_ranges() {
+    return this.column_ranges;
   }
 
-  public IndexClause setExpressions(List<IndexExpression> expressions) {
-    this.expressions = expressions;
+  public MultiSliceRange setColumn_ranges(List<ColumnRange> column_ranges) {
+    this.column_ranges = column_ranges;
     return this;
   }
 
-  public void unsetExpressions() {
-    this.expressions = null;
+  public void unsetColumn_ranges() {
+    this.column_ranges = null;
   }
 
-  /** Returns true if field expressions is set (has been assigned a value) and false otherwise */
-  public boolean isSetExpressions() {
-    return this.expressions != null;
+  /** Returns true if field column_ranges is set (has been assigned a value) and false otherwise */
+  public boolean isSetColumn_ranges() {
+    return this.column_ranges != null;
   }
 
-  public void setExpressionsIsSet(boolean value) {
+  public void setColumn_rangesIsSet(boolean value) {
     if (!value) {
-      this.expressions = null;
+      this.column_ranges = null;
     }
   }
 
-  public byte[] getStart_key() {
-    setStart_key(org.apache.thrift.TBaseHelper.rightSize(start_key));
-    return start_key == null ? null : start_key.array();
+  public boolean isReversed() {
+    return this.reversed;
   }
 
-  public ByteBuffer bufferForStart_key() {
-    return start_key;
-  }
-
-  public IndexClause setStart_key(byte[] start_key) {
-    setStart_key(start_key == null ? (ByteBuffer)null : ByteBuffer.wrap(start_key));
+  public MultiSliceRange setReversed(boolean reversed) {
+    this.reversed = reversed;
+    setReversedIsSet(true);
     return this;
   }
 
-  public IndexClause setStart_key(ByteBuffer start_key) {
-    this.start_key = start_key;
-    return this;
+  public void unsetReversed() {
+    __isset_bit_vector.clear(__REVERSED_ISSET_ID);
   }
 
-  public void unsetStart_key() {
-    this.start_key = null;
+  /** Returns true if field reversed is set (has been assigned a value) and false otherwise */
+  public boolean isSetReversed() {
+    return __isset_bit_vector.get(__REVERSED_ISSET_ID);
   }
 
-  /** Returns true if field start_key is set (has been assigned a value) and false otherwise */
-  public boolean isSetStart_key() {
-    return this.start_key != null;
-  }
-
-  public void setStart_keyIsSet(boolean value) {
-    if (!value) {
-      this.start_key = null;
-    }
+  public void setReversedIsSet(boolean value) {
+    __isset_bit_vector.set(__REVERSED_ISSET_ID, value);
   }
 
   public int getCount() {
     return this.count;
   }
 
-  public IndexClause setCount(int count) {
+  public MultiSliceRange setCount(int count) {
     this.count = count;
     setCountIsSet(true);
     return this;
@@ -285,19 +273,19 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case EXPRESSIONS:
+    case COLUMN_RANGES:
       if (value == null) {
-        unsetExpressions();
+        unsetColumn_ranges();
       } else {
-        setExpressions((List<IndexExpression>)value);
+        setColumn_ranges((List<ColumnRange>)value);
       }
       break;
 
-    case START_KEY:
+    case REVERSED:
       if (value == null) {
-        unsetStart_key();
+        unsetReversed();
       } else {
-        setStart_key((ByteBuffer)value);
+        setReversed((Boolean)value);
       }
       break;
 
@@ -314,11 +302,11 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case EXPRESSIONS:
-      return getExpressions();
+    case COLUMN_RANGES:
+      return getColumn_ranges();
 
-    case START_KEY:
-      return getStart_key();
+    case REVERSED:
+      return Boolean.valueOf(isReversed());
 
     case COUNT:
       return Integer.valueOf(getCount());
@@ -334,10 +322,10 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
     }
 
     switch (field) {
-    case EXPRESSIONS:
-      return isSetExpressions();
-    case START_KEY:
-      return isSetStart_key();
+    case COLUMN_RANGES:
+      return isSetColumn_ranges();
+    case REVERSED:
+      return isSetReversed();
     case COUNT:
       return isSetCount();
     }
@@ -348,30 +336,30 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof IndexClause)
-      return this.equals((IndexClause)that);
+    if (that instanceof MultiSliceRange)
+      return this.equals((MultiSliceRange)that);
     return false;
   }
 
-  public boolean equals(IndexClause that) {
+  public boolean equals(MultiSliceRange that) {
     if (that == null)
       return false;
 
-    boolean this_present_expressions = true && this.isSetExpressions();
-    boolean that_present_expressions = true && that.isSetExpressions();
-    if (this_present_expressions || that_present_expressions) {
-      if (!(this_present_expressions && that_present_expressions))
+    boolean this_present_column_ranges = true && this.isSetColumn_ranges();
+    boolean that_present_column_ranges = true && that.isSetColumn_ranges();
+    if (this_present_column_ranges || that_present_column_ranges) {
+      if (!(this_present_column_ranges && that_present_column_ranges))
         return false;
-      if (!this.expressions.equals(that.expressions))
+      if (!this.column_ranges.equals(that.column_ranges))
         return false;
     }
 
-    boolean this_present_start_key = true && this.isSetStart_key();
-    boolean that_present_start_key = true && that.isSetStart_key();
-    if (this_present_start_key || that_present_start_key) {
-      if (!(this_present_start_key && that_present_start_key))
+    boolean this_present_reversed = true;
+    boolean that_present_reversed = true;
+    if (this_present_reversed || that_present_reversed) {
+      if (!(this_present_reversed && that_present_reversed))
         return false;
-      if (!this.start_key.equals(that.start_key))
+      if (this.reversed != that.reversed)
         return false;
     }
 
@@ -391,15 +379,15 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_expressions = true && (isSetExpressions());
-    builder.append(present_expressions);
-    if (present_expressions)
-      builder.append(expressions);
+    boolean present_column_ranges = true && (isSetColumn_ranges());
+    builder.append(present_column_ranges);
+    if (present_column_ranges)
+      builder.append(column_ranges);
 
-    boolean present_start_key = true && (isSetStart_key());
-    builder.append(present_start_key);
-    if (present_start_key)
-      builder.append(start_key);
+    boolean present_reversed = true;
+    builder.append(present_reversed);
+    if (present_reversed)
+      builder.append(reversed);
 
     boolean present_count = true;
     builder.append(present_count);
@@ -409,30 +397,30 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
     return builder.toHashCode();
   }
 
-  public int compareTo(IndexClause other) {
+  public int compareTo(MultiSliceRange other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    IndexClause typedOther = (IndexClause)other;
+    MultiSliceRange typedOther = (MultiSliceRange)other;
 
-    lastComparison = Boolean.valueOf(isSetExpressions()).compareTo(typedOther.isSetExpressions());
+    lastComparison = Boolean.valueOf(isSetColumn_ranges()).compareTo(typedOther.isSetColumn_ranges());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetExpressions()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.expressions, typedOther.expressions);
+    if (isSetColumn_ranges()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.column_ranges, typedOther.column_ranges);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetStart_key()).compareTo(typedOther.isSetStart_key());
+    lastComparison = Boolean.valueOf(isSetReversed()).compareTo(typedOther.isSetReversed());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStart_key()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.start_key, typedOther.start_key);
+    if (isSetReversed()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.reversed, typedOther.reversed);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -464,17 +452,17 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
         break;
       }
       switch (field.id) {
-        case 1: // EXPRESSIONS
+        case 1: // COLUMN_RANGES
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
-              this.expressions = new ArrayList<IndexExpression>(_list16.size);
-              for (int _i17 = 0; _i17 < _list16.size; ++_i17)
+              org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
+              this.column_ranges = new ArrayList<ColumnRange>(_list8.size);
+              for (int _i9 = 0; _i9 < _list8.size; ++_i9)
               {
-                IndexExpression _elem18; // required
-                _elem18 = new IndexExpression();
-                _elem18.read(iprot);
-                this.expressions.add(_elem18);
+                ColumnRange _elem10; // required
+                _elem10 = new ColumnRange();
+                _elem10.read(iprot);
+                this.column_ranges.add(_elem10);
               }
               iprot.readListEnd();
             }
@@ -482,9 +470,10 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 2: // START_KEY
-          if (field.type == org.apache.thrift.protocol.TType.STRING) {
-            this.start_key = iprot.readBinary();
+        case 2: // REVERSED
+          if (field.type == org.apache.thrift.protocol.TType.BOOL) {
+            this.reversed = iprot.readBool();
+            setReversedIsSet(true);
           } else { 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -505,6 +494,9 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
     iprot.readStructEnd();
 
     // check for required fields of primitive type, which can't be checked in the validate method
+    if (!isSetReversed()) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'reversed' was not found in serialized data! Struct: " + toString());
+    }
     if (!isSetCount()) {
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'count' was not found in serialized data! Struct: " + toString());
     }
@@ -515,23 +507,21 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    if (this.expressions != null) {
-      oprot.writeFieldBegin(EXPRESSIONS_FIELD_DESC);
+    if (this.column_ranges != null) {
+      oprot.writeFieldBegin(COLUMN_RANGES_FIELD_DESC);
       {
-        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.expressions.size()));
-        for (IndexExpression _iter19 : this.expressions)
+        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.column_ranges.size()));
+        for (ColumnRange _iter11 : this.column_ranges)
         {
-          _iter19.write(oprot);
+          _iter11.write(oprot);
         }
         oprot.writeListEnd();
       }
       oprot.writeFieldEnd();
     }
-    if (this.start_key != null) {
-      oprot.writeFieldBegin(START_KEY_FIELD_DESC);
-      oprot.writeBinary(this.start_key);
-      oprot.writeFieldEnd();
-    }
+    oprot.writeFieldBegin(REVERSED_FIELD_DESC);
+    oprot.writeBool(this.reversed);
+    oprot.writeFieldEnd();
     oprot.writeFieldBegin(COUNT_FIELD_DESC);
     oprot.writeI32(this.count);
     oprot.writeFieldEnd();
@@ -541,23 +531,19 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("IndexClause(");
+    StringBuilder sb = new StringBuilder("MultiSliceRange(");
     boolean first = true;
 
-    sb.append("expressions:");
-    if (this.expressions == null) {
+    sb.append("column_ranges:");
+    if (this.column_ranges == null) {
       sb.append("null");
     } else {
-      sb.append(this.expressions);
+      sb.append(this.column_ranges);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("start_key:");
-    if (this.start_key == null) {
-      sb.append("null");
-    } else {
-      org.apache.thrift.TBaseHelper.toString(this.start_key, sb);
-    }
+    sb.append("reversed:");
+    sb.append(this.reversed);
     first = false;
     if (!first) sb.append(", ");
     sb.append("count:");
@@ -569,12 +555,10 @@ public class IndexClause implements org.apache.thrift.TBase<IndexClause, IndexCl
 
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
-    if (expressions == null) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'expressions' was not present! Struct: " + toString());
+    if (column_ranges == null) {
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'column_ranges' was not present! Struct: " + toString());
     }
-    if (start_key == null) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'start_key' was not present! Struct: " + toString());
-    }
+    // alas, we cannot check 'reversed' because it's a primitive and you chose the non-beans generator.
     // alas, we cannot check 'count' because it's a primitive and you chose the non-beans generator.
   }
 

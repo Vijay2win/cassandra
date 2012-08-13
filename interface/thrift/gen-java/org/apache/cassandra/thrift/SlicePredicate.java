@@ -59,14 +59,17 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
 
   private static final org.apache.thrift.protocol.TField COLUMN_NAMES_FIELD_DESC = new org.apache.thrift.protocol.TField("column_names", org.apache.thrift.protocol.TType.LIST, (short)1);
   private static final org.apache.thrift.protocol.TField SLICE_RANGE_FIELD_DESC = new org.apache.thrift.protocol.TField("slice_range", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift.protocol.TField MULTI_SLICE_RANGES_FIELD_DESC = new org.apache.thrift.protocol.TField("multi_slice_ranges", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
   public List<ByteBuffer> column_names; // required
   public SliceRange slice_range; // required
+  public MultiSliceRange multi_slice_ranges; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     COLUMN_NAMES((short)1, "column_names"),
-    SLICE_RANGE((short)2, "slice_range");
+    SLICE_RANGE((short)2, "slice_range"),
+    MULTI_SLICE_RANGES((short)3, "multi_slice_ranges");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -85,6 +88,8 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
           return COLUMN_NAMES;
         case 2: // SLICE_RANGE
           return SLICE_RANGE;
+        case 3: // MULTI_SLICE_RANGES
+          return MULTI_SLICE_RANGES;
         default:
           return null;
       }
@@ -134,6 +139,8 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
     tmpMap.put(_Fields.SLICE_RANGE, new org.apache.thrift.meta_data.FieldMetaData("slice_range", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SliceRange.class)));
+    tmpMap.put(_Fields.MULTI_SLICE_RANGES, new org.apache.thrift.meta_data.FieldMetaData("multi_slice_ranges", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, MultiSliceRange.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(SlicePredicate.class, metaDataMap);
   }
@@ -157,6 +164,9 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
     if (other.isSetSlice_range()) {
       this.slice_range = new SliceRange(other.slice_range);
     }
+    if (other.isSetMulti_slice_ranges()) {
+      this.multi_slice_ranges = new MultiSliceRange(other.multi_slice_ranges);
+    }
   }
 
   public SlicePredicate deepCopy() {
@@ -167,6 +177,7 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
   public void clear() {
     this.column_names = null;
     this.slice_range = null;
+    this.multi_slice_ranges = null;
   }
 
   public int getColumn_namesSize() {
@@ -232,6 +243,30 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
     }
   }
 
+  public MultiSliceRange getMulti_slice_ranges() {
+    return this.multi_slice_ranges;
+  }
+
+  public SlicePredicate setMulti_slice_ranges(MultiSliceRange multi_slice_ranges) {
+    this.multi_slice_ranges = multi_slice_ranges;
+    return this;
+  }
+
+  public void unsetMulti_slice_ranges() {
+    this.multi_slice_ranges = null;
+  }
+
+  /** Returns true if field multi_slice_ranges is set (has been assigned a value) and false otherwise */
+  public boolean isSetMulti_slice_ranges() {
+    return this.multi_slice_ranges != null;
+  }
+
+  public void setMulti_slice_rangesIsSet(boolean value) {
+    if (!value) {
+      this.multi_slice_ranges = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case COLUMN_NAMES:
@@ -250,6 +285,14 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
       }
       break;
 
+    case MULTI_SLICE_RANGES:
+      if (value == null) {
+        unsetMulti_slice_ranges();
+      } else {
+        setMulti_slice_ranges((MultiSliceRange)value);
+      }
+      break;
+
     }
   }
 
@@ -260,6 +303,9 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
 
     case SLICE_RANGE:
       return getSlice_range();
+
+    case MULTI_SLICE_RANGES:
+      return getMulti_slice_ranges();
 
     }
     throw new IllegalStateException();
@@ -276,6 +322,8 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
       return isSetColumn_names();
     case SLICE_RANGE:
       return isSetSlice_range();
+    case MULTI_SLICE_RANGES:
+      return isSetMulti_slice_ranges();
     }
     throw new IllegalStateException();
   }
@@ -311,6 +359,15 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
         return false;
     }
 
+    boolean this_present_multi_slice_ranges = true && this.isSetMulti_slice_ranges();
+    boolean that_present_multi_slice_ranges = true && that.isSetMulti_slice_ranges();
+    if (this_present_multi_slice_ranges || that_present_multi_slice_ranges) {
+      if (!(this_present_multi_slice_ranges && that_present_multi_slice_ranges))
+        return false;
+      if (!this.multi_slice_ranges.equals(that.multi_slice_ranges))
+        return false;
+    }
+
     return true;
   }
 
@@ -327,6 +384,11 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
     builder.append(present_slice_range);
     if (present_slice_range)
       builder.append(slice_range);
+
+    boolean present_multi_slice_ranges = true && (isSetMulti_slice_ranges());
+    builder.append(present_multi_slice_ranges);
+    if (present_multi_slice_ranges)
+      builder.append(multi_slice_ranges);
 
     return builder.toHashCode();
   }
@@ -359,6 +421,16 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetMulti_slice_ranges()).compareTo(typedOther.isSetMulti_slice_ranges());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetMulti_slice_ranges()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.multi_slice_ranges, typedOther.multi_slice_ranges);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -379,13 +451,13 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
         case 1: // COLUMN_NAMES
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-              this.column_names = new ArrayList<ByteBuffer>(_list8.size);
-              for (int _i9 = 0; _i9 < _list8.size; ++_i9)
+              org.apache.thrift.protocol.TList _list12 = iprot.readListBegin();
+              this.column_names = new ArrayList<ByteBuffer>(_list12.size);
+              for (int _i13 = 0; _i13 < _list12.size; ++_i13)
               {
-                ByteBuffer _elem10; // required
-                _elem10 = iprot.readBinary();
-                this.column_names.add(_elem10);
+                ByteBuffer _elem14; // required
+                _elem14 = iprot.readBinary();
+                this.column_names.add(_elem14);
               }
               iprot.readListEnd();
             }
@@ -397,6 +469,14 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
           if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
             this.slice_range = new SliceRange();
             this.slice_range.read(iprot);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 3: // MULTI_SLICE_RANGES
+          if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+            this.multi_slice_ranges = new MultiSliceRange();
+            this.multi_slice_ranges.read(iprot);
           } else { 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -421,9 +501,9 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
         oprot.writeFieldBegin(COLUMN_NAMES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.column_names.size()));
-          for (ByteBuffer _iter11 : this.column_names)
+          for (ByteBuffer _iter15 : this.column_names)
           {
-            oprot.writeBinary(_iter11);
+            oprot.writeBinary(_iter15);
           }
           oprot.writeListEnd();
         }
@@ -434,6 +514,13 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
       if (isSetSlice_range()) {
         oprot.writeFieldBegin(SLICE_RANGE_FIELD_DESC);
         this.slice_range.write(oprot);
+        oprot.writeFieldEnd();
+      }
+    }
+    if (this.multi_slice_ranges != null) {
+      if (isSetMulti_slice_ranges()) {
+        oprot.writeFieldBegin(MULTI_SLICE_RANGES_FIELD_DESC);
+        this.multi_slice_ranges.write(oprot);
         oprot.writeFieldEnd();
       }
     }
@@ -462,6 +549,16 @@ public class SlicePredicate implements org.apache.thrift.TBase<SlicePredicate, S
         sb.append("null");
       } else {
         sb.append(this.slice_range);
+      }
+      first = false;
+    }
+    if (isSetMulti_slice_ranges()) {
+      if (!first) sb.append(", ");
+      sb.append("multi_slice_ranges:");
+      if (this.multi_slice_ranges == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.multi_slice_ranges);
       }
       first = false;
     }

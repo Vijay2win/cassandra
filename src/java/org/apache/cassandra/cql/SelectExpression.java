@@ -20,6 +20,9 @@ package org.apache.cassandra.cql;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cassandra.utils.Pair;
+import org.apache.commons.lang.StringUtils;
+
 /**
  * Select expressions are analogous to the projection in a SQL query. They
  * determine which columns will appear in the result set.  SelectExpression
@@ -36,7 +39,7 @@ public class SelectExpression
     private boolean reverseColumns = false;
     private final boolean hasFirstSet;
     private final boolean wildcard;
-    private final Term start, finish;
+    private final List<Pair<Term, Term>> columnRanges;
     private final List<Term> columns;
 
     /**
@@ -51,13 +54,13 @@ public class SelectExpression
      */
     public SelectExpression(Term start, Term finish, int count, boolean reverse, boolean wildcard, boolean firstSet)
     {
-        this.start = start;
-        this.finish = finish;
         numColumns = count;
         reverseColumns = reverse;
         this.wildcard = wildcard;
         hasFirstSet = firstSet;
         this.columns = null;
+        columnRanges = new ArrayList<Pair<Term,Term>>();
+        columnRanges.add(new Pair<Term, Term>(start, finish));
     }
 
     /**
@@ -76,8 +79,7 @@ public class SelectExpression
         numColumns = count;
         reverseColumns = reverse;
         hasFirstSet = firstSet;
-        start = null;
-        finish = null;
+        columnRanges = null;
     }
 
     /**
@@ -91,15 +93,22 @@ public class SelectExpression
         columns.add(addTerm);
     }
 
+    public void and(Term startTerm, Term endTerm)
+    {
+        assert isColumnRange();
+        columnRanges.add(new Pair<Term, Term>(startTerm, endTerm));
+    }
+
     public boolean isColumnRange()
     {
-        return (start != null);
+        return (columnRanges != null);
     }
 
     public boolean isColumnList()
     {
         return !isColumnRange();
     }
+
     public int getColumnsLimit()
     {
         return numColumns;
@@ -128,14 +137,9 @@ public class SelectExpression
         return hasFirstSet;
     }
 
-    public Term getStart()
+    public List<Pair<Term, Term>> getColumnRanges()
     {
-        return start;
-    }
-
-    public Term getFinish()
-    {
-        return finish;
+        return columnRanges;
     }
 
     public List<Term> getColumns()
@@ -155,9 +159,8 @@ public class SelectExpression
                              reverseColumns,
                              hasFirstSet,
                              wildcard,
-                             start,
-                             finish,
-                             columns);
+                             columns,
+                             StringUtils.join(columnRanges, ","));
     }
 
 

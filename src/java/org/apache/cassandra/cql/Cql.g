@@ -185,6 +185,7 @@ selectExpression returns [SelectExpression expr]
       ( first=term { $expr = new SelectExpression(first, count, reversed, hasFirstSet); }
             (',' next=term { $expr.and(next); })*
       | start=term RANGEOP finish=term { $expr = new SelectExpression(start, finish, count, reversed, false, hasFirstSet); }
+            (',' nextstart=term RANGEOP nextfinish=term  { $expr.and(nextstart, nextfinish); })*
       | '\*' { $expr = new SelectExpression(new Term(), new Term(), count, reversed, true, hasFirstSet); }
       )
     ;

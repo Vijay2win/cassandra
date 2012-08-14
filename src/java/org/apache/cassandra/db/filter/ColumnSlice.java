@@ -28,6 +28,7 @@ import com.google.common.collect.AbstractIterator;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.io.IVersionedSerializer;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
 public class ColumnSlice
@@ -51,9 +52,9 @@ public class ColumnSlice
      * Validate an array of column slices.
      * To be valid, the slices must be sorted and non-overlapping and each slice must be valid.
      *
-     * @throws IllegalArgumentException if the input slices are not valid.
+     * @throws InvalidRequestException if the input slices are not valid.
      */
-    public static void validate(ColumnSlice[] slices, AbstractType<?> comparator, boolean reversed)
+    public static void validate(ColumnSlice[] slices, AbstractType<?> comparator, boolean reversed) throws InvalidRequestException
     {
         for (int i = 0; i < slices.length; i++)
         {
@@ -62,11 +63,11 @@ public class ColumnSlice
             if (i > 0)
             {
                 if (slices[i - 1].finish.remaining() == 0 || slice.start.remaining() == 0)
-                    throw new IllegalArgumentException("Invalid column slices: slices must be sorted and non-overlapping");
+                    throw new InvalidRequestException("Invalid column slices: slices must be sorted and non-overlapping");
 
                 int cmp = comparator.compare(slices[i -1].finish, slice.start);
                 if (reversed ? cmp <= 0 : cmp >= 0)
-                    throw new IllegalArgumentException("Invalid column slices: slices must be sorted and non-overlapping");
+                    throw new InvalidRequestException("Invalid column slices: slices must be sorted and non-overlapping");
             }
         }
     }
@@ -75,13 +76,13 @@ public class ColumnSlice
      * Validate a column slices.
      * To be valid, the slice start must sort before the slice end.
      *
-     * @throws IllegalArgumentException if the slice is not valid.
+     * @throws InvalidRequestException if the slice is not valid.
      */
-    public static void validate(ColumnSlice slice, AbstractType<?> comparator, boolean reversed)
+    public static void validate(ColumnSlice slice, AbstractType<?> comparator, boolean reversed) throws InvalidRequestException
     {
         Comparator<ByteBuffer> orderedComparator = reversed ? comparator.reverseComparator : comparator;
         if (slice.start.remaining() > 0 && slice.finish.remaining() > 0 && orderedComparator.compare(slice.start, slice.finish) > 0)
-            throw new IllegalArgumentException("Slice finish must come after start in traversal order");
+            throw new InvalidRequestException("Slice finish must come after start in traversal order");
     }
 
     public boolean includes(Comparator<ByteBuffer> cmp, ByteBuffer name)

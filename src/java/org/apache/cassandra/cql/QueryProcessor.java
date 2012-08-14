@@ -90,22 +90,15 @@ public class QueryProcessor
         else
         {
             AbstractType<?> comparator = select.getComparator(metadata.ksName);
-            ByteBuffer start = select.getColumnStart().getByteBuffer(comparator,variables);
-            ByteBuffer finish = select.getColumnFinish().getByteBuffer(comparator,variables);
+            ColumnSlice[] slices = getColumnSlice(select, metadata.comparator, variables);
+            ColumnSlice.validate(slices, comparator, select.isColumnsReversed());
 
             for (Term rawKey : select.getKeys())
             {
                 ByteBuffer key = rawKey.getByteBuffer(metadata.getKeyValidator(),variables);
-
                 validateKey(key);
-                validateSliceFilter(metadata, start, finish, select.isColumnsReversed());
-                commands.add(new SliceFromReadCommand(metadata.ksName,
-                                                      key,
-                                                      queryPath,
-                                                      start,
-                                                      finish,
-                                                      select.isColumnsReversed(),
-                                                      select.getColumnsLimit()));
+                SliceQueryFilter filter = new SliceQueryFilter(slices, select.isColumnsReversed(), select.getColumnsLimit());
+                commands.add(new SliceFromReadCommand(metadata.ksName, key, queryPath, filter));
             }
         }
 
@@ -267,8 +260,7 @@ public class QueryProcessor
     {
         if (select.isColumnRange() || select.getColumnNames().size() == 0)
         {
-            return new SliceQueryFilter(select.getColumnStart().getByteBuffer(metadata.comparator, variables),
-                                        select.getColumnFinish().getByteBuffer(metadata.comparator, variables),
+            return new SliceQueryFilter(getColumnSlice(select, metadata.comparator, variables),
                                         select.isColumnsReversed(),
                                         select.getColumnsLimit());
         }
@@ -276,6 +268,18 @@ public class QueryProcessor
         {
             return new NamesQueryFilter(getColumnNames(select, metadata, variables));
         }
+    }
+
+    private static ColumnSlice[] getColumnSlice(SelectStatement select, AbstractType<?> validator, List<ByteBuffer> variables) 
+    throws InvalidRequestException
+    {
+        ColumnSlice[] slices = new ColumnSlice[select.getColumnRanges().size()];
+        for (int i = 0; i < slices.length; i++)
+        {
+            Pair<Term, Term> pair = select.getColumnRanges().get(i);
+            slices[i] = new ColumnSlice(pair.left.getByteBuffer(validator, variables), pair.right.getByteBuffer(validator, variables));
+        }
+        return slices;
     }
 
     /* Test for SELECT-specific taboos */
@@ -387,16 +391,7 @@ public class QueryProcessor
     private static void validateSliceFilter(CFMetaData metadata, SliceQueryFilter range)
     throws InvalidRequestException
     {
-        validateSliceFilter(metadata, range.start(), range.finish(), range.reversed);
-    }
-
-    private static void validateSliceFilter(CFMetaData metadata, ByteBuffer start, ByteBuffer finish, boolean reversed)
-    throws InvalidRequestException
-    {
-        AbstractType<?> comparator = metadata.getComparatorFor(null);
-        Comparator<ByteBuffer> orderedComparator = reversed ? comparator.reverseComparator: comparator;
-        if (start.remaining() > 0 && finish.remaining() > 0 && orderedComparator.compare(start, finish) > 0)
-            throw new InvalidRequestException("range finish must come after start in traversal order");
+        ColumnSlice.validate(range.slices, metadata.comparator, range.reversed);
     }
 
     // Copypasta from CassandraServer (where it is private).

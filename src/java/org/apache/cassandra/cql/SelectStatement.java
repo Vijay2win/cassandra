@@ -25,6 +25,7 @@ import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.utils.Pair;
 
 /**
  * Encapsulates a completely parsed SELECT query, including the target
@@ -97,14 +98,9 @@ public class SelectStatement
         return expression.getColumns();
     }
 
-    public Term getColumnStart()
+    public List<Pair<Term, Term>> getColumnRanges()
     {
-        return expression.getStart();
-    }
-
-    public Term getColumnFinish()
-    {
-        return expression.getFinish();
+        return expression.getColumnRanges();
     }
 
     public boolean isSetKeyspace()

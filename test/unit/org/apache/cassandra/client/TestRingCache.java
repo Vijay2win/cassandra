@@ -24,6 +24,7 @@ import java.util.Collection;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnParent;
@@ -63,7 +64,7 @@ public class TestRingCache
         thriftClient = cassandraClient;
         String seed = DatabaseDescriptor.getSeeds().iterator().next().getHostAddress();
         conf = new Configuration();
-        ConfigHelper.setOutputPartitioner(conf, DatabaseDescriptor.getPartitioner().getClass().getName());
+        ConfigHelper.setOutputPartitioner(conf, StorageService.instance.getPartitioner().getClass().getName());
         ConfigHelper.setOutputInitialAddress(conf, seed);
         ConfigHelper.setOutputRpcPort(conf, Integer.toString(DatabaseDescriptor.getRpcPort()));
 

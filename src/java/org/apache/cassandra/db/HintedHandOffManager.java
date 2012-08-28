@@ -301,7 +301,7 @@ public class HintedHandOffManager implements HintedHandOffManagerMBean
         UUID hostId = StorageService.instance.getTokenMetadata().getHostId(endpoint);
         logger.info("Started hinted handoff for host: {} with IP: {}", hostId, endpoint);
         ByteBuffer hostIdBytes = ByteBuffer.wrap(UUIDGen.decompose(hostId));
-        DecoratedKey epkey =  StorageService.getPartitioner().decorateKey(hostIdBytes);
+        DecoratedKey epkey =  StorageService.instance.getPartitioner().decorateKey(hostIdBytes);
 
         int rowsReplayed = 0;
         ByteBuffer startColumn = ByteBufferUtil.EMPTY_BYTE_BUFFER;
@@ -479,7 +479,7 @@ public class HintedHandOffManager implements HintedHandOffManagerMBean
                                                           columnCount);
 
         // From keys "" to ""...
-        IPartitioner<?> partitioner = StorageService.getPartitioner();
+        IPartitioner<?> partitioner = StorageService.instance.getPartitioner();
         RowPosition minPos = partitioner.getMinimumToken().minKeyBound();
         Range<RowPosition> range = new Range<RowPosition>(minPos, minPos);
 

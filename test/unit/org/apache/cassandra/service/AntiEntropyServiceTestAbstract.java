@@ -242,7 +242,7 @@ public abstract class AntiEntropyServiceTestAbstract extends SchemaLoader
         for (int i = 1; i <= max; i++)
         {
             InetAddress endpoint = InetAddress.getByName("127.0.0." + i);
-            tmd.updateNormalToken(StorageService.getPartitioner().getRandomToken(), endpoint);
+            tmd.updateNormalToken(StorageService.instance.getPartitioner().getRandomToken(), endpoint);
             endpoints.add(endpoint);
         }
         return endpoints;

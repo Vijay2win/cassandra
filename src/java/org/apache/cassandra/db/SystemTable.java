@@ -20,6 +20,7 @@ package org.apache.cassandra.db;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -81,7 +82,7 @@ public class SystemTable
 
     private static DecoratedKey decorate(ByteBuffer key)
     {
-        return StorageService.getPartitioner().decorateKey(key);
+        return StorageService.instance.getPartitioner().decorateKey(key);
     }
 
     public static void finishStartup() throws IOException
@@ -127,7 +128,7 @@ public class SystemTable
 
             String clusterName = ByteBufferUtil.string(oldColumns.next().value());
             // serialize the old token as a collection of (one )tokens.
-            Token token = StorageService.getPartitioner().getTokenFactory().fromByteArray(oldColumns.next().value());
+            Token token = StorageService.instance.getPartitioner().getTokenFactory().fromByteArray(oldColumns.next().value());
             String tokenBytes = ByteBufferUtil.bytesToHex(serializeTokens(Collections.singleton(token)));
             // (assume that any node getting upgraded was bootstrapped, since that was stored in a separate row for no particular reason)
             String req = "INSERT INTO system.%s (key, cluster_name, token_bytes, bootstrapped) VALUES ('%s', '%s', '%s', '%s')";
@@ -155,7 +156,7 @@ public class SystemTable
             return;
         }
 
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
         for (Token token : tokens)
         {
             String req = "INSERT INTO system.%s (token_bytes, peer) VALUES ('%s', '%s')";
@@ -170,7 +171,7 @@ public class SystemTable
      */
     public static synchronized void removeTokens(Collection<Token> tokens)
     {
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
 
         for (Token token : tokens)
         {
@@ -198,7 +199,7 @@ public class SystemTable
         // Guesstimate the total number of bytes needed
         int estCapacity = (tokens.size() * 16) + (tokens.size() * 2);
         ByteBuffer toks = ByteBuffer.allocate(estCapacity);
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
 
         for (Token token : tokens)
         {
@@ -225,7 +226,7 @@ public class SystemTable
     private static Collection<Token> deserializeTokens(ByteBuffer tokenBytes)
     {
         List<Token> tokens = new ArrayList<Token>();
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
 
         while(tokenBytes.hasRemaining())
         {
@@ -320,6 +321,28 @@ public class SystemTable
         return result.isEmpty() || !result.one().has("token_bytes")
              ? Collections.<Token>emptyList()
              : deserializeTokens(result.one().getBytes("token_bytes"));
+    }
+
+    public static synchronized void updatePartitioner(String partitioner)
+    {
+        String req = "INSERT INTO system.%s (key, partitioner) VALUES ('%s', '%s')";
+        processInternal(String.format(req, LOCAL_CF, LOCAL_KEY, partitioner));
+        forceBlockingFlush(LOCAL_CF);
+    }
+
+    public static String getSavedPartitioner()
+    {
+        try
+        {
+            String req = "SELECT partitioner_bytes FROM system.%s WHERE key='%s'";
+            UntypedResultSet result = processInternal(String.format(req, LOCAL_CF, LOCAL_KEY));
+            return result.isEmpty() || !result.one().has("partitioner") ? null 
+                    : ByteBufferUtil.string(result.one().getBytes("partitioner"));
+        }
+        catch (CharacterCodingException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     public static int incrementAndGetGeneration()
@@ -545,7 +568,7 @@ public class SystemTable
      */
     public static List<Row> serializedSchema(String schemaCfName)
     {
-        Token minToken = StorageService.getPartitioner().getMinimumToken();
+        Token minToken = StorageService.instance.getPartitioner().getMinimumToken();
 
         return schemaCFS(schemaCfName).getRangeSlice(null,
                                                      new Range<RowPosition>(minToken.minKeyBound(),

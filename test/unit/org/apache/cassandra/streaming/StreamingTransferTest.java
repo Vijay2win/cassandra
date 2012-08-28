@@ -115,7 +115,7 @@ public class StreamingTransferTest extends SchemaLoader
 
     private void transfer(Table table, SSTableReader sstable) throws Exception
     {
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
         List<Range<Token>> ranges = new ArrayList<Range<Token>>();
         ranges.add(new Range<Token>(p.getMinimumToken(), p.getToken(ByteBufferUtil.bytes("key1"))));
         ranges.add(new Range<Token>(p.getToken(ByteBufferUtil.bytes("key2")), p.getMinimumToken()));

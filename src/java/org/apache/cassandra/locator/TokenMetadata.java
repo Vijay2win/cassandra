@@ -698,7 +698,7 @@ public class TokenMetadata
                 {
                     // return minimum for index == -1
                     if (j == -1)
-                        return StorageService.getPartitioner().getMinimumToken();
+                        return StorageService.instance.getPartitioner().getMinimumToken();
                     // return ring token for other indexes
                     return ring.get(j);
                 }

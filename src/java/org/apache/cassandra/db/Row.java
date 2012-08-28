@@ -63,7 +63,7 @@ public class Row
 
         public Row deserialize(DataInput dis, int version, IColumnSerializer.Flag flag, ISortedColumns.Factory factory) throws IOException
         {
-            return new Row(StorageService.getPartitioner().decorateKey(ByteBufferUtil.readWithShortLength(dis)),
+            return new Row(StorageService.instance.getPartitioner().decorateKey(ByteBufferUtil.readWithShortLength(dis)),
                            ColumnFamily.serializer.deserialize(dis, flag, factory, version));
         }
 

@@ -70,7 +70,7 @@ public class DatabaseDescriptor
     private static SeedProvider seedProvider;
 
     /* Hashing strategy Random or OPHF */
-    private static IPartitioner<?> partitioner;
+    private static String partitioner;
 
     private static Config.DiskAccessMode indexAccessMode;
 
@@ -218,7 +218,7 @@ public class DatabaseDescriptor
             }
             try
             {
-                partitioner = FBUtilities.newPartitioner(System.getProperty("cassandra.partitioner", conf.partitioner));
+                partitioner = System.getProperty("cassandra.partitioner", conf.partitioner);
             }
             catch (Exception e)
             {
@@ -341,8 +341,6 @@ public class DatabaseDescriptor
             {
                 throw new ConfigurationException("Missing endpoint_snitch directive");
             }
-            snitch = createEndpointSnitch(conf.endpoint_snitch);
-            EndpointSnitchInfo.create();
 
             /* Request Scheduler setup */
             requestSchedulerOptions = conf.request_scheduler_options;
@@ -434,10 +432,6 @@ public class DatabaseDescriptor
                 if (conf.saved_caches_directory == null)
                     throw new ConfigurationException("saved_caches_directory missing");
             }
-
-            if (conf.initial_token != null)
-                for (String token : tokensFromString(conf.initial_token))
-                    partitioner.getTokenFactory().validate(token);
 
             try
             {
@@ -635,19 +629,25 @@ public class DatabaseDescriptor
         }
     }
 
-    public static IPartitioner<?> getPartitioner()
+    public static String getPartitioner()
     {
         return partitioner;
     }
 
-    /* For tests ONLY, don't use otherwise or all hell will break loose */
-    public static void setPartitioner(IPartitioner<?> newPartitioner)
-    {
-        partitioner = newPartitioner;
-    }
-
     public static IEndpointSnitch getEndpointSnitch()
     {
+        if (snitch == null)
+        {
+            try
+            {
+                snitch = createEndpointSnitch(conf.endpoint_snitch);
+            }
+            catch (ConfigurationException e)
+            {
+                throw new RuntimeException(e);
+            }
+            EndpointSnitchInfo.create();
+        }
         return snitch;
     }
     public static void setEndpointSnitch(IEndpointSnitch eps)

@@ -50,13 +50,13 @@ public class KeyCollisionTest extends SchemaLoader
 
     protected void setUp()
     {
-        oldPartitioner = DatabaseDescriptor.getPartitioner();
-        DatabaseDescriptor.setPartitioner(new LengthPartitioner());
+        oldPartitioner = StorageService.instance.getPartitioner();
+        StorageService.setPartitioner(new LengthPartitioner());
     }
 
     protected void tearDown()
     {
-        DatabaseDescriptor.setPartitioner(oldPartitioner);
+        StorageService.setPartitioner(oldPartitioner);
     }
 
     @Test

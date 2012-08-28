@@ -72,6 +72,8 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
 
     public static final int RING_DELAY = getRingDelay(); // delay after which we assume ring has stablized
 
+    private static IPartitioner<?> partitioner;
+
     private static int getRingDelay()
     {
         String newdelay = System.getProperty("cassandra.ring_delay_ms");
@@ -105,13 +107,18 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
     /* This abstraction maintains the token/endpoint metadata information */
     private TokenMetadata tokenMetadata = new TokenMetadata();
 
-    public VersionedValue.VersionedValueFactory valueFactory = new VersionedValue.VersionedValueFactory(getPartitioner());
+    public VersionedValue.VersionedValueFactory valueFactory;
 
     public static final StorageService instance = new StorageService();
 
     public static IPartitioner getPartitioner()
     {
-        return DatabaseDescriptor.getPartitioner();
+        return partitioner;
+    }
+
+    public static void setPartitioner(IPartitioner newPartitioner)
+    {
+        partitioner = newPartitioner;
     }
 
     public Collection<Range<Token>> getLocalRanges(String table)
@@ -222,6 +229,31 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
         MessagingService.instance().registerVerbHandlers(MessagingService.Verb.MIGRATION_REQUEST, new MigrationRequestVerbHandler());
 
         MessagingService.instance().registerVerbHandlers(MessagingService.Verb.SNAPSHOT, new SnapshotVerbHandler());
+
+        // It is possible to call Table.open without a running daemon, so it makes sense to ensure
+        // proper directories here as well as in CassandraDaemon.
+//        static
+//        {
+//            if (!StorageService.instance.isClientMode())
+//                DatabaseDescriptor.createAllDirectories();
+//        }
+        try
+        {
+//            String partitionerName = SystemTable.getSavedPartitioner();
+//            if (partitionerName != null)
+//            {
+//                partitioner = FBUtilities.newPartitioner(partitionerName);
+//                return partitioner;
+//            }
+            partitioner = FBUtilities.newPartitioner(System.getProperty("cassandra.partitioner", DatabaseDescriptor.getPartitioner()));
+            SystemTable.updatePartitioner(partitioner.getClass().getCanonicalName());
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Invalid partitioner class " + DatabaseDescriptor.getPartitioner());
+        } 
+
+        valueFactory = new VersionedValue.VersionedValueFactory(partitioner);
 
         // spin up the streaming service so it is available for jmx tools.
         if (StreamingService.instance == null)
@@ -597,7 +629,7 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
                 }
                 tokens = new ArrayList<Token>();
                 for (String token : DatabaseDescriptor.getReplaceTokens())
-                    tokens.add(StorageService.getPartitioner().getTokenFactory().fromString(token));
+                    tokens.add(StorageService.instance.getPartitioner().getTokenFactory().fromString(token));
 
                 // check for operator errors...
                 for (Token token : tokens)
@@ -635,7 +667,10 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
                 {
                     tokens = new ArrayList<Token>();
                     for (String token : initialTokens)
+                    {
+                        getPartitioner().getTokenFactory().validate(token);
                         tokens.add(getPartitioner().getTokenFactory().fromString(token));
+                    }
                     logger.info("Saved token not found. Using " + tokens + " from configuration");
                 }
             }
@@ -2873,8 +2908,8 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
     // Never ever do this at home. Used by tests.
     IPartitioner setPartitionerUnsafe(IPartitioner newPartitioner)
     {
-        IPartitioner oldPartitioner = DatabaseDescriptor.getPartitioner();
-        DatabaseDescriptor.setPartitioner(newPartitioner);
+        IPartitioner oldPartitioner = StorageService.instance.getPartitioner();
+        StorageService.setPartitioner(newPartitioner);
         valueFactory = new VersionedValue.VersionedValueFactory(getPartitioner());
         return oldPartitioner;
     }
@@ -3235,7 +3270,7 @@ public class StorageService implements IEndpointStateChangeSubscriber, StorageSe
             {
                 try
                 {
-                    setPartitioner(DatabaseDescriptor.getPartitioner());
+                    setPartitioner(StorageService.instance.getPartitioner());
                     for (Map.Entry<Range<Token>, List<InetAddress>> entry : StorageService.instance.getRangeToAddressMap(keyspace).entrySet())
                     {
                         Range<Token> range = entry.getKey();

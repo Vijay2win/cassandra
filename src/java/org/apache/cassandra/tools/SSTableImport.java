@@ -53,6 +53,7 @@ import org.apache.cassandra.db.marshal.BytesType;
 import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.io.sstable.SSTableWriter;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
@@ -308,7 +309,7 @@ public class SSTableImport
     public int importJson(String jsonFile, String keyspace, String cf, String ssTablePath) throws IOException
     {
         ColumnFamily columnFamily = ColumnFamily.create(keyspace, cf);
-        IPartitioner<?> partitioner = DatabaseDescriptor.getPartitioner();
+        IPartitioner<?> partitioner = StorageService.getPartitioner();
 
         int importedKeys = (isSorted) ? importSorted(jsonFile, columnFamily, ssTablePath, partitioner)
                                       : importUnsorted(jsonFile, columnFamily, ssTablePath, partitioner);

@@ -56,14 +56,6 @@ public class Table
      */
     public static final ReentrantReadWriteLock switchLock = new ReentrantReadWriteLock();
 
-    // It is possible to call Table.open without a running daemon, so it makes sense to ensure
-    // proper directories here as well as in CassandraDaemon.
-    static
-    {
-        if (!StorageService.instance.isClientMode())
-            DatabaseDescriptor.createAllDirectories();
-    }
-
     /* Table name. */
     public final String name;
     /* ColumnFamilyStore per column family */
@@ -362,7 +354,7 @@ public class Table
             if (writeCommitLog)
                 CommitLog.instance.add(mutation);
 
-            DecoratedKey key = StorageService.getPartitioner().decorateKey(mutation.key());
+            DecoratedKey key = StorageService.instance.getPartitioner().decorateKey(mutation.key());
             for (ColumnFamily cf : mutation.getColumnFamilies())
             {
                 ColumnFamilyStore cfs = columnFamilyStores.get(cf.id());

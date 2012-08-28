@@ -138,7 +138,7 @@ public class IncomingStreamReader
                 while (bytesRead < length)
                 {
                     in.reset(0);
-                    key = SSTableReader.decodeKey(StorageService.getPartitioner(), localFile.desc, ByteBufferUtil.readWithShortLength(in));
+                    key = SSTableReader.decodeKey(StorageService.instance.getPartitioner(), localFile.desc, ByteBufferUtil.readWithShortLength(in));
                     long dataSize = SSTableReader.readRowSize(in, localFile.desc);
 
                     if (cfs.containsCachedRow(key) && remoteFile.type == OperationType.AES && dataSize <= DatabaseDescriptor.getInMemoryCompactionLimit())

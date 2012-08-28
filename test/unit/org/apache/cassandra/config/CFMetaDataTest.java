@@ -122,7 +122,7 @@ public class CFMetaDataTest extends SchemaLoader
 
     private void checkInverses(CFMetaData cfm) throws Exception
     {
-        DecoratedKey k = StorageService.getPartitioner().decorateKey(ByteBufferUtil.bytes(cfm.ksName));
+        DecoratedKey k = StorageService.instance.getPartitioner().decorateKey(ByteBufferUtil.bytes(cfm.ksName));
 
         // Test thrift conversion
         assert cfm.equals(CFMetaData.fromThrift(cfm.toThrift())) : String.format("\n%s\n!=\n%s", cfm, CFMetaData.fromThrift(cfm.toThrift()));

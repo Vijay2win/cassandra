@@ -60,7 +60,7 @@ public class SSTableReaderTest extends SchemaLoader
 {
     static Token t(int i)
     {
-        return StorageService.getPartitioner().getToken(ByteBufferUtil.bytes(String.valueOf(i)));
+        return StorageService.instance.getPartitioner().getToken(ByteBufferUtil.bytes(String.valueOf(i)));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class SSTableReaderTest extends SchemaLoader
         // 2 keys
         ranges.add(new Range<Token>(t(2), t(4)));
         // wrapping range from key to end
-        ranges.add(new Range<Token>(t(6), StorageService.getPartitioner().getMinimumToken()));
+        ranges.add(new Range<Token>(t(6), StorageService.instance.getPartitioner().getMinimumToken()));
         // empty range (should be ignored)
         ranges.add(new Range<Token>(t(9), t(91)));
 
@@ -323,7 +323,7 @@ public class SSTableReaderTest extends SchemaLoader
         // query using index to see if sstable for secondary index opens
         IndexExpression expr = new IndexExpression(ByteBufferUtil.bytes("birthdate"), IndexOperator.EQ, ByteBufferUtil.bytes(1L));
         List<IndexExpression> clause = Arrays.asList(expr);
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
         Range<RowPosition> range = Util.range("", "");
         List<Row> rows = indexedCFS.search(clause, range, 100, new IdentityQueryFilter());
         assert rows.size() == 1;

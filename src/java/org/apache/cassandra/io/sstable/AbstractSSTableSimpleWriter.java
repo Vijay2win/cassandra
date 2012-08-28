@@ -25,10 +25,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.cassandra.config.CFMetaData;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.context.CounterContext;
 import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.NodeId;
 import org.apache.cassandra.utils.Pair;
 
@@ -45,7 +45,7 @@ public abstract class AbstractSSTableSimpleWriter
     {
         this.metadata = metadata;
         this.directory = directory;
-        DatabaseDescriptor.setPartitioner(partitioner);
+        StorageService.setPartitioner(partitioner);
     }
 
     protected SSTableWriter getWriter()
@@ -54,7 +54,7 @@ public abstract class AbstractSSTableSimpleWriter
             makeFilename(directory, metadata.ksName, metadata.cfName),
             0, // We don't care about the bloom filter
             metadata,
-            DatabaseDescriptor.getPartitioner(),
+            StorageService.getPartitioner(),
             SSTableMetadata.createCollector());
     }
 
@@ -92,7 +92,7 @@ public abstract class AbstractSSTableSimpleWriter
         if (currentKey != null && !columnFamily.isEmpty())
             writeRow(currentKey, columnFamily);
 
-        currentKey = DatabaseDescriptor.getPartitioner().decorateKey(key);
+        currentKey = StorageService.getPartitioner().decorateKey(key);
         columnFamily = getColumnFamily();
     }
 

@@ -56,7 +56,7 @@ public class SSTableWriter extends SSTable
         this(filename,
              keyCount,
              Schema.instance.getCFMetaData(Descriptor.fromFilename(filename)),
-             StorageService.getPartitioner(),
+             StorageService.instance.getPartitioner(),
              SSTableMetadata.createCollector());
     }
 

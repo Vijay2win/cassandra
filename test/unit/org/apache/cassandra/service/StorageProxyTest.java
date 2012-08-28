@@ -63,12 +63,12 @@ public class StorageProxyTest extends SchemaLoader
 
     private static RowPosition startOf(String key)
     {
-        return StorageService.getPartitioner().getToken(ByteBufferUtil.bytes(key)).minKeyBound();
+        return StorageService.instance.getPartitioner().getToken(ByteBufferUtil.bytes(key)).minKeyBound();
     }
 
     private static RowPosition endOf(String key)
     {
-        return StorageService.getPartitioner().getToken(ByteBufferUtil.bytes(key)).maxKeyBound();
+        return StorageService.instance.getPartitioner().getToken(ByteBufferUtil.bytes(key)).maxKeyBound();
     }
 
     private static Range<Token> tokenRange(String left, String right)

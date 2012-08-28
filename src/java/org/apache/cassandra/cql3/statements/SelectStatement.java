@@ -226,7 +226,7 @@ public class SelectStatement implements CQLStatement
 
     private AbstractBounds<RowPosition> getKeyBounds(List<ByteBuffer> variables) throws InvalidRequestException
     {
-        IPartitioner<?> p = StorageService.getPartitioner();
+        IPartitioner<?> p = StorageService.instance.getPartitioner();
         AbstractBounds<RowPosition> bounds;
 
         if (onToken)

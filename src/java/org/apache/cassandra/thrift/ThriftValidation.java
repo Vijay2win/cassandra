@@ -489,7 +489,7 @@ public class ThriftValidation
 
         if (range.start_key != null && range.end_key != null)
         {
-            IPartitioner p = StorageService.getPartitioner();
+            IPartitioner p = StorageService.instance.getPartitioner();
             Token startToken = p.getToken(range.start_key);
             Token endToken = p.getToken(range.end_key);
             if (startToken.compareTo(endToken) > 0 && !endToken.isMinimum(p))

@@ -361,7 +361,7 @@ public abstract class SecondaryIndex
      */
     public static AbstractType<?> getIndexComparator(CFMetaData baseMetadata, ColumnDefinition cdef)
     {
-        IPartitioner rowPartitioner = StorageService.getPartitioner();
+        IPartitioner rowPartitioner = StorageService.instance.getPartitioner();
         AbstractType<?> keyComparator = (rowPartitioner instanceof OrderPreservingPartitioner || rowPartitioner instanceof ByteOrderedPartitioner)
                                       ? BytesType.instance
                                       : new LocalByPartionerType(rowPartitioner);

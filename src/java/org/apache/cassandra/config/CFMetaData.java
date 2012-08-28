@@ -166,7 +166,8 @@ public final class CFMetaData
                                                          + "ring_id uuid,"
                                                          + "release_version text,"
                                                          + "thrift_version text,"
-                                                         + "cql_version text"
+                                                         + "cql_version text,"
+                                                         + "partitioner text"
                                                          + ") WITH COMMENT='information about the local node'");
 
     public enum Caching

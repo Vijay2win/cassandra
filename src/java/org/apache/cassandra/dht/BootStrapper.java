@@ -101,7 +101,8 @@ public class BootStrapper
             List<Token> tokens = new ArrayList<Token>();
             for (String tokenString : initialTokens)
             {
-                Token token = StorageService.getPartitioner().getTokenFactory().fromString(tokenString);
+                StorageService.instance.getPartitioner().getTokenFactory().validate(tokenString);
+                Token token = StorageService.instance.getPartitioner().getTokenFactory().fromString(tokenString);
                 if (metadata.getEndpoint(token) != null)
                     throw new ConfigurationException("Bootstraping to existing token " + tokenString + " is not allowed (decommission/removetoken the old node first).");
                 tokens.add(token);
@@ -209,7 +210,7 @@ public class BootStrapper
         public void doVerb(MessageIn message, String id)
         {
             StorageService ss = StorageService.instance;
-            String tokenString = StorageService.getPartitioner().getTokenFactory().toString(ss.getBootstrapToken());
+            String tokenString = StorageService.instance.getPartitioner().getTokenFactory().toString(ss.getBootstrapToken());
             MessageOut<String> response = new MessageOut<String>(MessagingService.Verb.INTERNAL_RESPONSE, tokenString, StringSerializer.instance);
             MessagingService.instance().sendReply(response, id, message.from);
         }

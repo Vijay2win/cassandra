@@ -87,7 +87,7 @@ public abstract class RowPosition implements RingPosition<RowPosition>
             if (kind == Kind.ROW_KEY)
             {
                 ByteBuffer k = ByteBufferUtil.readWithShortLength(dis);
-                return StorageService.getPartitioner().decorateKey(k);
+                return StorageService.instance.getPartitioner().decorateKey(k);
             }
             else
             {

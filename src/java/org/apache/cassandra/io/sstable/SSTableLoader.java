@@ -29,10 +29,10 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.ConfigurationException;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.streaming.*;
 import org.apache.cassandra.utils.*;
 
@@ -290,7 +290,7 @@ public class SSTableLoader
         protected void setPartitioner(IPartitioner partitioner) throws ConfigurationException
         {
             this.partitioner = partitioner;
-            DatabaseDescriptor.setPartitioner(partitioner);
+            StorageService.setPartitioner(partitioner);
         }
 
         public IPartitioner getPartitioner()

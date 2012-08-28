@@ -40,7 +40,7 @@ public class SerializationsTest extends AbstractSerializationsTester
         System.setProperty("cassandra.partitioner", "RandomPartitioner");
     }
 
-    public static Range<Token> FULL_RANGE = new Range<Token>(StorageService.getPartitioner().getMinimumToken(), StorageService.getPartitioner().getMinimumToken());
+    public static Range<Token> FULL_RANGE = new Range<Token>(StorageService.instance.getPartitioner().getMinimumToken(), StorageService.instance.getPartitioner().getMinimumToken());
 
     private void testTreeRequestWrite() throws IOException
     {

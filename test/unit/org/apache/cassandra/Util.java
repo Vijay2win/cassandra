@@ -57,17 +57,17 @@ public class Util
 
     public static DecoratedKey dk(String key)
     {
-        return StorageService.getPartitioner().decorateKey(ByteBufferUtil.bytes(key));
+        return StorageService.instance.getPartitioner().decorateKey(ByteBufferUtil.bytes(key));
     }
 
     public static DecoratedKey dk(ByteBuffer key)
     {
-        return StorageService.getPartitioner().decorateKey(key);
+        return StorageService.instance.getPartitioner().decorateKey(key);
     }
 
     public static RowPosition rp(String key)
     {
-        return rp(key, StorageService.getPartitioner());
+        return rp(key, StorageService.instance.getPartitioner());
     }
 
     public static RowPosition rp(String key, IPartitioner partitioner)
@@ -95,7 +95,7 @@ public class Util
 
     public static Token token(String key)
     {
-        return StorageService.getPartitioner().getToken(ByteBufferUtil.bytes(key));
+        return StorageService.instance.getPartitioner().getToken(ByteBufferUtil.bytes(key));
     }
 
     public static Range<RowPosition> range(String left, String right)

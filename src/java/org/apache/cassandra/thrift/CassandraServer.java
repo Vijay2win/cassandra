@@ -663,7 +663,7 @@ public class CassandraServer implements Cassandra.Iface
         List<Row> rows;
         try
         {
-            IPartitioner p = StorageService.getPartitioner();
+            IPartitioner p = StorageService.instance.getPartitioner();
             AbstractBounds<RowPosition> bounds;
             if (range.start_key == null)
             {
@@ -716,7 +716,7 @@ public class CassandraServer implements Cassandra.Iface
 
         SlicePredicate predicate = new SlicePredicate().setSlice_range(new SliceRange(start_column, ByteBufferUtil.EMPTY_BYTE_BUFFER, false, -1));
 
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
         AbstractBounds<RowPosition> bounds;
         if (range.start_key == null)
         {
@@ -787,7 +787,7 @@ public class CassandraServer implements Cassandra.Iface
         ThriftValidation.validateIndexClauses(metadata, index_clause);
         ThriftValidation.validateConsistencyLevel(keyspace, consistency_level, RequestType.READ);
 
-        IPartitioner p = StorageService.getPartitioner();
+        IPartitioner p = StorageService.instance.getPartitioner();
         AbstractBounds<RowPosition> bounds = new Bounds<RowPosition>(RowPosition.forKey(index_clause.start_key, p),
                                                                      p.getMinimumToken().minKeyBound());
 
@@ -860,7 +860,7 @@ public class CassandraServer implements Cassandra.Iface
 
     public String describe_partitioner() throws TException
     {
-        return StorageService.getPartitioner().getClass().getName();
+        return StorageService.instance.getPartitioner().getClass().getName();
     }
 
     public String describe_snitch() throws TException
@@ -874,7 +874,7 @@ public class CassandraServer implements Cassandra.Iface
     throws TException, InvalidRequestException
     {
         // TODO: add keyspace authorization call post CASSANDRA-1425
-        Token.TokenFactory tf = StorageService.getPartitioner().getTokenFactory();
+        Token.TokenFactory tf = StorageService.instance.getPartitioner().getTokenFactory();
         List<Token> tokens = StorageService.instance.getSplits(state().getKeyspace(), cfName, new Range<Token>(tf.fromString(start_token), tf.fromString(end_token)), keys_per_split);
         List<String> splits = new ArrayList<String>(tokens.size());
         for (Token token : tokens)

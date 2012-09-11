@@ -26,10 +26,13 @@ import org.slf4j.LoggerFactory;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.googlecode.concurrentlinkedhashmap.EvictionListener;
 import com.googlecode.concurrentlinkedhashmap.Weigher;
+
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.io.ISerializer;
 import org.apache.cassandra.io.util.MemoryInputStream;
 import org.apache.cassandra.io.util.MemoryOutputStream;
+import org.apache.cassandra.io.util.OffHeapMemory;
 import org.apache.cassandra.utils.vint.EncodedDataInputStream;
 import org.apache.cassandra.utils.vint.EncodedDataOutputStream;
 
@@ -43,22 +46,22 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     private static final int DEFAULT_CONCURENCY_LEVEL = 64;
 
-    private final ConcurrentLinkedHashMap<K, FreeableMemory> map;
+    private final ConcurrentLinkedHashMap<K, OffHeapMemory> map;
     private final ISerializer<V> serializer;
 
-    private SerializingCache(long capacity, Weigher<FreeableMemory> weigher, ISerializer<V> serializer)
+    private SerializingCache(long capacity, Weigher<OffHeapMemory> weigher, ISerializer<V> serializer)
     {
         this.serializer = serializer;
 
-        EvictionListener<K,FreeableMemory> listener = new EvictionListener<K, FreeableMemory>()
+        EvictionListener<K,OffHeapMemory> listener = new EvictionListener<K, OffHeapMemory>()
         {
-            public void onEviction(K k, FreeableMemory mem)
+            public void onEviction(K k, OffHeapMemory mem)
             {
                 mem.unreference();
             }
         };
 
-        this.map = new ConcurrentLinkedHashMap.Builder<K, FreeableMemory>()
+        this.map = new ConcurrentLinkedHashMap.Builder<K, OffHeapMemory>()
                    .weigher(weigher)
                    .maximumWeightedCapacity(capacity)
                    .concurrencyLevel(DEFAULT_CONCURENCY_LEVEL)
@@ -66,16 +69,16 @@ public class SerializingCache<K, V> implements ICache<K, V>
                    .build();
     }
 
-    public static <K, V> SerializingCache<K, V> create(long weightedCapacity, Weigher<FreeableMemory> weigher, ISerializer<V> serializer)
+    public static <K, V> SerializingCache<K, V> create(long weightedCapacity, Weigher<OffHeapMemory> weigher, ISerializer<V> serializer)
     {
         return new SerializingCache<K, V>(weightedCapacity, weigher, serializer);
     }
 
     public static <K, V> SerializingCache<K, V> create(long weightedCapacity, ISerializer<V> serializer)
     {
-        return create(weightedCapacity, new Weigher<FreeableMemory>()
+        return create(weightedCapacity, new Weigher<OffHeapMemory>()
         {
-            public int weightOf(FreeableMemory value)
+            public int weightOf(OffHeapMemory value)
             {
                 long size = value.size();
                 assert size < Integer.MAX_VALUE : "Serialized size cannot be more than 2GB";
@@ -84,7 +87,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
         }, serializer);
     }
 
-    private V deserialize(FreeableMemory mem)
+    private V deserialize(OffHeapMemory mem)
     {
         try
         {
@@ -97,16 +100,16 @@ public class SerializingCache<K, V> implements ICache<K, V>
         }
     }
 
-    private FreeableMemory serialize(V value)
+    private OffHeapMemory serialize(V value)
     {
         long serializedSize = serializer.serializedSize(value, ENCODED_TYPE_SIZES);
         if (serializedSize > Integer.MAX_VALUE)
             throw new IllegalArgumentException("Unable to allocate " + serializedSize + " bytes");
 
-        FreeableMemory freeableMemory;
+        OffHeapMemory freeableMemory;
         try
         {
-            freeableMemory = new FreeableMemory(serializedSize);
+            freeableMemory = DatabaseDescriptor.getoffHeapMemoryAllocator().allocate(serializedSize);
         }
         catch (OutOfMemoryError e)
         {
@@ -156,7 +159,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     public V get(Object key)
     {
-        FreeableMemory mem = map.get(key);
+        OffHeapMemory mem = map.get(key);
         if (mem == null)
             return null;
         if (!mem.reference())
@@ -173,22 +176,22 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     public void put(K key, V value)
     {
-        FreeableMemory mem = serialize(value);
+        OffHeapMemory mem = serialize(value);
         if (mem == null)
             return; // out of memory.  never mind.
 
-        FreeableMemory old = map.put(key, mem);
+        OffHeapMemory old = map.put(key, mem);
         if (old != null)
             old.unreference();
     }
 
     public boolean putIfAbsent(K key, V value)
     {
-        FreeableMemory mem = serialize(value);
+        OffHeapMemory mem = serialize(value);
         if (mem == null)
             return false; // out of memory.  never mind.
 
-        FreeableMemory old = map.putIfAbsent(key, mem);
+        OffHeapMemory old = map.putIfAbsent(key, mem);
         if (old != null)
             // the new value was not put, we've uselessly allocated some memory, free it
             mem.unreference();
@@ -198,12 +201,12 @@ public class SerializingCache<K, V> implements ICache<K, V>
     public boolean replace(K key, V oldToReplace, V value)
     {
         // if there is no old value in our map, we fail
-        FreeableMemory old = map.get(key);
+        OffHeapMemory old = map.get(key);
         if (old == null)
             return false;
 
         // see if the old value matches the one we want to replace
-        FreeableMemory mem = serialize(value);
+        OffHeapMemory mem = serialize(value);
         if (mem == null)
             return false; // out of memory.  never mind.
 
@@ -230,7 +233,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     public void remove(K key)
     {
-        FreeableMemory mem = map.remove(key);
+        OffHeapMemory mem = map.remove(key);
         if (mem != null)
             mem.unreference();
     }

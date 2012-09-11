@@ -18,6 +18,7 @@
 package org.apache.cassandra.config;
 
 import org.apache.cassandra.cache.ConcurrentLinkedHashCacheProvider;
+import org.apache.cassandra.io.util.NativeAllocator;
 
 /**
  * A class that contains configuration properties for the cassandra node it runs within.
@@ -152,6 +153,7 @@ public class Config
     public int row_cache_keys_to_save = Integer.MAX_VALUE;
     public String row_cache_provider = ConcurrentLinkedHashCacheProvider.class.getSimpleName();
     public boolean populate_io_cache_on_flush = false;
+    public String memory_allocator = NativeAllocator.class.getSimpleName();
 
     private static boolean loadYaml = true;
     private static boolean outboundBindAny = false;

@@ -20,8 +20,9 @@ package org.apache.cassandra.io.util;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class Memory
+public class Memory implements OffHeapMemory
 {
     private static final Unsafe unsafe;
 
@@ -39,6 +40,8 @@ public class Memory
         }
     }
 
+    private final AtomicInteger references = new AtomicInteger(1);
+
     protected long peer;
     // size of the memory region
     private final long size;
@@ -46,15 +49,7 @@ public class Memory
     protected Memory(long bytes)
     {
         size = bytes;
-        peer = unsafe.allocateMemory(size);
-    }
-
-    public static Memory allocate(long bytes)
-    {
-        if (bytes < 0)
-            throw new IllegalArgumentException();
-
-        return new Memory(bytes);
+        peer = unsafe.allocateMemory(bytes);
     }
 
     public void setByte(long offset, byte b)
@@ -71,7 +66,7 @@ public class Memory
      * @param bufferOffset start offset of the buffer
      * @param count number of bytes to transfer
      */
-    public void setBytes(long memoryOffset, byte[] buffer, int bufferOffset, int count)
+    public void write(long memoryOffset, byte[] buffer, int bufferOffset, int count)
     {
         if (buffer == null)
             throw new NullPointerException();
@@ -103,7 +98,7 @@ public class Memory
      * @param bufferOffset start offset of the buffer
      * @param count number of bytes to transfer
      */
-    public void getBytes(long memoryOffset, byte[] buffer, int bufferOffset, int count)
+    public void read(long memoryOffset, byte[] buffer, int bufferOffset, int count)
     {
         if (buffer == null)
             throw new NullPointerException();
@@ -126,6 +121,30 @@ public class Memory
 
         if (offset < 0 || offset >= size)
             throw new IndexOutOfBoundsException("Illegal offset: " + offset + ", size: " + size);
+    }
+
+    /**
+     * @return true if we succeed in referencing before the reference count
+     *         reaches zero. (A FreeableMemory object is created with a
+     *         reference count of one.)
+     */
+    public boolean reference()
+    {
+        while (true)
+        {
+            int n = references.get();
+            if (n <= 0)
+                return false;
+            if (references.compareAndSet(n, n + 1))
+                return true;
+        }
+    }
+
+    /** decrement reference count. if count reaches zero, the object is freed. */
+    public void unreference()
+    {
+        if (references.decrementAndGet() == 0)
+            free();
     }
 
     public void free()

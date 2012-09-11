@@ -40,6 +40,7 @@ import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.io.FSWriteError;
 import org.apache.cassandra.io.util.FileUtils;
+import org.apache.cassandra.io.util.OffHeapAllocator;
 import org.apache.cassandra.locator.DynamicEndpointSnitch;
 import org.apache.cassandra.locator.EndpointSnitchInfo;
 import org.apache.cassandra.locator.IEndpointSnitch;
@@ -87,6 +88,7 @@ public class DatabaseDescriptor
 
     private static long keyCacheSizeInMB;
     private static IRowCacheProvider rowCacheProvider;
+    private static OffHeapAllocator memoryAllocator;
 
     /**
      * Inspect the classpath to find storage configuration file
@@ -459,6 +461,7 @@ public class DatabaseDescriptor
             }
 
             rowCacheProvider = FBUtilities.newCacheProvider(conf.row_cache_provider);
+            memoryAllocator = FBUtilities.newOffHeapAllocator(conf.memory_allocator);
 
             // Hardcoded system tables
             List<KSMetaData> systemKeyspaces = Arrays.asList(KSMetaData.systemKeyspace(), KSMetaData.traceKeyspace());
@@ -1225,6 +1228,11 @@ public class DatabaseDescriptor
     public static IRowCacheProvider getRowCacheProvider()
     {
         return rowCacheProvider;
+    }
+
+    public static OffHeapAllocator getoffHeapMemoryAllocator()
+    {
+        return memoryAllocator;
     }
 
     public static int getStreamingSocketTimeout()

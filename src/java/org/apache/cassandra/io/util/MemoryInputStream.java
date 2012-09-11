@@ -19,15 +19,12 @@ package org.apache.cassandra.io.util;
 
 import java.io.IOException;
 
-import org.apache.cassandra.cache.FreeableMemory;
-
-
 public class MemoryInputStream extends AbstractDataInput
 {
-    private final FreeableMemory mem;
+    private final OffHeapMemory mem;
     private int position = 0;
 
-    public MemoryInputStream(FreeableMemory mem)
+    public MemoryInputStream(OffHeapMemory mem)
     {
         this.mem = mem;
     }
@@ -39,7 +36,7 @@ public class MemoryInputStream extends AbstractDataInput
 
     public void readFully(byte[] buffer, int offset, int count) throws IOException
     {
-        mem.getBytes(position, buffer, offset, count);
+        mem.read(position, buffer, offset, count);
         position += count;
     }
 

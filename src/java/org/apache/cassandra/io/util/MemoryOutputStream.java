@@ -26,10 +26,10 @@ import java.io.OutputStream;
 public class MemoryOutputStream extends OutputStream
 {
 
-    private final Memory mem;
+    private final OffHeapMemory mem;
     private int position = 0;
 
-    public MemoryOutputStream(Memory mem)
+    public MemoryOutputStream(OffHeapMemory mem)
     {
         this.mem = mem;
     }
@@ -42,7 +42,7 @@ public class MemoryOutputStream extends OutputStream
     @Override
     public void write(byte[] b, int off, int len) throws IOException
     {
-        mem.setBytes(position, b, off, len);
+        mem.write(position, b, off, len);
         position += len;
     }
 

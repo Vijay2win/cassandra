@@ -1,6 +1,12 @@
 1.2-beta2
+ * optimize single-row PK lookups (CASSANDRA-4710)
  * adjust blockFor calculation to account for pending ranges due to node 
    movement (CASSANDRA-833)
+ * Change CQL version to 3.0.0 and stop accepting 3.0.0-beta1 (CASSANDRA-4649)
+ * (CQL3) Make prepared statement global instead of per connection (CASSANDRA-4449)
+ * Fix scrubbing of CQL3 created tables (CASSANDRA-4685)
+ * (CQL3) Fix validation when using counter and regular columns in the same table
+   (CASSANDRA-4706)
 
 1.2-beta1
  * add atomic_batch_mutate (CASSANDRA-4542, -4635)
@@ -72,13 +78,19 @@
 
 
 1.1.6
+ * use default consistency level in counter validation if none is
+   explicitly provide (CASSANDRA-4700)
  * Improve IAuthority interface by introducing fine-grained
-   access permissions and grant/revoke commands (CASSANDRA-4490)
- * fix assumption error in CLI when updating/describing keyspace (CASSANDRA-4322)
+   access permissions and grant/revoke commands (CASSANDRA-4490, 4644)
+ * fix assumption error in CLI when updating/describing keyspace 
+   (CASSANDRA-4322)
  * Adds offline sstablescrub to debian packaging (CASSANDRA-4642)
  * Automatic fixing of overlapping leveled sstables (CASSANDRA-4644)
  * fix error when using ORDER BY with extended selections (CASSANDRA-4689)
- * rename permission USE to DESCRIBE (CASSANDRA-4664)
+ * (CQL3) Fix validation for IN queries for non-PK cols (CASSANDRA-4709)
+Merged from 1.0:
+ * Switch from NBHM to CHM in MessagingService's callback map, which
+   prevents OOM in long-running instances (CASSANDRA-4708)
 
 
 1.1.5

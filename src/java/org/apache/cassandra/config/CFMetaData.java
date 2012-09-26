@@ -646,7 +646,7 @@ public final class CFMetaData
 
     public AbstractType<?> getValueValidator(ByteBuffer column)
     {
-        return getValueValidator(column_metadata.get(column));
+        return getValueValidator(getColumnDefinition(column));
     }
 
     public AbstractType<?> getValueValidator(ColumnDefinition columnDefinition)
@@ -932,9 +932,40 @@ public final class CFMetaData
         return def;
     }
 
+    /**
+     * Returns the ColumnDefinition for {@code name}.
+     *
+     * Note that {@code name} correspond to the returned ColumnDefinition name,
+     * and in particular for composite cfs, it should usually be only a
+     * component of the full column name. If you have a full column name, use
+     * getColumnDefinitionFromColumnName instead.
+     */
     public ColumnDefinition getColumnDefinition(ByteBuffer name)
     {
-        return column_metadata.get(name);
+            return column_metadata.get(name);
+    }
+
+    /**
+     * Returns a ColumnDefinition given a full (internal) column name.
+     */
+    public ColumnDefinition getColumnDefinitionFromColumnName(ByteBuffer columnName)
+    {
+        if (comparator instanceof CompositeType)
+        {
+            CompositeType composite = (CompositeType)comparator;
+            ByteBuffer[] components = composite.split(columnName);
+            for (ColumnDefinition def : column_metadata.values())
+            {
+                ByteBuffer toCompare = def.componentIndex == null ? columnName : components[def.componentIndex];
+                if (def.name.equals(toCompare))
+                    return def;
+            }
+            return null;
+        }
+        else
+        {
+            return column_metadata.get(columnName);
+        }
     }
 
     public ColumnDefinition getColumnDefinitionForIndex(String indexName)
@@ -1024,9 +1055,9 @@ public final class CFMetaData
     public CFMetaData validate() throws ConfigurationException
     {
         if (!isNameValid(ksName))
-            throw new ConfigurationException(String.format("Invalid keyspace name: shouldn't be empty nor more than %s characters long (got \"%s\")", Schema.NAME_LENGTH, ksName));
+            throw new ConfigurationException(String.format("Keyspace name must not be empty, more than %s characters long, or contain non-alphanumeric-underscore characters (got \"%s\")", Schema.NAME_LENGTH, ksName));
         if (!isNameValid(cfName))
-            throw new ConfigurationException(String.format("Invalid keyspace name: shouldn't be empty nor more than %s characters long (got \"%s\")", Schema.NAME_LENGTH, cfName));
+            throw new ConfigurationException(String.format("ColumnFamily name must not be empty, more than %s characters long, or contain non-alphanumeric-underscore characters (got \"%s\")", Schema.NAME_LENGTH, cfName));
 
         if (cfType == null)
             throw new ConfigurationException(String.format("Invalid column family type for %s", cfName));
@@ -1055,13 +1086,13 @@ public final class CFMetaData
         {
             for (ColumnDefinition def : column_metadata.values())
                 if (!(def.getValidator() instanceof CounterColumnType))
-                    throw new ConfigurationException("Cannot add a non counter column (" + comparator.getString(def.name) + ") in a counter column family");
+                    throw new ConfigurationException("Cannot add a non counter column (" + getColumnDefinitionComparator(def).getString(def.name) + ") in a counter column family");
         }
         else
         {
             for (ColumnDefinition def : column_metadata.values())
                 if (def.getValidator() instanceof CounterColumnType)
-                    throw new ConfigurationException("Cannot add a counter column (" + comparator.getString(def.name) + ") in a non counter column family");
+                    throw new ConfigurationException("Cannot add a counter column (" + getColumnDefinitionComparator(def).getString(def.name) + ") in a non counter column family");
         }
 
         // check if any of the columns has name equal to the cf.key_alias

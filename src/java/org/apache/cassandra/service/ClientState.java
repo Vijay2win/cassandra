@@ -65,12 +65,6 @@ public class ClientState
         }
     };
 
-    private final Map<Integer, org.apache.cassandra.cql3.CQLStatement> cql3Prepared = new LinkedHashMap<Integer, org.apache.cassandra.cql3.CQLStatement>(16, 0.75f, true) {
-        protected boolean removeEldestEntry(Map.Entry<Integer, org.apache.cassandra.cql3.CQLStatement> eldest) {
-            return size() > MAX_CACHE_PREPARED;
-        }
-    };
-
     private long clock;
 
     // internalCall is used to mark ClientState as used by some internal component
@@ -94,11 +88,6 @@ public class ClientState
     public Map<Integer, CQLStatement> getPrepared()
     {
         return prepared;
-    }
-
-    public Map<Integer, org.apache.cassandra.cql3.CQLStatement> getCQL3Prepared()
-    {
-        return cql3Prepared;
     }
 
     public String getRawKeyspace()
@@ -191,7 +180,6 @@ public class ClientState
         preparedTracingSession = null;
         resourceClear();
         prepared.clear();
-        cql3Prepared.clear();
     }
 
     public void hasKeyspaceAccess(String keyspace, Permission perm) throws UnauthorizedException, InvalidRequestException
@@ -346,6 +334,13 @@ public class ClientState
         SemanticVersion cql = org.apache.cassandra.cql.QueryProcessor.CQL_VERSION;
         SemanticVersion cql3 = org.apache.cassandra.cql3.QueryProcessor.CQL_VERSION;
 
+        // We've made some backward incompatible changes between CQL3 beta1 and the final.
+        // It's ok because it was a beta, but it still mean we don't support 3.0.0-beta1 so reject it.
+        SemanticVersion cql3Beta = new SemanticVersion("3.0.0-beta1");
+        if (version.equals(cql3Beta))
+            throw new InvalidRequestException(String.format("There has been a few syntax breaking changes between 3.0.0-beta1 and 3.0.0 "
+                                                           + "(mainly the syntax for options of CREATE KEYSPACE and CREATE TABLE). 3.0.0-beta1 "
+                                                           + " is not supported; please upgrade to 3.0.0"));
         if (version.isSupportedBy(cql))
             cqlVersion = cql;
         else if (version.isSupportedBy(cql3))

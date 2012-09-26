@@ -2063,4 +2063,12 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         if (!truncatedSSTables.isEmpty())
             markCompacted(truncatedSSTables, OperationType.UNKNOWN);
     }
+
+    public long getReadLatencyRate(long defaultLatency)
+    {
+        long latency = (long) metric.readLatency.latency.fifteenMinuteRate();
+        if (latency == 0 || latency > defaultLatency)
+            return defaultLatency;
+        return latency;
+    }
 }

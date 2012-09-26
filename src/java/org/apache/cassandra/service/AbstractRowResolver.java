@@ -18,7 +18,6 @@
 package org.apache.cassandra.service;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Set;
 
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
@@ -29,8 +28,6 @@ import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.ReadResponse;
 import org.apache.cassandra.db.Row;
 import org.apache.cassandra.net.MessageIn;
-import org.apache.cassandra.net.MessagingService;
-import org.apache.cassandra.utils.FBUtilities;
 
 public abstract class AbstractRowResolver implements IResponseResolver<ReadResponse, Row>
 {
@@ -46,9 +43,23 @@ public abstract class AbstractRowResolver implements IResponseResolver<ReadRespo
         this.table = table;
     }
 
-    public void preprocess(MessageIn<ReadResponse> message)
+    public boolean preprocess(MessageIn<ReadResponse> message)
     {
+        for (MessageIn<ReadResponse> reply : replies)
+        {
+            if (reply.from.equals(message.from))
+            {
+                if (!message.payload.isDigestQuery())
+                {
+                    // replace old message
+                    replies.remove(reply);
+                    replies.add(message);
+                }
+                return false;
+            }
+        }
         replies.add(message);
+        return true;
     }
 
     public Iterable<MessageIn<ReadResponse>> getMessages()

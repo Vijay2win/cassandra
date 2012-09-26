@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,8 +34,6 @@ import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.ReadCommand;
-import org.apache.cassandra.db.ReadResponse;
-import org.apache.cassandra.db.Table;
 import org.apache.cassandra.exceptions.ReadTimeoutException;
 import org.apache.cassandra.exceptions.UnavailableException;
 import org.apache.cassandra.locator.IEndpointSnitch;
@@ -130,9 +127,9 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         return ep.subList(0, Math.min(ep.size(), blockfor));
     }
 
-    public TResolved get() throws ReadTimeoutException, DigestMismatchException, IOException
+    public TResolved get(long interimTimeout) throws ReadTimeoutException, DigestMismatchException, IOException
     {
-        long timeout = command.getTimeout() - (System.currentTimeMillis() - startTime);
+        long timeout = interimTimeout - (System.currentTimeMillis() - startTime);
         boolean success;
         try
         {
@@ -144,14 +141,19 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         }
 
         if (!success)
+        {
+            if (command.getTimeout() - (System.currentTimeMillis() - startTime) > 0)
+                return null;
             throw new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
+        }
 
         return blockfor == 1 ? resolver.getData() : resolver.resolve();
     }
 
     public void response(MessageIn<TMessage> message)
     {
-        resolver.preprocess(message);
+        if (!resolver.preprocess(message))
+            return;
         int n = waitingFor(message)
               ? received.incrementAndGet()
               : received.get();

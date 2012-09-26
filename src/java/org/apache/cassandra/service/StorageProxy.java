@@ -909,7 +909,7 @@ public class StorageProxy implements StorageProxyMBean
                     MessagingService.instance().sendRR(command.createMessage(), dataPoint, handler);
                 }
 
-                if (handler.endpoints.size() == 1)
+                if (handler.endpoints.size() != 1)
                     continue;
 
                 // send the other endpoints a digest request
@@ -945,7 +945,15 @@ public class StorageProxy implements StorageProxyMBean
                 try
                 {
                     long startTime2 = System.currentTimeMillis();
-                    Row row = handler.get();
+                    long mean = Table.open(command.table).getColumnFamilyStore(command.getColumnFamilyName()).getReadLatencyRate(command.getTimeout());
+                    Row row = handler.get(mean);
+                    if (row == null && handler.endpoints.size() > 1)
+                    {
+                        InetAddress dataPoint = handler.endpoints.get(1);
+                        logger.info("speculatively reading data from {}", dataPoint);
+                        MessagingService.instance().sendRR(command.createMessage(), dataPoint, handler);
+                    }
+                    row = handler.get(command.getTimeout() - mean);
                     if (row != null)
                     {
                         command.maybeTrim(row);
@@ -1148,7 +1156,7 @@ public class StorageProxy implements StorageProxyMBean
 
                 try
                 {
-                    for (Row row : handler.get())
+                    for (Row row : handler.get(command.getTimeout()))
                     {
                         rows.add(row);
                         columnsCount += row.getLiveColumnCount();

@@ -989,36 +989,6 @@ public class StorageProxy implements StorageProxyMBean
         return rows;
     }
 
-    private static ReadCallback<ReadResponse, Row> getFullRead(ReadCommand command, ConsistencyLevel consistency_level) throws UnavailableException
-    {
-        List<InetAddress> endpoints = StorageService.instance.getLiveNaturalEndpoints(command.table, command.key);
-        DatabaseDescriptor.getEndpointSnitch().sortByProximity(FBUtilities.getBroadcastAddress(), endpoints);
-        AbstractRowResolver resolver = new RowRepairResolver(command.table, command.key);
-        ReadCallback<ReadResponse, Row> handler = getReadCallback(resolver, command, consistency_level, endpoints);
-        handler.assureSufficientLiveNodes();
-        assert !handler.endpoints.isEmpty();
-
-        MessageOut message = null;
-        for (InetAddress digestPoint : handler.endpoints)
-        {
-            if (digestPoint.equals(FBUtilities.getBroadcastAddress()))
-            {
-                logger.debug("reading full data locally");
-                StageManager.getStage(Stage.READ).execute(new LocalReadRunnable(command, handler));
-            }
-            else
-            {
-                logger.debug("reading full data from {}", digestPoint);
-                // (We lazy-construct the digest Message object since it may not be necessary if we
-                // are doing a local digest read, or no digest reads at all.)
-                if (message == null)
-                    message = command.createMessage();
-                MessagingService.instance().sendRR(message, digestPoint, handler);
-            }
-        }
-        return handler;
-    }
-
     static class LocalReadRunnable extends DroppableRunnable
     {
         private final ReadCommand command;

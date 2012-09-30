@@ -45,18 +45,22 @@ public abstract class AbstractRowResolver implements IResponseResolver<ReadRespo
 
     public boolean preprocess(MessageIn<ReadResponse> message)
     {
+        MessageIn<ReadResponse> toReplace = null;
         for (MessageIn<ReadResponse> reply : replies)
         {
             if (reply.from.equals(message.from))
             {
                 if (!message.payload.isDigestQuery())
-                {
-                    // replace old message
-                    replies.remove(reply);
-                    replies.add(message);
-                }
-                return false;
+                    toReplace = reply;
+                break;
             }
+        }
+        // replace old message
+        if (toReplace != null)
+        {
+            replies.remove(toReplace);
+            replies.add(message);
+            return false;
         }
         replies.add(message);
         return true;

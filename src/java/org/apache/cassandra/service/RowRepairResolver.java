@@ -162,12 +162,14 @@ public class RowRepairResolver extends AbstractRowResolver
 
     public Row getData() throws IOException
     {
-        throw new UnsupportedOperationException();
+        for (MessageIn<ReadResponse> message : replies)
+            return message.payload.row();
+        throw new AssertionError("getData should not be invoked when no data is present");
     }
 
     public boolean isDataPresent()
     {
-        throw new UnsupportedOperationException();
+        return (replies.size() > 0);
     }
 
     public int getMaxLiveColumns()

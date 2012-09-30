@@ -74,6 +74,7 @@ public final class CFMetaData
     public final static ByteBuffer DEFAULT_KEY_NAME = ByteBufferUtil.bytes("KEY");
     public final static Caching DEFAULT_CACHING_STRATEGY = Caching.KEYS_ONLY;
     public final static Double DEFAULT_BF_FP_CHANCE = 0.01;
+    public final static SpeculativeRetry DEFAULT_SPECULATIVE_RETRY = SpeculativeRetry.AUTO;
 
     // Note that this is the default only for user created tables
     public final static String DEFAULT_COMPRESSOR = SnappyCompressor.isAvailable() ? SnappyCompressor.class.getCanonicalName() : null;
@@ -222,6 +223,23 @@ public final class CFMetaData
         }
     }
 
+    public enum SpeculativeRetry
+    {
+        NONE, AUTO, ALL;
+
+        public static SpeculativeRetry fromString(String retry) throws ConfigurationException
+        {
+            try
+            {
+                return valueOf(retry.toUpperCase());
+            }
+            catch (IllegalArgumentException e)
+            {
+                throw new ConfigurationException(String.format("%s not found, available types: %s.", retry, StringUtils.join(values(), ", ")));
+            }
+        }
+    }
+
     //REQUIRED
     public final UUID cfId;                           // internal id, never exposed to user
     public final String ksName;                       // name of keyspace
@@ -245,6 +263,7 @@ public final class CFMetaData
     private ByteBuffer valueAlias;                    // default NULL
     private Double bloomFilterFpChance;               // default NULL
     private Caching caching;                          // default KEYS_ONLY (possible: all, key_only, row_only, none)
+    private SpeculativeRetry speculativeRetry;
 
     Map<ByteBuffer, ColumnDefinition> column_metadata;
     public Class<? extends AbstractCompactionStrategy> compactionStrategyClass;
@@ -280,6 +299,7 @@ public final class CFMetaData
     public CFMetaData compressionParameters(CompressionParameters prop) {compressionParameters = prop; return this;}
     public CFMetaData bloomFilterFpChance(Double prop) {bloomFilterFpChance = prop; return this;}
     public CFMetaData caching(Caching prop) {caching = prop; return this;}
+    public CFMetaData speculativeRetry(SpeculativeRetry prop) {speculativeRetry = prop; return this;}
     public CFMetaData defaultReadCL(ConsistencyLevel prop) {readConsistencyLevel = prop; return this;}
     public CFMetaData defaultWriteCL(ConsistencyLevel prop) {writeConsistencyLevel = prop; return this;}
 
@@ -346,6 +366,7 @@ public final class CFMetaData
         minCompactionThreshold       = DEFAULT_MIN_COMPACTION_THRESHOLD;
         maxCompactionThreshold       = DEFAULT_MAX_COMPACTION_THRESHOLD;
         caching                      = DEFAULT_CACHING_STRATEGY;
+        speculativeRetry             = DEFAULT_SPECULATIVE_RETRY;
 
         // Defaults strange or simple enough to not need a DEFAULT_T for
         defaultValidator = BytesType.instance;
@@ -448,6 +469,7 @@ public final class CFMetaData
                       .compressionParameters(oldCFMD.compressionParameters)
                       .bloomFilterFpChance(oldCFMD.bloomFilterFpChance)
                       .caching(oldCFMD.caching)
+                      .speculativeRetry(oldCFMD.speculativeRetry)
                       .defaultReadCL(oldCFMD.readConsistencyLevel)
                       .defaultWriteCL(oldCFMD.writeConsistencyLevel);
     }
@@ -568,6 +590,11 @@ public final class CFMetaData
     public Caching getCaching()
     {
         return caching;
+    }
+
+    public SpeculativeRetry getSpeculativeRetry()
+    {
+        return speculativeRetry;
     }
 
     public boolean equals(Object obj)

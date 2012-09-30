@@ -45,6 +45,7 @@ import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutor;
 import org.apache.cassandra.concurrent.NamedThreadFactory;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.*;
+import org.apache.cassandra.config.CFMetaData.SpeculativeRetry;
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.commitlog.ReplayPosition;
@@ -136,6 +137,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
     private final AtomicLong liveRatioComputedAt = new AtomicLong(32);
 
     public final ColumnFamilyMetrics metric;
+    private volatile long sampleLatency = 0;
 
     public void reload()
     {
@@ -287,6 +289,15 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         {
             throw new RuntimeException(e);
         }
+        StorageService.optionalTasks.scheduleWithFixedDelay(new Runnable()
+        {
+            public void run()
+            {
+                if (ColumnFamilyStore.this.metadata.getSpeculativeRetry() == SpeculativeRetry.AUTO)
+                    sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get95thPercentile() / 1000L);
+            }
+
+        }, 30, 30, TimeUnit.SECONDS);
     }
 
     /** call when dropping or renaming a CF. Performs mbean housekeeping and invalidates CFS to other operations */
@@ -2066,9 +2077,26 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
 
     public long getReadLatencyRate(long defaultLatency)
     {
-        long latency = (long) metric.readLatency.latency.fifteenMinuteRate();
-        if (latency == 0 || latency > defaultLatency)
+        if (sampleLatency == 0 || sampleLatency > defaultLatency)
             return defaultLatency;
-        return latency;
+        return sampleLatency;
+    }
+
+    public class UpdateLatencies implements Runnable
+    {
+        private ColumnFamilyStore store;
+
+        public UpdateLatencies(ColumnFamilyStore store)
+        {
+            this.store = store;
+        }
+
+        public void run()
+        {
+            if (store.metadata.getSpeculativeRetry() == SpeculativeRetry.ALL)
+                store.sampleLatency = 0;
+            else
+                store.sampleLatency = (long) (store.metric.readLatency.latency.getSnapshot().get95thPercentile() / 1000);
+        }
     }
 }

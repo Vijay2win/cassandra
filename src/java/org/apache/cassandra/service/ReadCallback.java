@@ -57,7 +57,7 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
 
     public final IResponseResolver<TMessage, TResolved> resolver;
     protected final SimpleCondition condition = new SimpleCondition();
-    private final long startTime;
+    protected final long startTime;
     protected final int blockfor;
     final List<InetAddress> endpoints;
     private final IReadCommand command;
@@ -152,9 +152,8 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
 
     public void response(MessageIn<TMessage> message)
     {
-        if (!resolver.preprocess(message))
-            return;
-        int n = waitingFor(message)
+        boolean hasAdded = resolver.preprocess(message);
+        int n = (waitingFor(message) && hasAdded)
               ? received.incrementAndGet()
               : received.get();
         if (n >= blockfor && resolver.isDataPresent())

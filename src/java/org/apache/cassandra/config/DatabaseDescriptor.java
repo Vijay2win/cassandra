@@ -88,6 +88,8 @@ public class DatabaseDescriptor
     private static long keyCacheSizeInMB;
     private static IRowCacheProvider rowCacheProvider;
 
+    private static String localDC;
+
     /**
      * Inspect the classpath to find storage configuration file
      */
@@ -334,10 +336,8 @@ public class DatabaseDescriptor
             if (conf.thrift_framed_transport_size_in_mb <= 0)
                 throw new ConfigurationException("thrift_framed_transport_size_in_mb must be positive");
 
-            if (conf.thrift_framed_transport_size_in_mb > 0 && conf.thrift_max_message_length_in_mb < conf.thrift_framed_transport_size_in_mb)
-            {
-                throw new ConfigurationException("thrift_max_message_length_in_mb must be greater than thrift_framed_transport_size_in_mb when using TFramedTransport");
-            }
+            if (conf.thrift_max_message_length_in_mb < conf.thrift_framed_transport_size_in_mb)
+                throw new ConfigurationException("thrift_max_message_length_in_mb must be greater than thrift_framed_transport_size_in_mb");
 
             /* end point snitch */
             if (conf.endpoint_snitch == null)
@@ -346,6 +346,8 @@ public class DatabaseDescriptor
             }
             snitch = createEndpointSnitch(conf.endpoint_snitch);
             EndpointSnitchInfo.create();
+
+            localDC = snitch.getDatacenter(FBUtilities.getBroadcastAddress());
 
             /* Request Scheduler setup */
             requestSchedulerOptions = conf.request_scheduler_options;
@@ -462,8 +464,10 @@ public class DatabaseDescriptor
 
             // Hardcoded system tables
             List<KSMetaData> systemKeyspaces = Arrays.asList(KSMetaData.systemKeyspace(), KSMetaData.traceKeyspace());
+            assert systemKeyspaces.size() == Schema.systemKeyspaceNames.size();
             for (KSMetaData ksmd : systemKeyspaces)
             {
+                // install the definition
                 for (CFMetaData cfm : ksmd.cfMetaData().values())
                     Schema.instance.load(cfm);
                 Schema.instance.setTableDefinition(ksmd);
@@ -1235,6 +1239,11 @@ public class DatabaseDescriptor
     public static boolean populateIOCacheOnFlush()
     {
         return conf.populate_io_cache_on_flush;
+    }
+
+    public static String getLocalDataCenter()
+    {
+        return localDC;
     }
 
     public static Config.InternodeCompression internodeCompression()

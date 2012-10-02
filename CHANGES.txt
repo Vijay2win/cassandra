@@ -1,12 +1,22 @@
 1.2-beta2
+ * include metadata for system keyspace itself in schema tables (CASSANDRA-4416)
+ * add check to PropertyFileSnitch to verify presence of location for
+   local node (CASSANDRA-4728)
+ * add PBSPredictor consistency modeler (CASSANDRA-4261)
+ * remove vestiges of Thrift unframed mode (CASSANDRA-4729)
  * optimize single-row PK lookups (CASSANDRA-4710)
  * adjust blockFor calculation to account for pending ranges due to node 
    movement (CASSANDRA-833)
  * Change CQL version to 3.0.0 and stop accepting 3.0.0-beta1 (CASSANDRA-4649)
- * (CQL3) Make prepared statement global instead of per connection (CASSANDRA-4449)
+ * (CQL3) Make prepared statement global instead of per connection 
+   (CASSANDRA-4449)
  * Fix scrubbing of CQL3 created tables (CASSANDRA-4685)
- * (CQL3) Fix validation when using counter and regular columns in the same table
-   (CASSANDRA-4706)
+ * (CQL3) Fix validation when using counter and regular columns in the same 
+   table (CASSANDRA-4706)
+ * Fix bug starting Cassandra with simple authentication (CASSANDRA-4648)
+ * Add support for batchlog in CQL3 (CASSANDRA-4545)
+ * Add support for multiple column family outputs in CFOF (CASSANDRA-4208)
+
 
 1.2-beta1
  * add atomic_batch_mutate (CASSANDRA-4542, -4635)
@@ -78,6 +88,7 @@
 
 
 1.1.6
+ * NTS will default unconfigured DC replicas to zero (CASSANDRA-4675)
  * use default consistency level in counter validation if none is
    explicitly provide (CASSANDRA-4700)
  * Improve IAuthority interface by introducing fine-grained
@@ -88,6 +99,9 @@
  * Automatic fixing of overlapping leveled sstables (CASSANDRA-4644)
  * fix error when using ORDER BY with extended selections (CASSANDRA-4689)
  * (CQL3) Fix validation for IN queries for non-PK cols (CASSANDRA-4709)
+ * fix re-created keyspace disappering after 1.1.5 upgrade (CASSANDRA-4698)
+ * (CLI) display elapsed time in 2 fraction digits (CASSANDRA-3460)
+ * add authentication support to sstableloader (CASSANDRA-4712)
 Merged from 1.0:
  * Switch from NBHM to CHM in MessagingService's callback map, which
    prevents OOM in long-running instances (CASSANDRA-4708)

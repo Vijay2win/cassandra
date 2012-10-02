@@ -33,8 +33,6 @@ import org.apache.cassandra.db.marshal.CompositeType;
 import org.apache.cassandra.exceptions.*;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.thrift.RequestType;
-import org.apache.cassandra.thrift.ThriftValidation;
 
 /**
  * Abstract class for statements that apply on a given column family.
@@ -75,7 +73,14 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
     public ResultMessage execute(ClientState state, List<ByteBuffer> variables) throws RequestExecutionException, RequestValidationException
     {
-        StorageProxy.mutate(getMutations(state, variables), getConsistencyLevel());
+        StorageProxy.mutate(getMutations(state, variables, false), getConsistencyLevel());
+        return null;
+    }
+
+    public ResultMessage executeInternal(ClientState state) throws RequestValidationException, RequestExecutionException
+    {
+        for (IMutation mutation : getMutations(state, Collections.<ByteBuffer>emptyList(), true))
+            mutation.apply();
         return null;
     }
 
@@ -118,7 +123,7 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
         return timeToLive;
     }
 
-    public Map<ByteBuffer, ColumnGroupMap> readRows(List<ByteBuffer> keys, ColumnNameBuilder builder, CompositeType composite)
+    protected Map<ByteBuffer, ColumnGroupMap> readRows(List<ByteBuffer> keys, ColumnNameBuilder builder, CompositeType composite, boolean local)
     throws RequestExecutionException, RequestValidationException
     {
         List<ReadCommand> commands = new ArrayList<ReadCommand>(keys.size());
@@ -135,7 +140,10 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
         try
         {
-            List<Row> rows = StorageProxy.read(commands, getConsistencyLevel());
+            List<Row> rows = local
+                           ? SelectStatement.readLocally(keyspace(), commands)
+                           : StorageProxy.read(commands, getConsistencyLevel());
+
             Map<ByteBuffer, ColumnGroupMap> map = new HashMap<ByteBuffer, ColumnGroupMap>();
             for (Row row : rows)
             {
@@ -164,11 +172,12 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
      *
      * @param clientState current client status
      * @param variables value for prepared statement markers
+     * @param local if true, any requests (for collections) performed by getMutation should be done locally only.
      *
      * @return list of the mutations
      * @throws InvalidRequestException on invalid requests
      */
-    public abstract List<IMutation> getMutations(ClientState clientState, List<ByteBuffer> variables)
+    protected abstract Collection<? extends IMutation> getMutations(ClientState clientState, List<ByteBuffer> variables, boolean local)
     throws RequestExecutionException, RequestValidationException;
 
     public abstract ParsedStatement.Prepared prepare(CFDefinition.Name[] boundNames) throws InvalidRequestException;

@@ -784,6 +784,28 @@ commands:
             - ROWS_ONLY
             - NONE;
 
+        - speculative_retry: Speculative retry is used to speculate a read failure.
+
+          Speculative retry will execute additional read on a different nodes when 
+          the read request doesn't complete within the x milliseconds. 
+
+          For example: 
+          autoX will execute additional read requests to a different replicas 
+          when read request was not completed within X percentile of the 
+          normal/earlier recorded latencies.
+
+          ALL will execute full data read request to all the replicas instead of 
+          sending digest requests (Controlled by read_reapir_chance).
+
+          Supported values are:
+            - ALL
+            - auto95
+            - auto98
+            - auto99
+            - auto999
+            - autoMean
+            - NONE;
+
         - max_compaction_threshold: The maximum number of SSTables allowed before a
         minor compaction is forced. Default is 32, setting to 0 disables minor
         compactions.

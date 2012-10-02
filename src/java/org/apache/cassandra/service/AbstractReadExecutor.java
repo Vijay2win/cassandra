@@ -55,6 +55,11 @@ public abstract class AbstractReadExecutor
         this.handler = StorageProxy.getReadCallback(getResolver(), command, consistency_level, naturalEndpoints);
     }
 
+    void speculate()
+    {
+        // noop by default.
+    }
+
     void executeAsync() throws UnavailableException
     {
         handler.assureSufficientLiveNodes();
@@ -116,7 +121,12 @@ public abstract class AbstractReadExecutor
         {
         case ALL:
             return new ReadAllExecutor(command, consistency_level);
-        case AUTO:
+        case AUTO75:
+        case AUTO95:
+        case AUTO98:
+        case AUTO99:
+        case AUTO999:
+        case AUTOMEAN:
             return new SpeculativeReadExecutor(command, cfs, consistency_level);
         default:
             return new DefaultReadExecutor(command, consistency_level);
@@ -133,26 +143,24 @@ public abstract class AbstractReadExecutor
 
     private static class SpeculativeReadExecutor extends AbstractReadExecutor
     {
-        private ColumnFamilyStore cfs;
+        private final ColumnFamilyStore cfs;
 
         public SpeculativeReadExecutor(ReadCommand command, ColumnFamilyStore cfs, ConsistencyLevel consistency_level)
         {
             super(command, consistency_level);
             this.cfs = cfs;
         }
-
-        Row get() throws ReadTimeoutException, DigestMismatchException, IOException
+        
+        void speculate()
         {
-            long speculativeTimeout = cfs.getReadLatencyRate(command.getTimeout());
-            Row row = handler.get(speculativeTimeout);
-            if (row == null && naturalEndpoints.size() > 1)
+            boolean sucess = handler.await(cfs.getReadLatencyRate(command.getTimeout()));
+            if (!sucess && naturalEndpoints.size() > 1)
             {
                 InetAddress dataPoint = naturalEndpoints.get(1);
-                logger.debug("speculating read retry from {}", dataPoint);
+                logger.debug("Speculating read retry on {}", dataPoint);
                 MessagingService.instance().sendRR(command.createMessage(), dataPoint, handler);
                 cfs.metric.speculativeRetry.inc();
             }
-            return handler.get(command.getTimeout() - speculativeTimeout);
         }
     }
 

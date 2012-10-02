@@ -891,12 +891,14 @@ public class StorageProxy implements StorageProxyMBean
                 readCallbacks[i] = exec;
             }
 
+            for (AbstractReadExecutor exec: readCallbacks)
+                    exec.speculate();
+
             // read results and make a second pass for any digest mismatches
             List<ReadCommand> repairCommands = null;
             List<RepairCallback> repairResponseHandlers = null;
-            for (int i = 0; i < commands.size(); i++)
+            for (AbstractReadExecutor exec: readCallbacks)
             {
-                AbstractReadExecutor exec = readCallbacks[i];
                 try
                 {
                     Row row = exec.get();
@@ -908,18 +910,12 @@ public class StorageProxy implements StorageProxyMBean
                     if (logger.isDebugEnabled())
                         logger.debug("Read: " + (System.currentTimeMillis() - exec.handler.startTime) + " ms.");
                 }
-                catch (ReadTimeoutException ex)
-                {
-                    if (logger.isDebugEnabled())
-                        logger.debug("Read timeout: {}", ex.toString());
-                    throw ex;
-                }
                 catch (DigestMismatchException ex)
                 {
                     if (logger.isDebugEnabled())
                         logger.debug("Digest mismatch: {}", ex.toString());
                     RowRepairResolver resolver = new RowRepairResolver(exec.command.table, exec.command.key);
-                    RepairCallback repairHandler = new RepairCallback(resolver, exec.naturalEndpoints);
+                    RepairCallback repairHandler = new RepairCallback(resolver, exec.handler.endpoints);
 
                     if (repairCommands == null)
                     {
@@ -930,7 +926,7 @@ public class StorageProxy implements StorageProxyMBean
                     repairResponseHandlers.add(repairHandler);
 
                     MessageOut<ReadCommand> message = exec.command.createMessage();
-                    for (InetAddress endpoint : exec.naturalEndpoints)
+                    for (InetAddress endpoint : exec.handler.endpoints)
                         MessagingService.instance().sendRR(message, endpoint, repairHandler);
                 }
             }

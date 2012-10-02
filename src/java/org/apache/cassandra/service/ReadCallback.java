@@ -127,26 +127,29 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         return ep.subList(0, Math.min(ep.size(), blockfor));
     }
 
-    public TResolved get(long interimTimeout) throws ReadTimeoutException, DigestMismatchException, IOException
+    public boolean await(long interimTimeout)
     {
         long timeout = interimTimeout - (System.currentTimeMillis() - startTime);
-        boolean success;
         try
         {
-            success = condition.await(timeout, TimeUnit.MILLISECONDS);
+            return condition.await(timeout, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException ex)
         {
             throw new AssertionError(ex);
         }
+    }
 
-        if (!success)
+    public TResolved get(long timeout) throws ReadTimeoutException, DigestMismatchException, IOException
+    {
+        // if not signaled then wait longer till command timeout before throwing an exception.
+        if (!condition.isSignaled() && !await(timeout))
         {
-            if (command.getTimeout() - (System.currentTimeMillis() - startTime) > 0)
-                return null;
-            throw new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
+            ReadTimeoutException ex = new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
+            if (logger.isDebugEnabled())
+                logger.debug("Read timeout: {}", ex.toString());
+            throw ex;
         }
-
         return blockfor == 1 ? resolver.getData() : resolver.resolve();
     }
 

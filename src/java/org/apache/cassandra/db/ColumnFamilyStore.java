@@ -289,15 +289,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         {
             throw new RuntimeException(e);
         }
-        StorageService.optionalTasks.scheduleWithFixedDelay(new Runnable()
-        {
-            public void run()
-            {
-                if (ColumnFamilyStore.this.metadata.getSpeculativeRetry() == SpeculativeRetry.AUTO)
-                    sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get95thPercentile() / 1000L);
-            }
-
-        }, 30, 30, TimeUnit.SECONDS);
+        StorageService.optionalTasks.scheduleWithFixedDelay(new UpdateSampleLatencies(), 30, 30, TimeUnit.SECONDS);
     }
 
     /** call when dropping or renaming a CF. Performs mbean housekeeping and invalidates CFS to other operations */
@@ -2082,21 +2074,34 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         return sampleLatency;
     }
 
-    public class UpdateLatencies implements Runnable
+    public class UpdateSampleLatencies implements Runnable
     {
-        private ColumnFamilyStore store;
-
-        public UpdateLatencies(ColumnFamilyStore store)
-        {
-            this.store = store;
-        }
-
         public void run()
         {
-            if (store.metadata.getSpeculativeRetry() == SpeculativeRetry.ALL)
-                store.sampleLatency = 0;
-            else
-                store.sampleLatency = (long) (store.metric.readLatency.latency.getSnapshot().get95thPercentile() / 1000);
+            switch (metadata.getSpeculativeRetry())
+            {
+            case AUTO75:
+                sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get75thPercentile() / 1000);   
+                break;
+            case AUTO95:
+                sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get95thPercentile() / 1000);
+                break;
+            case AUTO98:
+                sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get98thPercentile() / 1000);
+                break;
+            case AUTO99:
+                sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get99thPercentile() / 1000);
+                break;
+            case AUTO999:
+                sampleLatency = (long) (metric.readLatency.latency.getSnapshot().get999thPercentile() / 1000);
+                break;
+            case AUTOMEAN:
+                sampleLatency = (long) (metric.readLatency.latency.fifteenMinuteRate() / 1000);
+                break;
+            default:
+                sampleLatency = 0;
+                break;
+            }
         }
     }
 }

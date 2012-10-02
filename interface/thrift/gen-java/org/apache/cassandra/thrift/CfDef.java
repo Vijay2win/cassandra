@@ -67,6 +67,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   private static final org.apache.thrift.protocol.TField BLOOM_FILTER_FP_CHANCE_FIELD_DESC = new org.apache.thrift.protocol.TField("bloom_filter_fp_chance", org.apache.thrift.protocol.TType.DOUBLE, (short)33);
   private static final org.apache.thrift.protocol.TField CACHING_FIELD_DESC = new org.apache.thrift.protocol.TField("caching", org.apache.thrift.protocol.TType.STRING, (short)34);
   private static final org.apache.thrift.protocol.TField DCLOCAL_READ_REPAIR_CHANCE_FIELD_DESC = new org.apache.thrift.protocol.TField("dclocal_read_repair_chance", org.apache.thrift.protocol.TType.DOUBLE, (short)37);
+  private static final org.apache.thrift.protocol.TField SPECULATIVE_RETRY_FIELD_DESC = new org.apache.thrift.protocol.TField("speculative_retry", org.apache.thrift.protocol.TType.STRING, (short)38);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)9);
   private static final org.apache.thrift.protocol.TField KEY_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("key_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)11);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SAVE_PERIOD_IN_SECONDS_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_save_period_in_seconds", org.apache.thrift.protocol.TType.I32, (short)19);
@@ -100,6 +101,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   public double bloom_filter_fp_chance; // required
   public String caching; // required
   public double dclocal_read_repair_chance; // required
+  public String speculative_retry; // required
   /**
    * @deprecated
    */
@@ -165,6 +167,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     BLOOM_FILTER_FP_CHANCE((short)33, "bloom_filter_fp_chance"),
     CACHING((short)34, "caching"),
     DCLOCAL_READ_REPAIR_CHANCE((short)37, "dclocal_read_repair_chance"),
+    SPECULATIVE_RETRY((short)38, "speculative_retry"),
     /**
      * @deprecated
      */
@@ -263,6 +266,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
           return CACHING;
         case 37: // DCLOCAL_READ_REPAIR_CHANCE
           return DCLOCAL_READ_REPAIR_CHANCE;
+        case 38: // SPECULATIVE_RETRY
+          return SPECULATIVE_RETRY;
         case 9: // ROW_CACHE_SIZE
           return ROW_CACHE_SIZE;
         case 11: // KEY_CACHE_SIZE
@@ -394,6 +399,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.DCLOCAL_READ_REPAIR_CHANCE, new org.apache.thrift.meta_data.FieldMetaData("dclocal_read_repair_chance", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.SPECULATIVE_RETRY, new org.apache.thrift.meta_data.FieldMetaData("speculative_retry", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.ROW_CACHE_SIZE, new org.apache.thrift.meta_data.FieldMetaData("row_cache_size", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.KEY_CACHE_SIZE, new org.apache.thrift.meta_data.FieldMetaData("key_cache_size", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -426,6 +433,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     this.caching = "keys_only";
 
     this.dclocal_read_repair_chance = 0;
+
+    this.speculative_retry = "auto95";
 
   }
 
@@ -523,6 +532,9 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       this.caching = other.caching;
     }
     this.dclocal_read_repair_chance = other.dclocal_read_repair_chance;
+    if (other.isSetSpeculative_retry()) {
+      this.speculative_retry = other.speculative_retry;
+    }
     this.row_cache_size = other.row_cache_size;
     this.key_cache_size = other.key_cache_size;
     this.row_cache_save_period_in_seconds = other.row_cache_save_period_in_seconds;
@@ -575,6 +587,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     this.caching = "keys_only";
 
     this.dclocal_read_repair_chance = 0;
+
+    this.speculative_retry = "auto95";
 
     setRow_cache_sizeIsSet(false);
     this.row_cache_size = 0.0;
@@ -1164,6 +1178,30 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     __isset_bit_vector.set(__DCLOCAL_READ_REPAIR_CHANCE_ISSET_ID, value);
   }
 
+  public String getSpeculative_retry() {
+    return this.speculative_retry;
+  }
+
+  public CfDef setSpeculative_retry(String speculative_retry) {
+    this.speculative_retry = speculative_retry;
+    return this;
+  }
+
+  public void unsetSpeculative_retry() {
+    this.speculative_retry = null;
+  }
+
+  /** Returns true if field speculative_retry is set (has been assigned a value) and false otherwise */
+  public boolean isSetSpeculative_retry() {
+    return this.speculative_retry != null;
+  }
+
+  public void setSpeculative_retryIsSet(boolean value) {
+    if (!value) {
+      this.speculative_retry = null;
+    }
+  }
+
   /**
    * @deprecated
    */
@@ -1633,6 +1671,14 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       }
       break;
 
+    case SPECULATIVE_RETRY:
+      if (value == null) {
+        unsetSpeculative_retry();
+      } else {
+        setSpeculative_retry((String)value);
+      }
+      break;
+
     case ROW_CACHE_SIZE:
       if (value == null) {
         unsetRow_cache_size();
@@ -1784,6 +1830,9 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     case DCLOCAL_READ_REPAIR_CHANCE:
       return Double.valueOf(getDclocal_read_repair_chance());
 
+    case SPECULATIVE_RETRY:
+      return getSpeculative_retry();
+
     case ROW_CACHE_SIZE:
       return Double.valueOf(getRow_cache_size());
 
@@ -1869,6 +1918,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       return isSetCaching();
     case DCLOCAL_READ_REPAIR_CHANCE:
       return isSetDclocal_read_repair_chance();
+    case SPECULATIVE_RETRY:
+      return isSetSpeculative_retry();
     case ROW_CACHE_SIZE:
       return isSetRow_cache_size();
     case KEY_CACHE_SIZE:
@@ -2104,6 +2155,15 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         return false;
     }
 
+    boolean this_present_speculative_retry = true && this.isSetSpeculative_retry();
+    boolean that_present_speculative_retry = true && that.isSetSpeculative_retry();
+    if (this_present_speculative_retry || that_present_speculative_retry) {
+      if (!(this_present_speculative_retry && that_present_speculative_retry))
+        return false;
+      if (!this.speculative_retry.equals(that.speculative_retry))
+        return false;
+    }
+
     boolean this_present_row_cache_size = true && this.isSetRow_cache_size();
     boolean that_present_row_cache_size = true && that.isSetRow_cache_size();
     if (this_present_row_cache_size || that_present_row_cache_size) {
@@ -2310,6 +2370,11 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     builder.append(present_dclocal_read_repair_chance);
     if (present_dclocal_read_repair_chance)
       builder.append(dclocal_read_repair_chance);
+
+    boolean present_speculative_retry = true && (isSetSpeculative_retry());
+    builder.append(present_speculative_retry);
+    if (present_speculative_retry)
+      builder.append(speculative_retry);
 
     boolean present_row_cache_size = true && (isSetRow_cache_size());
     builder.append(present_row_cache_size);
@@ -2588,6 +2653,16 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     }
     if (isSetDclocal_read_repair_chance()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.dclocal_read_repair_chance, typedOther.dclocal_read_repair_chance);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetSpeculative_retry()).compareTo(typedOther.isSetSpeculative_retry());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetSpeculative_retry()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.speculative_retry, typedOther.speculative_retry);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -2906,6 +2981,13 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 38: // SPECULATIVE_RETRY
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.speculative_retry = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         case 9: // ROW_CACHE_SIZE
           if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
             this.row_cache_size = iprot.readDouble();
@@ -3209,6 +3291,13 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       oprot.writeDouble(this.dclocal_read_repair_chance);
       oprot.writeFieldEnd();
     }
+    if (this.speculative_retry != null) {
+      if (isSetSpeculative_retry()) {
+        oprot.writeFieldBegin(SPECULATIVE_RETRY_FIELD_DESC);
+        oprot.writeString(this.speculative_retry);
+        oprot.writeFieldEnd();
+      }
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -3399,6 +3488,16 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       if (!first) sb.append(", ");
       sb.append("dclocal_read_repair_chance:");
       sb.append(this.dclocal_read_repair_chance);
+      first = false;
+    }
+    if (isSetSpeculative_retry()) {
+      if (!first) sb.append(", ");
+      sb.append("speculative_retry:");
+      if (this.speculative_retry == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.speculative_retry);
+      }
       first = false;
     }
     if (isSetRow_cache_size()) {

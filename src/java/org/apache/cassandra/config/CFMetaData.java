@@ -74,7 +74,7 @@ public final class CFMetaData
     public final static ByteBuffer DEFAULT_KEY_NAME = ByteBufferUtil.bytes("KEY");
     public final static Caching DEFAULT_CACHING_STRATEGY = Caching.KEYS_ONLY;
     public final static Double DEFAULT_BF_FP_CHANCE = 0.01;
-    public final static SpeculativeRetry DEFAULT_SPECULATIVE_RETRY = SpeculativeRetry.AUTO;
+    public final static SpeculativeRetry DEFAULT_SPECULATIVE_RETRY = SpeculativeRetry.AUTO95;
 
     // Note that this is the default only for user created tables
     public final static String DEFAULT_COMPRESSOR = SnappyCompressor.isAvailable() ? SnappyCompressor.class.getCanonicalName() : null;
@@ -134,6 +134,7 @@ public final class CFMetaData
                                                                      + "compaction_strategy_options text,"
                                                                      + "default_read_consistency text,"
                                                                      + "default_write_consistency text,"
+                                                                     + "speculative_retry text,"
                                                                      + "PRIMARY KEY (keyspace_name, columnfamily_name)"
                                                                      + ") WITH COMMENT='ColumnFamily definitions' AND gc_grace_seconds=8640");
     public static final CFMetaData SchemaColumnsCf = compile(10, "CREATE TABLE " + SystemTable.SCHEMA_COLUMNS_CF + "("
@@ -225,7 +226,7 @@ public final class CFMetaData
 
     public enum SpeculativeRetry
     {
-        NONE, AUTO, ALL;
+        NONE, CUSTOM, AUTOMEAN, AUTO75, AUTO95, AUTO98, AUTO99, AUTO999, ALL;
 
         public static SpeculativeRetry fromString(String retry) throws ConfigurationException
         {
@@ -417,6 +418,7 @@ public final class CFMetaData
                              .dcLocalReadRepairChance(0.0)
                              .gcGraceSeconds(0)
                              .caching(indexCaching)
+                             .speculativeRetry(parent.speculativeRetry)
                              .compactionStrategyClass(parent.compactionStrategyClass)
                              .compactionStrategyOptions(parent.compactionStrategyOptions)
                              .reloadSecondaryIndexMetadata(parent);
@@ -634,6 +636,7 @@ public final class CFMetaData
             .append(compressionParameters, rhs.compressionParameters)
             .append(bloomFilterFpChance, rhs.bloomFilterFpChance)
             .append(caching, rhs.caching)
+            .append(speculativeRetry, rhs.speculativeRetry)
             .append(readConsistencyLevel, rhs.readConsistencyLevel)
             .append(writeConsistencyLevel, rhs.writeConsistencyLevel)
             .isEquals();
@@ -666,6 +669,7 @@ public final class CFMetaData
             .append(compressionParameters)
             .append(bloomFilterFpChance)
             .append(caching)
+            .append(speculativeRetry)
             .append(readConsistencyLevel)
             .append(writeConsistencyLevel)
             .toHashCode();
@@ -741,6 +745,8 @@ public final class CFMetaData
                 newCFMD.bloomFilterFpChance(cf_def.bloom_filter_fp_chance);
             if (cf_def.isSetCaching())
                 newCFMD.caching(Caching.fromString(cf_def.caching));
+            if (cf_def.isSetSpeculative_retry())
+                newCFMD.speculativeRetry(SpeculativeRetry.fromString(cf_def.speculative_retry));
             if (cf_def.isSetRead_repair_chance())
                 newCFMD.readRepairChance(cf_def.read_repair_chance);
             if (cf_def.isSetDclocal_read_repair_chance())
@@ -863,6 +869,7 @@ public final class CFMetaData
 
         bloomFilterFpChance = cfm.bloomFilterFpChance;
         caching = cfm.caching;
+        speculativeRetry = cfm.speculativeRetry;
 
         MapDifference<ByteBuffer, ColumnDefinition> columnDiff = Maps.difference(column_metadata, cfm.column_metadata);
         // columns that are no longer needed
@@ -956,6 +963,7 @@ public final class CFMetaData
         if (bloomFilterFpChance != null)
             def.setBloom_filter_fp_chance(bloomFilterFpChance);
         def.setCaching(caching.toString());
+        def.setSpeculative_retry(speculativeRetry.toString());
         return def;
     }
 
@@ -1295,6 +1303,7 @@ public final class CFMetaData
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "key_aliases"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "bloom_filter_fp_chance"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "caching"));
+        cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "speculative_retry"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "compaction_strategy_class"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "compression_parameters"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "value_alias"));
@@ -1345,6 +1354,7 @@ public final class CFMetaData
         cf.addColumn(bloomFilterFpChance == null ? DeletedColumn.create(ldt, timestamp, cfName, "bloomFilterFpChance")
                                                  : Column.create(bloomFilterFpChance, timestamp, cfName, "bloom_filter_fp_chance"));
         cf.addColumn(Column.create(caching.toString(), timestamp, cfName, "caching"));
+        cf.addColumn(Column.create(speculativeRetry.toString(), timestamp, cfName, "speculative_retry"));
         cf.addColumn(Column.create(compactionStrategyClass.getName(), timestamp, cfName, "compaction_strategy_class"));
         cf.addColumn(Column.create(json(compressionParameters.asThriftOptions()), timestamp, cfName, "compression_parameters"));
         cf.addColumn(valueAlias == null ? DeletedColumn.create(ldt, timestamp, cfName, "value_alias")
@@ -1393,6 +1403,8 @@ public final class CFMetaData
             if (result.has("bloom_filter_fp_chance"))
                 cfm.bloomFilterFpChance(result.getDouble("bloom_filter_fp_chance"));
             cfm.caching(Caching.valueOf(result.getString("caching")));
+            if (result.has("speculative_retry"))
+                cfm.speculativeRetry(SpeculativeRetry.valueOf(result.getString("speculative_retry")));
             cfm.compactionStrategyClass(createCompactionStrategy(result.getString("compaction_strategy_class")));
             cfm.compressionParameters(CompressionParameters.create(fromJsonMap(result.getString("compression_parameters"))));
             cfm.columnAliases(aliasesFromStrings(fromJsonList(result.getString("column_aliases"))));
@@ -1566,6 +1578,7 @@ public final class CFMetaData
             .append("compressionOptions", compressionParameters.asThriftOptions())
             .append("bloomFilterFpChance", bloomFilterFpChance)
             .append("caching", caching)
+            .append("speculative_retry", speculativeRetry)
             .append("readConsistencyLevel", readConsistencyLevel)
             .append("writeConsistencyLevel", writeConsistencyLevel)
             .toString();

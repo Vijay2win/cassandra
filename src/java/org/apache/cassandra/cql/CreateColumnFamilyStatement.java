@@ -192,6 +192,7 @@ public class CreateColumnFamilyStatement
                    .compactionStrategyOptions(cfProps.compactionStrategyOptions)
                    .compressionParameters(CompressionParameters.create(cfProps.compressionParameters))
                    .caching(CFMetaData.Caching.fromString(getPropertyString(CFPropDefs.KW_CACHING, CFMetaData.DEFAULT_CACHING_STRATEGY.toString())))
+                   .speculativeRetry(CFMetaData.SpeculativeRetry.fromString(getPropertyString(CFPropDefs.KW_SPECULATIVE_RETRY, CFMetaData.DEFAULT_SPECULATIVE_RETRY.toString())))
                    .bloomFilterFpChance(getPropertyDouble(CFPropDefs.KW_BF_FP_CHANCE, CFMetaData.DEFAULT_BF_FP_CHANCE));
 
             // CQL2 can have null keyAliases

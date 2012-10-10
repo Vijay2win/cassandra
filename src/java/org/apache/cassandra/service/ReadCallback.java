@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,8 +34,6 @@ import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.ReadCommand;
-import org.apache.cassandra.db.ReadResponse;
-import org.apache.cassandra.db.Table;
 import org.apache.cassandra.exceptions.ReadTimeoutException;
 import org.apache.cassandra.exceptions.UnavailableException;
 import org.apache.cassandra.locator.IEndpointSnitch;
@@ -60,7 +57,7 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
 
     public final IResponseResolver<TMessage, TResolved> resolver;
     protected final SimpleCondition condition = new SimpleCondition();
-    private final long startTime;
+    protected final long startTime;
     protected final int blockfor;
     final List<InetAddress> endpoints;
     private final IReadCommand command;
@@ -130,29 +127,36 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         return ep.subList(0, Math.min(ep.size(), blockfor));
     }
 
-    public TResolved get() throws ReadTimeoutException, DigestMismatchException, IOException
+    public boolean await(long interimTimeout)
     {
-        long timeout = command.getTimeout() - (System.currentTimeMillis() - startTime);
-        boolean success;
+        long timeout = interimTimeout - (System.currentTimeMillis() - startTime);
         try
         {
-            success = condition.await(timeout, TimeUnit.MILLISECONDS);
+            return condition.await(timeout, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException ex)
         {
             throw new AssertionError(ex);
         }
+    }
 
-        if (!success)
-            throw new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
-
+    public TResolved get(long timeout) throws ReadTimeoutException, DigestMismatchException, IOException
+    {
+        // if not signaled then wait longer till command timeout before throwing an exception.
+        if (!condition.isSignaled() && !await(timeout))
+        {
+            ReadTimeoutException ex = new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
+            if (logger.isDebugEnabled())
+                logger.debug("Read timeout: {}", ex.toString());
+            throw ex;
+        }
         return blockfor == 1 ? resolver.getData() : resolver.resolve();
     }
 
     public void response(MessageIn<TMessage> message)
     {
-        resolver.preprocess(message);
-        int n = waitingFor(message)
+        boolean hasAdded = resolver.preprocess(message);
+        int n = (waitingFor(message) && hasAdded)
               ? received.incrementAndGet()
               : received.get();
         if (n >= blockfor && resolver.isDataPresent())

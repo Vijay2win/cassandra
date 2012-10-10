@@ -78,6 +78,8 @@ public class ColumnFamilyMetrics
 
     private final MetricNameFactory factory;
 
+    public final Counter speculativeRetry;
+
     // for backward compatibility
     @Deprecated public final EstimatedHistogram sstablesPerRead = new EstimatedHistogram(35);
     @Deprecated public final EstimatedHistogram recentSSTablesPerRead = new EstimatedHistogram(35);
@@ -273,6 +275,7 @@ public class ColumnFamilyMetrics
                 return total;
             }
         });
+        speculativeRetry = Metrics.newCounter(factory.createMetricName("SpeculativeRetry"));
     }
 
     public void updateSSTableIterated(int count)

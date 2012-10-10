@@ -136,7 +136,8 @@ public class CliClient
         COMPACTION_STRATEGY_OPTIONS,
         COMPRESSION_OPTIONS,
         BLOOM_FILTER_FP_CHANCE,
-        CACHING
+        CACHING,
+        SPECULATIVE_RETRY
     }
 
     private static final String DEFAULT_PLACEMENT_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
@@ -1260,6 +1261,9 @@ public class CliClient
             case CACHING:
                 cfDef.setCaching(CliUtils.unescapeSQLString(mValue));
                 break;
+            case SPECULATIVE_RETRY:
+                cfDef.setSpeculative_retry(CliUtils.unescapeSQLString(mValue));
+                break;
             default:
                 //must match one of the above or we'd throw an exception at the valueOf statement above.
                 assert(false);
@@ -1714,6 +1718,7 @@ public class CliClient
         writeAttr(output, false, "replicate_on_write", cfDef.replicate_on_write);
         writeAttr(output, false, "compaction_strategy", cfDef.compaction_strategy);
         writeAttr(output, false, "caching", cfDef.caching);
+        writeAttr(output, false, "speculative_retry", cfDef.speculative_retry);
 
         if (cfDef.isSetBloom_filter_fp_chance())
             writeAttr(output, false, "bloom_filter_fp_chance", cfDef.bloom_filter_fp_chance);
@@ -2079,6 +2084,7 @@ public class CliClient
         sessionState.out.printf("      DC Local Read repair chance: %s%n", cf_def.dclocal_read_repair_chance);
         sessionState.out.printf("      Replicate on write: %s%n", cf_def.replicate_on_write);
         sessionState.out.printf("      Caching: %s%n", cf_def.caching);
+        sessionState.out.printf("      Speculative Retry: %s%n", cf_def.speculative_retry);
         sessionState.out.printf("      Bloom Filter FP chance: %s%n", cf_def.isSetBloom_filter_fp_chance() ? cf_def.bloom_filter_fp_chance : "default");
 
         // if we have connection to the cfMBean established

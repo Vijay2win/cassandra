@@ -67,6 +67,7 @@ protocol InterNode {
         union { null, map<string> } compression_options = null;
         union { null, double } bloom_filter_fp_chance = null;
         union { null, string } caching = null;
+        union { null, string } speculative_retry = null;
         union { null, array<bytes> } column_aliases = null;
         union { null, bytes } value_alias = null;
         union { double, null } dclocal_read_repair_chance = 0.0;

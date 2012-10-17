@@ -57,6 +57,8 @@ public class Config
     public Long truncate_rpc_timeout_in_ms = new Long(300000);
 
     public Integer streaming_socket_timeout_in_ms = new Integer(0);
+    
+    public boolean cross_node_timeout = false;
 
     public volatile Double phi_convict_threshold = 8.0;
 

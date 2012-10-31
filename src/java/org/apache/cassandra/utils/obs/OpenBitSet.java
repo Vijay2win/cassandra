@@ -18,8 +18,11 @@
 package org.apache.cassandra.utils.obs;
 
 import java.util.Arrays;
-import java.io.Serializable;
-import java.util.BitSet;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.cassandra.db.TypeSizes;
 
 /**
  * An "open" BitSet implementation that allows direct access to the arrays of words
@@ -43,7 +46,7 @@ import java.util.BitSet;
  * class, use <code>java.util.BitSet</code>.
  */
 
-public class OpenBitSet implements Serializable {
+public class OpenBitSet implements BitSet {
   /**
    * We break the bitset up into multiple arrays to avoid promotion failure caused by attempting to allocate
    * large, contiguous arrays (CASSANDRA-2466).  All sub-arrays but the last are uniformly PAGE_SIZE words;
@@ -383,6 +386,54 @@ public class OpenBitSet implements Serializable {
     return (int)((h>>32) ^ h) + 0x98761234;
   }
 
+  @Override
+  public void close() throws IOException {
+    // noop, let GC do the cleanup.
+  }
+
+  @Override
+  public void serialize(DataOutput dos) throws IOException {
+    int bitLength = getNumWords();
+    int pageSize = getPageSize();
+    int pageCount = getPageCount();
+    dos.writeInt(bitLength);
+    for (int p = 0; p < pageCount; p++) {
+      long[] bits = getPage(p);
+      for (int i = 0; i < pageSize && bitLength-- > 0; i++) {
+        dos.writeLong(bits[i]);
+      }
+    }
 }
 
+  @Override
+  public long serializedSize(TypeSizes type) {
+    int bitLength = getNumWords();
+    int pageSize = getPageSize();
+    int pageCount = getPageCount();
+    long size = type.sizeof(bitLength); // length
+    for (int p = 0; p < pageCount; p++) {
+      long[] bits = getPage(p);
+      for (int i = 0; i < pageSize && bitLength-- > 0; i++)
+        size += type.sizeof(bits[i]); // bucket
+    }
+    return size;
+  }
 
+  public void clear() {
+    clear(0, capacity());
+  }
+
+  public static OpenBitSet deserialize(DataInput dis) throws IOException {
+    long bitLength = dis.readInt();
+    OpenBitSet bs = new OpenBitSet(bitLength << 6);
+    int pageSize = bs.getPageSize();
+    int pageCount = bs.getPageCount();
+
+    for (int p = 0; p < pageCount; p++) {
+      long[] bits = bs.getPage(p);
+      for (int i = 0; i < pageSize && bitLength-- > 0; i++)
+        bits[i] = dis.readLong();
+    }
+    return bs;
+  }
+}

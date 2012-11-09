@@ -387,6 +387,11 @@ public class StorageProxy implements StorageProxyMBean
     throws UnavailableException, OverloadedException, IOException
     {
         String table = mutation.getTable();
+        for (UUID cfid : mutation.getColumnFamilyIds())
+        {
+            ColumnFamilyStore store = Table.open(table).getColumnFamilyStore(cfid);
+            store.
+        }
         AbstractReplicationStrategy rs = Table.open(table).getReplicationStrategy();
 
         Token tk = StorageService.getPartitioner().getToken(mutation.key());

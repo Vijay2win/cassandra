@@ -56,7 +56,9 @@ import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.TokenMetadata;
 import org.apache.cassandra.metrics.ClientRequestMetrics;
 import org.apache.cassandra.net.*;
+import org.apache.cassandra.thrift.MutationContainer;
 import org.apache.cassandra.tracing.Tracing;
+import org.apache.cassandra.triggers.TriggerExecutor;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
@@ -237,6 +239,40 @@ public class StorageProxy implements StorageProxyMBean
         finally
         {
             writeMetrics.addNano(System.nanoTime() - startTime);
+        }
+    }
+
+    public static void mutateWithTriggers(MutationContainer mutations, boolean mutateAtomically) throws WriteTimeoutException, UnavailableException,
+            OverloadedException
+    {
+        if (mutations.rowMutations != null)
+        {
+            Collection<RowMutation> tmutations = TriggerExecutor.instance.execute(mutations.rowMutations);
+            if (mutateAtomically || !tmutations.isEmpty())
+            {
+                if (mutations.counterMutations != null)
+                    throw new RuntimeException("You should not mix counter's and triggers in a batch.");
+                mutations.rowMutations.addAll(tmutations);
+                // make sure to mutate only the RM's
+                StorageProxy.mutateAtomically(mutations.rowMutations, mutations.consistency_level);
+                return;
+            }
+        }
+
+        // mutate remaining.
+        StorageProxy.mutate(mutations.mergeMutations(), mutations.consistency_level);
+
+    }
+
+    public static void mutateWithTriggers(Collection<RowMutation> mutations, ConsistencyLevel consistencylevel, boolean mutateAtomically) throws WriteTimeoutException, UnavailableException,
+            OverloadedException
+    {
+        Collection<RowMutation> tmutations = TriggerExecutor.instance.execute(mutations);
+        if (mutateAtomically || !tmutations.isEmpty())
+        {
+            if (!tmutations.isEmpty())
+                tmutations.addAll(mutations);
+            StorageProxy.mutateAtomically(tmutations, consistencylevel);
         }
     }
 
@@ -1531,4 +1567,6 @@ public class StorageProxy implements StorageProxyMBean
 
     public Long getTruncateRpcTimeout() { return DatabaseDescriptor.getTruncateRpcTimeout(); }
     public void setTruncateRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setTruncateRpcTimeout(timeoutInMillis); }
+
+    public void reloadTriggerClass() { TriggerExecutor.instance.reloadClasses(); }
 }

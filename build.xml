@@ -54,6 +54,7 @@
     <property name="test.lib" value="${build.dir}/test/lib"/>
     <property name="test.classes" value="${build.dir}/test/classes"/>
     <property name="test.conf" value="${test.dir}/conf"/>
+	<property name="test.triggers" value="${test.dir}/triggers"/>
     <property name="test.data" value="${test.dir}/data"/>
     <property name="test.name" value="*Test"/>
     <property name="test.unit.src" value="${test.dir}/unit"/>
@@ -652,6 +653,7 @@
         <classpath>
           <path refid="cassandra.classpath"/>  
           <pathelement location="${test.conf}"/>
+        	<pathelement location="${test.triggers}"/>
         </classpath>
         <jvmarg value="-Dstorage-config=${test.conf}"/>
         <jvmarg value="-javaagent:${basedir}/lib/jamm-0.2.5.jar" />
@@ -890,6 +892,9 @@
       </copy>
       <copy todir="${dist.dir}/conf">
         <fileset dir="conf"/>
+      </copy>
+      <copy todir="${dist.dir}/triggers">
+        <fileset dir="triggers"/>
       </copy>
       <copy todir="${dist.dir}/interface">
         <fileset dir="interface">

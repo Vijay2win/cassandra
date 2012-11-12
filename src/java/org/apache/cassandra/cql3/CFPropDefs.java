@@ -47,6 +47,8 @@ public class CFPropDefs extends PropertyDefinitions
     public static final String KW_CACHING = "caching";
     public static final String KW_BF_FP_CHANCE = "bloom_filter_fp_chance";
 
+    public static final String KW_TRIGGER_CLASS = "trigger_class";
+
     public static final String KW_COMPACTION = "compaction";
     public static final String KW_COMPRESSION = "compression";
 
@@ -66,6 +68,7 @@ public class CFPropDefs extends PropertyDefinitions
         keywords.add(KW_BF_FP_CHANCE);
         keywords.add(KW_COMPACTION);
         keywords.add(KW_COMPRESSION);
+        keywords.add(KW_TRIGGER_CLASS);
 
         obsoleteKeywords.add("compaction_strategy_class");
         obsoleteKeywords.add("compaction_strategy_options");
@@ -128,6 +131,7 @@ public class CFPropDefs extends PropertyDefinitions
         cfm.maxCompactionThreshold(toInt(KW_MAXCOMPACTIONTHRESHOLD, getCompactionOptions().get(KW_MAXCOMPACTIONTHRESHOLD), cfm.getMaxCompactionThreshold()));
         cfm.caching(CFMetaData.Caching.fromString(getString(KW_CACHING, cfm.getCaching().toString())));
         cfm.bloomFilterFpChance(getDouble(KW_BF_FP_CHANCE, cfm.getBloomFilterFpChance()));
+        cfm.triggerClass(getString(KW_TRIGGER_CLASS, cfm.getTriggerClass()));
 
         if (compactionStrategyClass != null)
         {

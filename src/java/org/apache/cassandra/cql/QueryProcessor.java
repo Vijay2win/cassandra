@@ -26,7 +26,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.config.*;
 import org.apache.cassandra.cli.CliUtils;
-import org.apache.cassandra.db.CounterColumn;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.context.CounterContext;
 import org.apache.cassandra.db.filter.*;
@@ -50,6 +49,7 @@ import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.IndexExpression;
 import org.apache.cassandra.thrift.IndexOperator;
 import org.apache.cassandra.thrift.IndexType;
+import org.apache.cassandra.thrift.MutationContainer;
 import org.apache.cassandra.thrift.ThriftValidation;
 import org.apache.cassandra.thrift.ThriftClientState;
 import org.apache.cassandra.utils.ByteBufferUtil;
@@ -225,30 +225,27 @@ public class QueryProcessor
     private static void batchUpdate(ThriftClientState clientState, List<UpdateStatement> updateStatements, ConsistencyLevel consistency, List<ByteBuffer> variables )
     throws RequestValidationException, RequestExecutionException
     {
+        MutationContainer continer = new MutationContainer(consistency);
         String globalKeyspace = clientState.getKeyspace();
-        List<IMutation> rowMutations = new ArrayList<IMutation>(updateStatements.size());
-        List<String> cfamsSeen = new ArrayList<String>(updateStatements.size());
-
         for (UpdateStatement update : updateStatements)
         {
             String keyspace = update.keyspace == null ? globalKeyspace : update.keyspace;
 
-            // Avoid unnecessary authorizations.
-            if (!(cfamsSeen.contains(update.getColumnFamily())))
-            {
-                clientState.hasColumnFamilyAccess(keyspace, update.getColumnFamily(), Permission.UPDATE);
-                cfamsSeen.add(update.getColumnFamily());
-            }
+            continer.checkPermission(keyspace, update.getColumnFamily(), clientState);
 
-            rowMutations.addAll(update.prepareRowMutations(keyspace, clientState, variables));
+            CFMetaData metadata = ThriftValidation.validateColumnFamily(keyspace, update.getColumnFamily());
+            if (metadata.getDefaultValidator().isCommutative())
+                continer.addCounter(update.prepareRowMutations(keyspace, clientState, variables));
+            else
+                continer.addRowMutation(update.prepareRowMutations(keyspace, clientState, variables));
         }
 
-        for (IMutation mutation : rowMutations)
+        for (IMutation mutation : continer.mergeMutations())
         {
             validateKey(mutation.key());
         }
 
-        StorageProxy.mutate(rowMutations, consistency);
+        StorageProxy.mutateWithTriggers(continer, false);
     }
 
     private static IDiskAtomFilter filterFromSelect(SelectStatement select, CFMetaData metadata, List<ByteBuffer> variables)

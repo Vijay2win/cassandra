@@ -394,6 +394,8 @@ commands:
         - bloom_filter_fp_chance: Desired false positive probability for
           sstable row bloom filters.  Default is 0.000744.
 
+        - trigger_class: Trigger class implementing ITrigger, will be for every CF update
+
         - column_type: Type of columns this column family holds, valid values are
           Standard and Super. Default is Standard.
 

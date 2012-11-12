@@ -98,10 +98,7 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
         switch (type)
         {
             case LOGGED:
-                if (mutations.size() > 1)
-                    StorageProxy.mutateAtomically((Collection<RowMutation>) mutations, cl);
-                else
-                    StorageProxy.mutate(mutations, cl);
+                StorageProxy.mutateWithTriggers((Collection<RowMutation>) mutations, cl, (mutations.size() > 1));
                 break;
             case UNLOGGED:
             case COUNTER:

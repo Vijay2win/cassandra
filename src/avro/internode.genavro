@@ -72,6 +72,7 @@ protocol InterNode {
         union { double, null } dclocal_read_repair_chance = 0.0;
         union { double, null } row_cache_size;
         union { double, null } key_cache_size;
+        union { null, string } trigger_class;
     }
 
     @aliases(["org.apache.cassandra.config.avro.KsDef"])

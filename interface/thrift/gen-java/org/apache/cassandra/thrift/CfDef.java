@@ -67,6 +67,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   private static final org.apache.thrift.protocol.TField BLOOM_FILTER_FP_CHANCE_FIELD_DESC = new org.apache.thrift.protocol.TField("bloom_filter_fp_chance", org.apache.thrift.protocol.TType.DOUBLE, (short)33);
   private static final org.apache.thrift.protocol.TField CACHING_FIELD_DESC = new org.apache.thrift.protocol.TField("caching", org.apache.thrift.protocol.TType.STRING, (short)34);
   private static final org.apache.thrift.protocol.TField DCLOCAL_READ_REPAIR_CHANCE_FIELD_DESC = new org.apache.thrift.protocol.TField("dclocal_read_repair_chance", org.apache.thrift.protocol.TType.DOUBLE, (short)37);
+  private static final org.apache.thrift.protocol.TField TRIGGER_CLASS_FIELD_DESC = new org.apache.thrift.protocol.TField("trigger_class", org.apache.thrift.protocol.TType.STRING, (short)38);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)9);
   private static final org.apache.thrift.protocol.TField KEY_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("key_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)11);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SAVE_PERIOD_IN_SECONDS_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_save_period_in_seconds", org.apache.thrift.protocol.TType.I32, (short)19);
@@ -100,6 +101,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   public double bloom_filter_fp_chance; // required
   public String caching; // required
   public double dclocal_read_repair_chance; // required
+  public String trigger_class; // required
   /**
    * @deprecated
    */
@@ -165,6 +167,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     BLOOM_FILTER_FP_CHANCE((short)33, "bloom_filter_fp_chance"),
     CACHING((short)34, "caching"),
     DCLOCAL_READ_REPAIR_CHANCE((short)37, "dclocal_read_repair_chance"),
+    TRIGGER_CLASS((short)38, "trigger_class"),
     /**
      * @deprecated
      */
@@ -263,6 +266,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
           return CACHING;
         case 37: // DCLOCAL_READ_REPAIR_CHANCE
           return DCLOCAL_READ_REPAIR_CHANCE;
+        case 38: // TRIGGER_CLASS
+          return TRIGGER_CLASS;
         case 9: // ROW_CACHE_SIZE
           return ROW_CACHE_SIZE;
         case 11: // KEY_CACHE_SIZE
@@ -394,6 +399,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.DCLOCAL_READ_REPAIR_CHANCE, new org.apache.thrift.meta_data.FieldMetaData("dclocal_read_repair_chance", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.TRIGGER_CLASS, new org.apache.thrift.meta_data.FieldMetaData("trigger_class", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.ROW_CACHE_SIZE, new org.apache.thrift.meta_data.FieldMetaData("row_cache_size", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.KEY_CACHE_SIZE, new org.apache.thrift.meta_data.FieldMetaData("key_cache_size", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -523,6 +530,9 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       this.caching = other.caching;
     }
     this.dclocal_read_repair_chance = other.dclocal_read_repair_chance;
+    if (other.isSetTrigger_class()) {
+      this.trigger_class = other.trigger_class;
+    }
     this.row_cache_size = other.row_cache_size;
     this.key_cache_size = other.key_cache_size;
     this.row_cache_save_period_in_seconds = other.row_cache_save_period_in_seconds;
@@ -576,6 +586,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
 
     this.dclocal_read_repair_chance = 0;
 
+    this.trigger_class = null;
     setRow_cache_sizeIsSet(false);
     this.row_cache_size = 0.0;
     setKey_cache_sizeIsSet(false);
@@ -1164,6 +1175,30 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     __isset_bit_vector.set(__DCLOCAL_READ_REPAIR_CHANCE_ISSET_ID, value);
   }
 
+  public String getTrigger_class() {
+    return this.trigger_class;
+  }
+
+  public CfDef setTrigger_class(String trigger_class) {
+    this.trigger_class = trigger_class;
+    return this;
+  }
+
+  public void unsetTrigger_class() {
+    this.trigger_class = null;
+  }
+
+  /** Returns true if field trigger_class is set (has been assigned a value) and false otherwise */
+  public boolean isSetTrigger_class() {
+    return this.trigger_class != null;
+  }
+
+  public void setTrigger_classIsSet(boolean value) {
+    if (!value) {
+      this.trigger_class = null;
+    }
+  }
+
   /**
    * @deprecated
    */
@@ -1633,6 +1668,14 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       }
       break;
 
+    case TRIGGER_CLASS:
+      if (value == null) {
+        unsetTrigger_class();
+      } else {
+        setTrigger_class((String)value);
+      }
+      break;
+
     case ROW_CACHE_SIZE:
       if (value == null) {
         unsetRow_cache_size();
@@ -1784,6 +1827,9 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     case DCLOCAL_READ_REPAIR_CHANCE:
       return Double.valueOf(getDclocal_read_repair_chance());
 
+    case TRIGGER_CLASS:
+      return getTrigger_class();
+
     case ROW_CACHE_SIZE:
       return Double.valueOf(getRow_cache_size());
 
@@ -1869,6 +1915,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       return isSetCaching();
     case DCLOCAL_READ_REPAIR_CHANCE:
       return isSetDclocal_read_repair_chance();
+    case TRIGGER_CLASS:
+      return isSetTrigger_class();
     case ROW_CACHE_SIZE:
       return isSetRow_cache_size();
     case KEY_CACHE_SIZE:
@@ -2104,6 +2152,15 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         return false;
     }
 
+    boolean this_present_trigger_class = true && this.isSetTrigger_class();
+    boolean that_present_trigger_class = true && that.isSetTrigger_class();
+    if (this_present_trigger_class || that_present_trigger_class) {
+      if (!(this_present_trigger_class && that_present_trigger_class))
+        return false;
+      if (!this.trigger_class.equals(that.trigger_class))
+        return false;
+    }
+
     boolean this_present_row_cache_size = true && this.isSetRow_cache_size();
     boolean that_present_row_cache_size = true && that.isSetRow_cache_size();
     if (this_present_row_cache_size || that_present_row_cache_size) {
@@ -2310,6 +2367,11 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     builder.append(present_dclocal_read_repair_chance);
     if (present_dclocal_read_repair_chance)
       builder.append(dclocal_read_repair_chance);
+
+    boolean present_trigger_class = true && (isSetTrigger_class());
+    builder.append(present_trigger_class);
+    if (present_trigger_class)
+      builder.append(trigger_class);
 
     boolean present_row_cache_size = true && (isSetRow_cache_size());
     builder.append(present_row_cache_size);
@@ -2588,6 +2650,16 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     }
     if (isSetDclocal_read_repair_chance()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.dclocal_read_repair_chance, typedOther.dclocal_read_repair_chance);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetTrigger_class()).compareTo(typedOther.isSetTrigger_class());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetTrigger_class()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.trigger_class, typedOther.trigger_class);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -2906,6 +2978,13 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 38: // TRIGGER_CLASS
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.trigger_class = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         case 9: // ROW_CACHE_SIZE
           if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
             this.row_cache_size = iprot.readDouble();
@@ -3209,6 +3288,13 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       oprot.writeDouble(this.dclocal_read_repair_chance);
       oprot.writeFieldEnd();
     }
+    if (this.trigger_class != null) {
+      if (isSetTrigger_class()) {
+        oprot.writeFieldBegin(TRIGGER_CLASS_FIELD_DESC);
+        oprot.writeString(this.trigger_class);
+        oprot.writeFieldEnd();
+      }
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -3399,6 +3485,16 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       if (!first) sb.append(", ");
       sb.append("dclocal_read_repair_chance:");
       sb.append(this.dclocal_read_repair_chance);
+      first = false;
+    }
+    if (isSetTrigger_class()) {
+      if (!first) sb.append(", ");
+      sb.append("trigger_class:");
+      if (this.trigger_class == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.trigger_class);
+      }
       first = false;
     }
     if (isSetRow_cache_size()) {

@@ -30,7 +30,7 @@ public abstract class AbstractModification
 {
     public static final ConsistencyLevel defaultConsistency = ConsistencyLevel.ONE;
 
-    protected final String keyspace;
+    public final String keyspace;
     protected final String columnFamily;
     protected final ConsistencyLevel cLevel;
     protected final Long timestamp;

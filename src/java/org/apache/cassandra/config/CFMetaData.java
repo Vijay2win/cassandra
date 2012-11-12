@@ -134,6 +134,7 @@ public final class CFMetaData
                                                                      + "compaction_strategy_options text,"
                                                                      + "default_read_consistency text,"
                                                                      + "default_write_consistency text,"
+                                                                     + "trigger_class text,"
                                                                      + "PRIMARY KEY (keyspace_name, columnfamily_name)"
                                                                      + ") WITH COMMENT='ColumnFamily definitions' AND gc_grace_seconds=8640");
     public static final CFMetaData SchemaColumnsCf = compile(10, "CREATE TABLE " + SystemTable.SCHEMA_COLUMNS_CF + "("
@@ -256,6 +257,7 @@ public final class CFMetaData
     private volatile ByteBuffer valueAlias = null;
     private volatile Double bloomFilterFpChance = null;
     private volatile Caching caching = DEFAULT_CACHING_STRATEGY;
+    private volatile String triggerClass = null;
 
     volatile Map<ByteBuffer, ColumnDefinition> column_metadata = new HashMap<ByteBuffer,ColumnDefinition>();
     public volatile Class<? extends AbstractCompactionStrategy> compactionStrategyClass = DEFAULT_COMPACTION_STRATEGY_CLASS;
@@ -286,6 +288,7 @@ public final class CFMetaData
     public CFMetaData compressionParameters(CompressionParameters prop) {compressionParameters = prop; return this;}
     public CFMetaData bloomFilterFpChance(Double prop) {bloomFilterFpChance = prop; return this;}
     public CFMetaData caching(Caching prop) {caching = prop; return this;}
+    public CFMetaData triggerClass(String prop) {triggerClass = StringUtils.remove(prop, '\''); return this;}
 
     public CFMetaData(String keyspace, String name, ColumnFamilyType type, AbstractType<?> comp, AbstractType<?> subcc)
     {
@@ -424,7 +427,8 @@ public final class CFMetaData
                       .compactionStrategyOptions(oldCFMD.compactionStrategyOptions)
                       .compressionParameters(oldCFMD.compressionParameters)
                       .bloomFilterFpChance(oldCFMD.bloomFilterFpChance)
-                      .caching(oldCFMD.caching);
+                      .caching(oldCFMD.caching)
+                      .triggerClass(oldCFMD.triggerClass);
     }
 
     /**
@@ -532,6 +536,11 @@ public final class CFMetaData
                : bloomFilterFpChance;
     }
 
+    public String getTriggerClass()
+    {
+        return triggerClass;
+    }
+
     public Caching getCaching()
     {
         return caching;
@@ -574,6 +583,7 @@ public final class CFMetaData
             .append(compressionParameters, rhs.compressionParameters)
             .append(bloomFilterFpChance, rhs.bloomFilterFpChance)
             .append(caching, rhs.caching)
+            .append(triggerClass, rhs.triggerClass)
             .isEquals();
     }
 
@@ -604,6 +614,7 @@ public final class CFMetaData
             .append(compressionParameters)
             .append(bloomFilterFpChance)
             .append(caching)
+            .append(triggerClass)
             .toHashCode();
     }
 
@@ -681,6 +692,8 @@ public final class CFMetaData
                 newCFMD.readRepairChance(cf_def.read_repair_chance);
             if (cf_def.isSetDclocal_read_repair_chance())
                 newCFMD.dcLocalReadRepairChance(cf_def.dclocal_read_repair_chance);
+            if (cf_def.isSetTrigger_class())
+                newCFMD.triggerClass(cf_def.trigger_class);
 
             CompressionParameters cp = CompressionParameters.create(cf_def.compression_options);
 
@@ -785,6 +798,8 @@ public final class CFMetaData
 
         bloomFilterFpChance = cfm.bloomFilterFpChance;
         caching = cfm.caching;
+        if (cfm.triggerClass != null)
+            triggerClass = cfm.triggerClass;
 
         MapDifference<ByteBuffer, ColumnDefinition> columnDiff = Maps.difference(column_metadata, cfm.column_metadata);
         // columns that are no longer needed
@@ -878,6 +893,8 @@ public final class CFMetaData
         if (bloomFilterFpChance != null)
             def.setBloom_filter_fp_chance(bloomFilterFpChance);
         def.setCaching(caching.toString());
+        if (triggerClass != null)
+            def.setTrigger_class(triggerClass);
         return def;
     }
 
@@ -1222,6 +1239,7 @@ public final class CFMetaData
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "value_alias"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "column_aliases"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "compaction_strategy_options"));
+        cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "trigger_class"));
 
         for (ColumnDefinition cd : column_metadata.values())
             cd.deleteFromSchema(rm, cfName, getColumnDefinitionComparator(cd), timestamp);
@@ -1273,6 +1291,8 @@ public final class CFMetaData
                                         : Column.create(valueAlias, timestamp, cfName, "value_alias"));
         cf.addColumn(Column.create(json(aliasesAsStrings(columnAliases)), timestamp, cfName, "column_aliases"));
         cf.addColumn(Column.create(json(compactionStrategyOptions), timestamp, cfName, "compaction_strategy_options"));
+        cf.addColumn(triggerClass == null ? DeletedColumn.create(ldt, timestamp, cfName, "trigger_class")
+                                          : Column.create(triggerClass, timestamp, cfName, "trigger_class"));
     }
 
     // Package protected for use by tests
@@ -1317,6 +1337,8 @@ public final class CFMetaData
             if (result.has("value_alias"))
                 cfm.valueAlias(result.getBytes("value_alias"));
             cfm.compactionStrategyOptions(fromJsonMap(result.getString("compaction_strategy_options")));
+            if (result.has("trigger_class"))
+                cfm.triggerClass(result.getString("trigger_class"));
 
             return cfm;
         }
@@ -1480,6 +1502,7 @@ public final class CFMetaData
             .append("compressionOptions", compressionParameters.asThriftOptions())
             .append("bloomFilterFpChance", bloomFilterFpChance)
             .append("caching", caching)
+            .append("trigger_class", triggerClass)
             .toString();
     }
 }

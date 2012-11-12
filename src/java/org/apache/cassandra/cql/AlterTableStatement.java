@@ -186,6 +186,7 @@ public class AlterTableStatement
         cfm.maxCompactionThreshold(cfProps.getPropertyInt(CFPropDefs.KW_MAXCOMPACTIONTHRESHOLD, cfm.getMaxCompactionThreshold()));
         cfm.caching(CFMetaData.Caching.fromString(cfProps.getPropertyString(CFPropDefs.KW_CACHING, cfm.getCaching().toString())));
         cfm.bloomFilterFpChance(cfProps.getPropertyDouble(CFPropDefs.KW_BF_FP_CHANCE, cfm.getBloomFilterFpChance()));
+        cfm.triggerClass(cfProps.getPropertyString(CFPropDefs.KW_TRIGGER_CLASS, cfm.getTriggerClass()));
 
         if (!cfProps.compactionStrategyOptions.isEmpty())
         {

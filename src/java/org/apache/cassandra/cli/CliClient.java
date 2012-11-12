@@ -136,7 +136,8 @@ public class CliClient
         COMPACTION_STRATEGY_OPTIONS,
         COMPRESSION_OPTIONS,
         BLOOM_FILTER_FP_CHANCE,
-        CACHING
+        CACHING,
+        TRIGGER_CLASS
     }
 
     private static final String DEFAULT_PLACEMENT_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
@@ -1260,6 +1261,9 @@ public class CliClient
             case CACHING:
                 cfDef.setCaching(CliUtils.unescapeSQLString(mValue));
                 break;
+            case TRIGGER_CLASS:
+                cfDef.setTrigger_class(mValue);
+                break;
             default:
                 //must match one of the above or we'd throw an exception at the valueOf statement above.
                 assert(false);
@@ -1717,6 +1721,8 @@ public class CliClient
 
         if (cfDef.isSetBloom_filter_fp_chance())
             writeAttr(output, false, "bloom_filter_fp_chance", cfDef.bloom_filter_fp_chance);
+        if (cfDef.isSetTrigger_class())
+            writeAttr(output, false, "trigger_class", cfDef.trigger_class);
 
         if (!cfDef.compaction_strategy_options.isEmpty())
         {
@@ -2080,6 +2086,9 @@ public class CliClient
         sessionState.out.printf("      Replicate on write: %s%n", cf_def.replicate_on_write);
         sessionState.out.printf("      Caching: %s%n", cf_def.caching);
         sessionState.out.printf("      Bloom Filter FP chance: %s%n", cf_def.isSetBloom_filter_fp_chance() ? cf_def.bloom_filter_fp_chance : "default");
+
+        if (cf_def.trigger_class != null)
+            sessionState.out.printf("      Trigger class: %s%n", cf_def.trigger_class);
 
         // if we have connection to the cfMBean established
         if (cfMBean != null)

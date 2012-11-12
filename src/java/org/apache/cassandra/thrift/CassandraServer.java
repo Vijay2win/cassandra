@@ -624,7 +624,7 @@ public class CassandraServer implements Cassandra.Iface
         {
             throw new org.apache.cassandra.exceptions.InvalidRequestException(e.getMessage());
         }
-        doInsert(consistency_level, Arrays.asList(rm));
+        doInsert(consistency_level, new MutationContainer(ThriftConversion.fromThrift(consistency_level), rm, metadata));
     }
 
     public void insert(ByteBuffer key, ColumnParent column_parent, Column column, ConsistencyLevel consistency_level)
@@ -657,30 +657,23 @@ public class CassandraServer implements Cassandra.Iface
         }
     }
 
-    private List<IMutation> createMutationList(ConsistencyLevel consistency_level,
-                                               Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map,
-                                               boolean allowCounterMutations)
-    throws RequestValidationException
+    private MutationContainer createMutationList(ConsistencyLevel consistency_level,
+                                                 Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map,
+                                                 boolean allowCounterMutations)
+                                          throws RequestValidationException, InvalidRequestException
     {
         List<String> cfamsSeen = new ArrayList<String>();
-        List<IMutation> rowMutations = new ArrayList<IMutation>();
         ThriftClientState cState = state();
         String keyspace = cState.getKeyspace();
+        MutationContainer continer = new MutationContainer(ThriftConversion.fromThrift(consistency_level));
 
         for (Map.Entry<ByteBuffer, Map<String, List<Mutation>>> mutationEntry: mutation_map.entrySet())
         {
             ByteBuffer key = mutationEntry.getKey();
 
-            // We need to separate row mutation for standard cf and counter cf (that will be encapsulated in a
-            // CounterMutation) because it doesn't follow the same code path
-            RowMutation rmStandard = null;
-            RowMutation rmCounter = null;
-
-            Map<String, List<Mutation>> columnFamilyToMutations = mutationEntry.getValue();
-            for (Map.Entry<String, List<Mutation>> columnFamilyMutations : columnFamilyToMutations.entrySet())
+            for (Map.Entry<String, List<Mutation>> columnFamilyMutations : mutationEntry.getValue().entrySet())
             {
                 String cfName = columnFamilyMutations.getKey();
-
                 // Avoid unneeded authorizations
                 if (!(cfamsSeen.contains(cfName)))
                 {
@@ -689,48 +682,35 @@ public class CassandraServer implements Cassandra.Iface
                 }
 
                 CFMetaData metadata = ThriftValidation.validateColumnFamily(keyspace, cfName);
+                boolean isCounter = metadata.getDefaultValidator().isCommutative();
+                if (isCounter && !allowCounterMutations)
+                    throw new InvalidRequestException("Counter mutations are not allowed in atomic batches");
                 ThriftValidation.validateKey(metadata, key);
+                if (isCounter)
+                    continer.consistency_level.validateCounterForWrite(metadata);
 
-                RowMutation rm;
-                if (metadata.getDefaultValidator().isCommutative())
-                {
-                    ThriftConversion.fromThrift(consistency_level).validateCounterForWrite(metadata);
-                    rmCounter = rmCounter == null ? new RowMutation(keyspace, key) : rmCounter;
-                    rm = rmCounter;
-                }
-                else
-                {
-                    rmStandard = rmStandard == null ? new RowMutation(keyspace, key) : rmStandard;
-                    rm = rmStandard;
-                }
-
+                RowMutation rm = new RowMutation(keyspace, key);
                 for (Mutation mutation : columnFamilyMutations.getValue())
                 {
                     ThriftValidation.validateMutation(metadata, mutation);
-
                     if (mutation.deletion != null)
-                    {
                         rm.deleteColumnOrSuperColumn(cfName, mutation.deletion);
-                    }
-                    if (mutation.column_or_supercolumn != null)
-                    {
-                        rm.addColumnOrSuperColumn(cfName, mutation.column_or_supercolumn);
-                    }
-                }
-            }
-            if (rmStandard != null && !rmStandard.isEmpty())
-                rowMutations.add(rmStandard);
 
-            if (rmCounter != null && !rmCounter.isEmpty())
-            {
-                if (allowCounterMutations)
-                    rowMutations.add(new CounterMutation(rmCounter, ThriftConversion.fromThrift(consistency_level)));
+                    if (mutation.column_or_supercolumn != null)
+                        rm.addColumnOrSuperColumn(cfName, mutation.column_or_supercolumn);
+                }
+
+                if (rm.isEmpty())
+                    continue;
+                // We need to separate row mutation for standard cf and counter cf (that will be encapsulated in a CounterMutation)
+                // because it doesn't follow the same code path
+                if (isCounter)
+                    continer.addCounter(new CounterMutation(rm, continer.consistency_level));
                 else
-                    throw new org.apache.cassandra.exceptions.InvalidRequestException("Counter mutations are not allowed in atomic batches");
+                    continer.addRowMutation(rm);
             }
         }
-
-        return rowMutations;
+        return continer;
     }
 
     public void batch_mutate(Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map, ConsistencyLevel consistency_level)
@@ -814,10 +794,7 @@ public class CassandraServer implements Cassandra.Iface
         RowMutation rm = new RowMutation(cState.getKeyspace(), key);
         rm.delete(new QueryPath(column_path), timestamp);
 
-        if (isCommutativeOp)
-            doInsert(consistency_level, Arrays.asList(new CounterMutation(rm, ThriftConversion.fromThrift(consistency_level))));
-        else
-            doInsert(consistency_level, Arrays.asList(rm));
+        doInsert(consistency_level, new MutationContainer(ThriftConversion.fromThrift(consistency_level), rm, metadata));
     }
 
     public void remove(ByteBuffer key, ColumnPath column_path, long timestamp, ConsistencyLevel consistency_level)
@@ -850,13 +827,13 @@ public class CassandraServer implements Cassandra.Iface
         }
     }
 
-    private void doInsert(ConsistencyLevel consistency_level, List<? extends IMutation> mutations)
+    private void doInsert(ConsistencyLevel consistency_level, MutationContainer mutations)
     throws UnavailableException, TimedOutException, org.apache.cassandra.exceptions.InvalidRequestException
     {
         doInsert(consistency_level, mutations, false);
     }
 
-    private void doInsert(ConsistencyLevel consistency_level, List<? extends IMutation> mutations, boolean mutateAtomically)
+    private void doInsert(ConsistencyLevel consistency_level, MutationContainer mutations, boolean mutateAtomically)
     throws UnavailableException, TimedOutException, org.apache.cassandra.exceptions.InvalidRequestException
     {
         org.apache.cassandra.db.ConsistencyLevel consistencyLevel = ThriftConversion.fromThrift(consistency_level);
@@ -867,10 +844,7 @@ public class CassandraServer implements Cassandra.Iface
         schedule(DatabaseDescriptor.getWriteRpcTimeout());
         try
         {
-            if (mutateAtomically)
-                StorageProxy.mutateAtomically((List<RowMutation>) mutations, consistencyLevel);
-            else
-                StorageProxy.mutate(mutations, consistencyLevel);
+            StorageProxy.mutateWithTriggers(mutations, mutateAtomically);
         }
         catch (RequestExecutionException e)
         {
@@ -1554,7 +1528,7 @@ public class CassandraServer implements Cassandra.Iface
             {
                 throw new InvalidRequestException(e.getMessage());
             }
-            doInsert(consistency_level, Arrays.asList(new CounterMutation(rm, ThriftConversion.fromThrift(consistency_level))));
+            doInsert(consistency_level, new MutationContainer(ThriftConversion.fromThrift(consistency_level), rm, metadata));
         }
         catch (RequestValidationException e)
         {

@@ -149,6 +149,8 @@ public class Avro
         if (cf.column_aliases != null)
             newCFMD.columnAliases(new ArrayList<ByteBuffer>(cf.column_aliases)); // fix avro stupidity
         if (cf.value_alias != null) { newCFMD.valueAlias(cf.value_alias); }
+        if (cf.trigger_class != null) { cf.trigger_class.toString(); }
+        
         if (cf.compaction_strategy != null)
         {
             try
@@ -165,6 +167,8 @@ public class Avro
             for (Map.Entry<CharSequence, CharSequence> e : cf.compaction_strategy_options.entrySet())
                 newCFMD.compactionStrategyOptions.put(e.getKey().toString(), e.getValue().toString());
         }
+        if (cf.trigger_class != null)
+            newCFMD.triggerClass(cf.trigger_class.toString());
 
         CompressionParameters cp;
         try

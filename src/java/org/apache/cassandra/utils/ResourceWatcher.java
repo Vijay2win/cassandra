@@ -20,16 +20,21 @@ package org.apache.cassandra.utils;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.service.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.service.StorageService;
-
 public class ResourceWatcher
 {
-    public static void watch(String resource, Runnable callback, int period)
+    public static void watch(String resource, Runnable callback, int period) throws ConfigurationException
     {
         StorageService.scheduledTasks.scheduleWithFixedDelay(new WatchedResource(resource, callback), period, period, TimeUnit.MILLISECONDS);
+    }
+
+    public static void watch(String resource, Runnable callback, long startTime, int period)
+    {
+        StorageService.scheduledTasks.scheduleWithFixedDelay(new WatchedResource(resource, callback, startTime), period, period, TimeUnit.MILLISECONDS);
     }
 
     public static class WatchedResource implements Runnable
@@ -37,21 +42,32 @@ public class ResourceWatcher
         private static final Logger logger = LoggerFactory.getLogger(WatchedResource.class);
         private final String resource;
         private final Runnable callback;
-        private long lastLoaded;
+        private long lastLoaded = 0;
 
-        public WatchedResource(String resource, Runnable callback)
+        /**
+         * File watch, searches the classpath for resource.
+         */
+        public WatchedResource(String resource, Runnable callback) throws ConfigurationException
+        {
+            this.resource = FBUtilities.resourceToFile(resource);
+            this.callback = callback;
+        }
+
+        /**
+         * Directory watch.
+         */
+        public WatchedResource(String resource, Runnable callback, long start)
         {
             this.resource = resource;
             this.callback = callback;
-            lastLoaded = 0;
+            this.lastLoaded = start;
         }
 
         public void run()
         {
             try
             {
-                String filename = FBUtilities.resourceToFile(resource);
-                long lastModified = new File(filename).lastModified();
+                long lastModified = getLastModified(new File(resource));
                 if (lastModified > lastLoaded)
                 {
                     callback.run();
@@ -62,6 +78,20 @@ public class ResourceWatcher
             {
                 logger.error(String.format("Timed run of %s failed.", callback.getClass()), t);
             }
+        }
+
+        private long getLastModified(File file)
+        {
+            if (!file.isDirectory())
+                return file.lastModified();
+
+            long largest = 0;
+            for (File jar : file.listFiles())
+            {
+                if (jar.lastModified() > largest)
+                    largest = jar.lastModified();
+            }
+            return largest;
         }
     }
 }

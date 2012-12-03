@@ -69,7 +69,7 @@ public class StorageProxy implements StorageProxyMBean
 {
     public static final String MBEAN_NAME = "org.apache.cassandra.db:type=StorageProxy";
     private static final Logger logger = LoggerFactory.getLogger(StorageProxy.class);
-    private static final boolean OPTIMIZE_LOCAL_REQUESTS = true; // set to false to test messagingservice path on single node
+    static final boolean OPTIMIZE_LOCAL_REQUESTS = true; // set to false to test messagingservice path on single node
 
     public static final String UNREACHABLE = "UNREACHABLE";
 
@@ -865,7 +865,7 @@ public class StorageProxy implements StorageProxyMBean
         do
         {
             List<ReadCommand> commands = commandsToRetry.isEmpty() ? initialCommands : commandsToRetry;
-            ReadCallback<ReadResponse, Row>[] readCallbacks = new ReadCallback[commands.size()];
+            AbstractReadExecutor[] readCallbacks = new AbstractReadExecutor[commands.size()];
 
             if (!commandsToRetry.isEmpty())
                 logger.debug("Retrying {} commands", commandsToRetry.size());
@@ -877,97 +877,46 @@ public class StorageProxy implements StorageProxyMBean
                 assert !command.isDigestQuery();
                 logger.trace("Command/ConsistencyLevel is {}/{}", command, consistency_level);
 
-                List<InetAddress> endpoints = StorageService.instance.getLiveNaturalEndpoints(command.table,
-                                                                                              command.key);
-                DatabaseDescriptor.getEndpointSnitch().sortByProximity(FBUtilities.getBroadcastAddress(), endpoints);
-
-                RowDigestResolver resolver = new RowDigestResolver(command.table, command.key);
-                ReadCallback<ReadResponse, Row> handler = getReadCallback(resolver, command, consistency_level, endpoints);
-                handler.assureSufficientLiveNodes();
-                assert !handler.endpoints.isEmpty();
-                readCallbacks[i] = handler;
-
-                // The data-request message is sent to dataPoint, the node that will actually get the data for us
-                InetAddress dataPoint = handler.endpoints.get(0);
-                if (dataPoint.equals(FBUtilities.getBroadcastAddress()) && OPTIMIZE_LOCAL_REQUESTS)
-                {
-                    logger.trace("reading data locally");
-                    StageManager.getStage(Stage.READ).execute(new LocalReadRunnable(command, handler));
-                }
-                else
-                {
-                    logger.trace("reading data from {}", dataPoint);
-                    MessagingService.instance().sendRR(command.createMessage(), dataPoint, handler);
-                }
-
-                if (handler.endpoints.size() == 1)
-                    continue;
-
-                // send the other endpoints a digest request
-                ReadCommand digestCommand = command.copy();
-                digestCommand.setDigestQuery(true);
-                MessageOut message = null;
-                for (InetAddress digestPoint : handler.endpoints.subList(1, handler.endpoints.size()))
-                {
-                    if (digestPoint.equals(FBUtilities.getBroadcastAddress()) && OPTIMIZE_LOCAL_REQUESTS)
-                    {
-                        logger.trace("reading digest locally");
-                        StageManager.getStage(Stage.READ).execute(new LocalReadRunnable(digestCommand, handler));
-                    }
-                    else
-                    {
-                        logger.trace("reading digest from {}", digestPoint);
-                        // (We lazy-construct the digest Message object since it may not be necessary if we
-                        // are doing a local digest read, or no digest reads at all.)
-                        if (message == null)
-                            message = digestCommand.createMessage();
-                        MessagingService.instance().sendRR(message, digestPoint, handler);
-                    }
-                }
+                AbstractReadExecutor exec = AbstractReadExecutor.getReadExecutor(command, consistency_level);
+                exec.executeAsync();
+                readCallbacks[i] = exec;
             }
 
+            for (AbstractReadExecutor exec: readCallbacks)
+                exec.speculate();
             // read results and make a second pass for any digest mismatches
             List<ReadCommand> repairCommands = null;
             List<RepairCallback> repairResponseHandlers = null;
-            for (int i = 0; i < commands.size(); i++)
+            for (AbstractReadExecutor exec: readCallbacks)
             {
-                ReadCallback<ReadResponse, Row> handler = readCallbacks[i];
-                ReadCommand command = commands.get(i);
                 try
                 {
-                    long startTime2 = System.currentTimeMillis();
-                    Row row = handler.get();
+                    Row row = exec.get();
                     if (row != null)
                     {
-                        command.maybeTrim(row);
+                        exec.command.maybeTrim(row);
                         rows.add(row);
                     }
-                }
-                catch (ReadTimeoutException ex)
-                {
                     if (logger.isDebugEnabled())
-                        logger.debug("Read timeout: {}", ex.toString());
-                    throw ex;
+                        logger.debug("Read: " + (System.currentTimeMillis() - exec.handler.startTime) + " ms.");
                 }
                 catch (DigestMismatchException ex)
                 {
-                    logger.debug("Digest mismatch: {}", ex.toString());
-                    RowRepairResolver resolver = new RowRepairResolver(command.table, command.key, command.filter());
-                    RepairCallback repairHandler = new RepairCallback(resolver, handler.endpoints);
+                    logger.trace("Digest mismatch: {}", ex);
+                    RowRepairResolver resolver = new RowRepairResolver(exec.command.table, exec.command.key, exec.command.filter());
+                    RepairCallback repairHandler = new RepairCallback(resolver, exec.handler.endpoints);
 
                     if (repairCommands == null)
                     {
                         repairCommands = new ArrayList<ReadCommand>();
                         repairResponseHandlers = new ArrayList<RepairCallback>();
                     }
-                    repairCommands.add(command);
+                    repairCommands.add(exec.command);
                     repairResponseHandlers.add(repairHandler);
 
-                    for (InetAddress endpoint : handler.endpoints)
-                    {
-                        MessageOut<ReadCommand> message = command.createMessage();
+                    MessageOut<ReadCommand> message = exec.command.createMessage();
+                    for (InetAddress endpoint : exec.handler.endpoints)
                         MessagingService.instance().sendRR(message, endpoint, repairHandler);
-                    }
                 }
             }
 
@@ -1138,7 +1087,7 @@ public class StorageProxy implements StorageProxyMBean
 
                 try
                 {
-                    for (Row row : handler.get())
+                    for (Row row : handler.get(command.getTimeout()))
                     {
                         rows.add(row);
                         if (nodeCmd.countCQL3Rows)

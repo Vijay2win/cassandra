@@ -32,6 +32,7 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.cassandra.config.CFMetaData.SpeculativeRetry.RetryType;
 import org.apache.cassandra.cql3.CFDefinition;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.UntypedResultSet;
@@ -76,6 +77,7 @@ public final class CFMetaData
     public final static ByteBuffer DEFAULT_KEY_NAME = ByteBufferUtil.bytes("KEY");
     public final static Caching DEFAULT_CACHING_STRATEGY = Caching.KEYS_ONLY;
     public final static int DEFAULT_DEFAULT_TIME_TO_LIVE = 0;
+    public final static SpeculativeRetry DEFAULT_SPECULATIVE_RETRY = new SpeculativeRetry(RetryType.NONE, 0);
     public final static int DEFAULT_INDEX_INTERVAL = 128;
 
     // Note that this is the default only for user created tables
@@ -138,6 +140,7 @@ public final class CFMetaData
                                                                        + "compaction_strategy_options text,"
                                                                        + "default_read_consistency text,"
                                                                        + "default_write_consistency text,"
+                                                                       + "speculative_retry text,"
                                                                        + "PRIMARY KEY (keyspace_name, columnfamily_name)"
                                                                        + ") WITH COMMENT='ColumnFamily definitions' AND gc_grace_seconds=8640");
     public static final CFMetaData SchemaColumnsCf = compile(10, "CREATE TABLE " + SystemTable.SCHEMA_COLUMNS_CF + "("
@@ -239,6 +242,66 @@ public final class CFMetaData
         }
     }
 
+    public static class SpeculativeRetry
+    {
+        public enum RetryType
+        {
+            NONE, CUSTOM, PERCENTILE, ALWAYS;
+        }
+
+        public final RetryType type;
+        public final long value;
+
+        private SpeculativeRetry(RetryType type, long value)
+        {
+            this.type = type;
+            this.value = value;
+        }
+
+        public static SpeculativeRetry fromString(String retry) throws ConfigurationException
+        {
+            String name = retry.toUpperCase();
+            try
+            {
+                if (name.endsWith(RetryType.PERCENTILE.toString()))
+                {
+                    long value = Long.parseLong(name.substring(0, name.length() - 10));
+                    if (value > 100 || value < 0)
+                        throw new ConfigurationException("PERCENTILE should be between 0 and 100");
+                    return new SpeculativeRetry(RetryType.PERCENTILE, value);
+                }
+                else if (name.endsWith("MS"))
+                {
+                    long value = Long.parseLong(name.substring(0, name.length() - 2));
+                    return new SpeculativeRetry(RetryType.CUSTOM, value);
+                }
+                else
+                {
+                    return new SpeculativeRetry(RetryType.valueOf(name), 0);
+                }
+            }
+            catch (IllegalArgumentException e)
+            {
+                // ignore to throw the below exception.
+            }
+            throw new ConfigurationException("invalid speculative_retry type: " + retry);
+        }
+
+        @Override
+        public String toString()
+        {
+            switch (type)
+            {
+            case PERCENTILE:
+                return value + "PERCENTILE";
+            case CUSTOM:
+                return value + "MS";
+            default:
+                return type.toString();
+            }
+        }
+    }
+
     //REQUIRED
     public final UUID cfId;                           // internal id, never exposed to user
     public final String ksName;                       // name of keyspace
@@ -266,6 +329,7 @@ public final class CFMetaData
     private volatile int indexInterval = DEFAULT_INDEX_INTERVAL;
     private int memtableFlushPeriod = 0;
     private volatile int defaultTimeToLive = DEFAULT_DEFAULT_TIME_TO_LIVE;
+    private volatile SpeculativeRetry speculativeRetry = DEFAULT_SPECULATIVE_RETRY;
 
     volatile Map<ByteBuffer, ColumnDefinition> column_metadata = new HashMap<ByteBuffer,ColumnDefinition>();
     public volatile Class<? extends AbstractCompactionStrategy> compactionStrategyClass = DEFAULT_COMPACTION_STRATEGY_CLASS;
@@ -299,6 +363,7 @@ public final class CFMetaData
     public CFMetaData indexInterval(int prop) {indexInterval = prop; return this;}
     public CFMetaData memtableFlushPeriod(int prop) {memtableFlushPeriod = prop; return this;}
     public CFMetaData defaultTimeToLive(int prop) {defaultTimeToLive = prop; return this;}
+    public CFMetaData speculativeRetry(SpeculativeRetry prop) {speculativeRetry = prop; return this;}
 
     public CFMetaData(String keyspace, String name, ColumnFamilyType type, AbstractType<?> comp, AbstractType<?> subcc)
     {
@@ -386,6 +451,7 @@ public final class CFMetaData
                              .dcLocalReadRepairChance(0.0)
                              .gcGraceSeconds(0)
                              .caching(indexCaching)
+                             .speculativeRetry(parent.speculativeRetry)
                              .compactionStrategyClass(parent.compactionStrategyClass)
                              .compactionStrategyOptions(parent.compactionStrategyOptions)
                              .reloadSecondaryIndexMetadata(parent);
@@ -440,6 +506,7 @@ public final class CFMetaData
                       .caching(oldCFMD.caching)
                       .defaultTimeToLive(oldCFMD.defaultTimeToLive)
                       .indexInterval(oldCFMD.indexInterval)
+                      .speculativeRetry(oldCFMD.speculativeRetry)
                       .memtableFlushPeriod(oldCFMD.memtableFlushPeriod);
     }
 
@@ -558,6 +625,11 @@ public final class CFMetaData
         return indexInterval;
     }
 
+    public SpeculativeRetry getSpeculativeRetry()
+    {
+        return speculativeRetry;
+    }
+
     public int getMemtableFlushPeriod()
     {
         return memtableFlushPeriod;
@@ -608,6 +680,7 @@ public final class CFMetaData
             .append(caching, rhs.caching)
             .append(defaultTimeToLive, rhs.defaultTimeToLive)
             .append(indexInterval, rhs.indexInterval)
+            .append(speculativeRetry, rhs.speculativeRetry)
             .isEquals();
     }
 
@@ -641,6 +714,7 @@ public final class CFMetaData
             .append(caching)
             .append(defaultTimeToLive)
             .append(indexInterval)
+            .append(speculativeRetry)
             .toHashCode();
     }
 
@@ -726,6 +800,8 @@ public final class CFMetaData
                 newCFMD.dcLocalReadRepairChance(cf_def.dclocal_read_repair_chance);
             if (cf_def.isSetIndex_interval())
                 newCFMD.indexInterval(cf_def.index_interval);
+            if (cf_def.isSetSpeculative_retry())
+                newCFMD.speculativeRetry(SpeculativeRetry.fromString(cf_def.speculative_retry));
 
             CompressionParameters cp = CompressionParameters.create(cf_def.compression_options);
 
@@ -832,6 +908,7 @@ public final class CFMetaData
         memtableFlushPeriod = cfm.memtableFlushPeriod;
         caching = cfm.caching;
         defaultTimeToLive = cfm.defaultTimeToLive;
+        speculativeRetry = cfm.speculativeRetry;
 
         MapDifference<ByteBuffer, ColumnDefinition> columnDiff = Maps.difference(column_metadata, cfm.column_metadata);
         // columns that are no longer needed
@@ -928,6 +1005,7 @@ public final class CFMetaData
         def.setMemtable_flush_period_in_ms(memtableFlushPeriod);
         def.setCaching(caching.toString());
         def.setDefault_time_to_live(defaultTimeToLive);
+        def.setSpeculative_retry(speculativeRetry.toString());
         return def;
     }
 
@@ -1269,6 +1347,7 @@ public final class CFMetaData
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "bloom_filter_fp_chance"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "caching"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "default_time_to_live"));
+        cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "speculative_retry"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "compaction_strategy_class"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "compression_parameters"));
         cf.addColumn(DeletedColumn.create(ldt, timestamp, cfName, "value_alias"));
@@ -1329,6 +1408,7 @@ public final class CFMetaData
         cf.addColumn(Column.create(json(aliasesAsStrings(columnAliases)), timestamp, cfName, "column_aliases"));
         cf.addColumn(Column.create(json(compactionStrategyOptions), timestamp, cfName, "compaction_strategy_options"));
         cf.addColumn(Column.create(indexInterval, timestamp, cfName, "index_interval"));
+        cf.addColumn(Column.create(speculativeRetry.toString(), timestamp, cfName, "speculative_retry"));
     }
 
     // Package protected for use by tests
@@ -1371,6 +1451,8 @@ public final class CFMetaData
             cfm.caching(Caching.valueOf(result.getString("caching")));
             if (result.has("default_time_to_live"))
                 cfm.defaultTimeToLive(result.getInt("default_time_to_live"));
+            if (result.has("speculative_retry"))
+                cfm.speculativeRetry(SpeculativeRetry.fromString(result.getString("speculative_retry")));
             cfm.compactionStrategyClass(createCompactionStrategy(result.getString("compaction_strategy_class")));
             cfm.compressionParameters(CompressionParameters.create(fromJsonMap(result.getString("compression_parameters"))));
             cfm.columnAliases(aliasesFromStrings(fromJsonList(result.getString("column_aliases"))));
@@ -1544,6 +1626,7 @@ public final class CFMetaData
             .append("memtable_flush_period_in_ms", memtableFlushPeriod)
             .append("caching", caching)
             .append("defaultTimeToLive", defaultTimeToLive)
+            .append("speculative_retry", speculativeRetry)
             .append("indexInterval", indexInterval)
             .toString();
     }

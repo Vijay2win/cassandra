@@ -57,9 +57,10 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
 
     public final IResponseResolver<TMessage, TResolved> resolver;
     protected final SimpleCondition condition = new SimpleCondition();
-    private final long startTime;
+    protected final long startTime;
     protected final int blockfor;
-    final List<InetAddress> endpoints;
+    protected final List<InetAddress> unfiltered;
+    protected final List<InetAddress> endpoints;
     private final IReadCommand command;
     protected final ConsistencyLevel consistencyLevel;
     protected final AtomicInteger received = new AtomicInteger(0);
@@ -75,6 +76,8 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         this.startTime = System.currentTimeMillis();
         this.consistencyLevel = consistencyLevel;
         sortForConsistencyLevel(endpoints);
+        // add a reference for unfiltered endpoints
+        this.unfiltered = endpoints;
         this.endpoints = resolver instanceof RowRepairResolver ? endpoints : filterEndpoints(endpoints);
         if (logger.isTraceEnabled())
             logger.trace(String.format("Blockfor is %s; setting up requests to %s", blockfor, StringUtils.join(this.endpoints, ",")));
@@ -127,29 +130,36 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         return ep.subList(0, Math.min(ep.size(), blockfor));
     }
 
-    public TResolved get() throws ReadTimeoutException, DigestMismatchException, IOException
+    public boolean await(long interimTimeout)
     {
-        long timeout = command.getTimeout() - (System.currentTimeMillis() - startTime);
-        boolean success;
+        long timeout = interimTimeout - (System.currentTimeMillis() - startTime);
         try
         {
-            success = condition.await(timeout, TimeUnit.MILLISECONDS);
+            return condition.await(timeout, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException ex)
         {
             throw new AssertionError(ex);
         }
+    }
 
-        if (!success)
-            throw new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
-
+    public TResolved get(long timeout) throws ReadTimeoutException, DigestMismatchException, IOException
+    {
+        // if not signaled then wait longer till command timeout before throwing an exception.
+        if (!condition.isSignaled() && !await(timeout))
+        {
+            ReadTimeoutException ex = new ReadTimeoutException(consistencyLevel, received.get(), blockfor, resolver.isDataPresent());
+            if (logger.isDebugEnabled())
+                logger.debug("Read timeout: {}", ex.toString());
+            throw ex;
+        }
         return blockfor == 1 ? resolver.getData() : resolver.resolve();
     }
 
     public void response(MessageIn<TMessage> message)
     {
-        resolver.preprocess(message);
-        int n = waitingFor(message)
+        boolean hasAdded = resolver.preprocess(message);
+        int n = (waitingFor(message) && hasAdded)
               ? received.incrementAndGet()
               : received.get();
         if (n >= blockfor && resolver.isDataPresent())

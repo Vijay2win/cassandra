@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.config.*;
 import org.apache.cassandra.cli.CliUtils;
-import org.apache.cassandra.db.CounterColumn;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.context.CounterContext;
 import org.apache.cassandra.db.filter.*;
@@ -42,6 +41,7 @@ import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.db.marshal.TypeParser;
 import org.apache.cassandra.dht.*;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.MigrationManager;
@@ -529,14 +529,15 @@ public class QueryProcessor
 
                 keyspace = update.keyspace == null ? clientState.getKeyspace() : update.keyspace;
                 // permission is checked in prepareRowMutations()
-                List<IMutation> rowMutations = update.prepareRowMutations(keyspace, clientState, variables);
+                MutationContainer rowMutations = new MutationContainer(update.getConsistencyLevel());
+                update.prepareRowMutations(keyspace, clientState, variables, rowMutations);
 
-                for (IMutation mutation : rowMutations)
+                for (IMutation mutation : rowMutations.mergeMutations())
                 {
                     validateKey(mutation.key());
                 }
 
-                StorageProxy.mutate(rowMutations, update.getConsistencyLevel());
+                StorageProxy.mutate(rowMutations);
 
                 result.type = CqlResultType.VOID;
                 return result;
@@ -559,13 +560,13 @@ public class QueryProcessor
                                 "Timestamp must be set either on BATCH or individual statements");
                 }
 
-                List<IMutation> mutations = batch.getMutations(keyspace, clientState, variables);
-                for (IMutation mutation : mutations)
+                MutationContainer mutations = batch.getMutations(keyspace, clientState, variables);
+                for (IMutation mutation : mutations.mergeMutations())
                 {
                     validateKey(mutation.key());
                 }
 
-                StorageProxy.mutate(mutations, batch.getConsistencyLevel());
+                StorageProxy.mutate(mutations);
 
                 result.type = CqlResultType.VOID;
                 return result;
@@ -604,13 +605,14 @@ public class QueryProcessor
 
                 keyspace = delete.keyspace == null ? clientState.getKeyspace() : delete.keyspace;
                 // permission is checked in prepareRowMutations()
-                List<IMutation> deletions = delete.prepareRowMutations(keyspace, clientState, variables);
-                for (IMutation deletion : deletions)
+                MutationContainer container = new MutationContainer(delete.getConsistencyLevel());
+                delete.prepareRowMutations(keyspace, clientState, variables, container);
+                for (IMutation deletion : container.mergeMutations())
                 {
                     validateKey(deletion.key());
                 }
 
-                StorageProxy.mutate(deletions, delete.getConsistencyLevel());
+                StorageProxy.mutate(container);
 
                 result.type = CqlResultType.VOID;
                 return result;

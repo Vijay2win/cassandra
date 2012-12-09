@@ -171,11 +171,12 @@ public class StorageProxy implements StorageProxyMBean
      * @param mutations the mutations to be applied across the replicas
      * @param consistency_level the consistency level for the operation
      */
-    public static void mutate(Collection<? extends IMutation> mutations, ConsistencyLevel consistency_level)
+    public static void mutate(MutationContainer container)
     throws UnavailableException, OverloadedException, WriteTimeoutException
     {
+        Collection<? extends IMutation> mutations = container.mergeMutations();
         Tracing.trace("Determining replicas for mutation");
-        logger.trace("Mutations/ConsistencyLevel are {}/{}", mutations, consistency_level);
+        logger.trace("Mutations/ConsistencyLevel are {}/{}", mutations, container.consistency_level);
         final String localDataCenter = DatabaseDescriptor.getEndpointSnitch().getDatacenter(FBUtilities.getBroadcastAddress());
 
         long startTime = System.nanoTime();
@@ -194,7 +195,7 @@ public class StorageProxy implements StorageProxyMBean
                 else
                 {
                     WriteType wt = mutations.size() <= 1 ? WriteType.SIMPLE : WriteType.UNLOGGED_BATCH;
-                    responseHandlers.add(performWrite(mutation, consistency_level, localDataCenter, standardWritePerformer, null, wt));
+                    responseHandlers.add(performWrite(mutation, container.consistency_level, localDataCenter, standardWritePerformer, null, wt));
                 }
             }
 
@@ -252,12 +253,13 @@ public class StorageProxy implements StorageProxyMBean
      * @param mutations the RowMutations to be applied across the replicas
      * @param consistency_level the consistency level for the operation
      */
-    public static void mutateAtomically(Collection<RowMutation> mutations, ConsistencyLevel consistency_level)
+    public static void mutateAtomically(MutationContainer container)
     throws UnavailableException, OverloadedException, WriteTimeoutException
     {
+        Collection<RowMutation> mutations = container.rowMutations;
         Tracing.trace("Determining replicas for atomic batch");
         long startTime = System.nanoTime();
-        logger.trace("Mutations/ConsistencyLevel are {}/{}", mutations, consistency_level);
+        logger.trace("Mutations/ConsistencyLevel are {}/{}", mutations, container.consistency_level);
 
         List<WriteResponseHandlerWrapper> wrappers = new ArrayList<WriteResponseHandlerWrapper>(mutations.size());
         String localDataCenter = DatabaseDescriptor.getEndpointSnitch().getDatacenter(FBUtilities.getBroadcastAddress());
@@ -267,7 +269,7 @@ public class StorageProxy implements StorageProxyMBean
             // add a handler for each mutation - includes checking availability, but doesn't initiate any writes, yet
             for (RowMutation mutation : mutations)
             {
-                WriteResponseHandlerWrapper wrapper = wrapResponseHandler(mutation, consistency_level, WriteType.BATCH);
+                WriteResponseHandlerWrapper wrapper = wrapResponseHandler(mutation, container.consistency_level, WriteType.BATCH);
                 // exit early if we can't fulfill the CL at this time.
                 wrapper.handler.assureSufficientLiveNodes();
                 wrappers.add(wrapper);
@@ -279,7 +281,7 @@ public class StorageProxy implements StorageProxyMBean
             syncWriteToBatchlog(mutations, batchlogEndpoints, batchUUID);
 
             // now actually perform the writes and wait for them to complete
-            syncWriteBatchedMutations(wrappers, localDataCenter, consistency_level);
+            syncWriteBatchedMutations(wrappers, localDataCenter, container.consistency_level);
 
             // remove the batchlog entries asynchronously
             asyncRemoveFromBatchlog(batchlogEndpoints, batchUUID);

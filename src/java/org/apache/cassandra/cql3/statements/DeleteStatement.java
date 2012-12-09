@@ -32,6 +32,7 @@ import org.apache.cassandra.db.DeletionInfo;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.db.marshal.*;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.thrift.ThriftValidation;
 import org.apache.cassandra.utils.Pair;
 
@@ -65,7 +66,7 @@ public class DeleteStatement extends ModificationStatement
             cl.validateForWrite(cfDef.cfm.ksName);
     }
 
-    public Collection<RowMutation> getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
+    public MutationContainer getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
     throws RequestExecutionException, RequestValidationException
     {
         // keys
@@ -98,13 +99,12 @@ public class DeleteStatement extends ModificationStatement
 
         Map<ByteBuffer, ColumnGroupMap> rows = toRead != null ? readRows(keys, builder, toRead, (CompositeType)cfDef.cfm.comparator, local, cl) : null;
 
-        Collection<RowMutation> rowMutations = new ArrayList<RowMutation>(keys.size());
+        MutationContainer container = new MutationContainer(cl);
         UpdateParameters params = new UpdateParameters(cfDef.cfm, variables, getTimestamp(now), -1);
 
         for (ByteBuffer key : keys)
-            rowMutations.add(mutationForKey(cfDef, key, builder, isRange, params, rows == null ? null : rows.get(key)));
-
-        return rowMutations;
+            container.addRowMutation(mutationForKey(cfDef, key, builder, isRange, params, rows == null ? null : rows.get(key)));
+        return container;
     }
 
     public RowMutation mutationForKey(CFDefinition cfDef, ByteBuffer key, ColumnNameBuilder builder, boolean isRange, UpdateParameters params, ColumnGroupMap group)

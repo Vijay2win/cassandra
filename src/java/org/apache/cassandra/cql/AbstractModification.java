@@ -20,10 +20,10 @@ package org.apache.cassandra.cql;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.thrift.ThriftClientState;
 
 public abstract class AbstractModification
@@ -102,7 +102,7 @@ public abstract class AbstractModification
      *
      * @throws InvalidRequestException on the wrong request
      */
-    public abstract List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables)
+    public abstract void prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException;
 
     /**
@@ -116,6 +116,6 @@ public abstract class AbstractModification
      *
      * @throws InvalidRequestException on the wrong request
      */
-    public abstract List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables)
+    public abstract void prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException;
 }

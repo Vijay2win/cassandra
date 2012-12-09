@@ -18,18 +18,17 @@
 package org.apache.cassandra.cql;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
-import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.thrift.ThriftClientState;
 
 import static org.apache.cassandra.thrift.ThriftValidation.validateColumnFamily;
@@ -62,13 +61,13 @@ public class DeleteStatement extends AbstractModification
         return keys;
     }
 
-    public List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables)
+    public void prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException
     {
-        return prepareRowMutations(keyspace, clientState, null, variables);
+        prepareRowMutations(keyspace, clientState, null, variables, container);
     }
 
-    public List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables)
+    public void prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException
     {
         CFMetaData metadata = validateColumnFamily(keyspace, columnFamily);
@@ -76,17 +75,13 @@ public class DeleteStatement extends AbstractModification
         clientState.hasColumnFamilyAccess(keyspace, columnFamily, Permission.MODIFY);
         AbstractType<?> keyType = Schema.instance.getCFMetaData(keyspace, columnFamily).getKeyValidator();
 
-        List<IMutation> rowMutations = new ArrayList<IMutation>(keys.size());
-
         for (Term key : keys)
         {
-            rowMutations.add(mutationForKey(key.getByteBuffer(keyType, variables), keyspace, timestamp, clientState, variables, metadata));
+            mutationForKey(key.getByteBuffer(keyType, variables), keyspace, timestamp, clientState, variables, metadata, container);
         }
-
-        return rowMutations;
     }
 
-    public RowMutation mutationForKey(ByteBuffer key, String keyspace, Long timestamp, ThriftClientState clientState, List<ByteBuffer> variables, CFMetaData metadata)
+    public void mutationForKey(ByteBuffer key, String keyspace, Long timestamp, ThriftClientState clientState, List<ByteBuffer> variables, CFMetaData metadata, MutationContainer container)
     throws InvalidRequestException
     {
         RowMutation rm = new RowMutation(keyspace, key);
@@ -110,8 +105,7 @@ public class DeleteStatement extends AbstractModification
                 rm.delete(new QueryPath(columnFamily, null, columnName), (timestamp == null) ? getTimestamp(clientState) : timestamp);
             }
         }
-
-        return rm;
+        container.addRowMutation(rm);
     }
 
     public String toString()

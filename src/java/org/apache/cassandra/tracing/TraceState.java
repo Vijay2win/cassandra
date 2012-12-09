@@ -33,6 +33,7 @@ import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.RowMutation;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.utils.*;
 
@@ -101,7 +102,7 @@ public class TraceState
                 Tracing.addColumn(cf, Tracing.buildName(cfMeta, eventId, ByteBufferUtil.bytes("activity")), message);
                 RowMutation mutation = new RowMutation(Tracing.TRACE_KS, sessionIdBytes);
                 mutation.add(cf);
-                StorageProxy.mutate(Arrays.asList(mutation), ConsistencyLevel.ANY);
+                StorageProxy.mutate(new MutationContainer(ConsistencyLevel.ANY, mutation, cfMeta));
             }
         });
     }

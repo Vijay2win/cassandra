@@ -39,6 +39,7 @@ import org.apache.cassandra.db.ExpiringColumn;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.db.marshal.TimeUUIDType;
 import org.apache.cassandra.net.MessageIn;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
@@ -180,7 +181,7 @@ public class Tracing
                     addColumn(cf, buildName(cfMeta, bytes("duration")), elapsed);
                     RowMutation mutation = new RowMutation(TRACE_KS, sessionIdBytes);
                     mutation.add(cf);
-                    StorageProxy.mutate(Arrays.asList(mutation), ConsistencyLevel.ANY);
+                    StorageProxy.mutate(new MutationContainer(ConsistencyLevel.ANY, mutation, cfMeta));
                 }
             });
 
@@ -223,7 +224,7 @@ public class Tracing
                 addParameterColumns(cf, parameters);
                 RowMutation mutation = new RowMutation(TRACE_KS, sessionIdBytes);
                 mutation.add(cf);
-                StorageProxy.mutate(Arrays.asList(mutation), ConsistencyLevel.ANY);
+                StorageProxy.mutate(new MutationContainer(ConsistencyLevel.ANY, mutation, cfMeta));
             }
         });
     }

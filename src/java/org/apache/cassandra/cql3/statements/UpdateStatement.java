@@ -29,6 +29,7 @@ import org.apache.cassandra.cql3.operations.Operation;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.marshal.*;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.Pair;
 
@@ -104,7 +105,7 @@ public class UpdateStatement extends ModificationStatement
     }
 
     /** {@inheritDoc} */
-    public Collection<IMutation> getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
+    public MutationContainer getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
     throws RequestExecutionException, RequestValidationException
     {
         List<ByteBuffer> keys = buildKeyNames(cfDef, processedKeys, variables);
@@ -132,13 +133,12 @@ public class UpdateStatement extends ModificationStatement
 
         Map<ByteBuffer, ColumnGroupMap> rows = toRead != null ? readRows(keys, builder, toRead, (CompositeType)cfDef.cfm.comparator, local, cl) : null;
 
-        Collection<IMutation> mutations = new LinkedList<IMutation>();
         UpdateParameters params = new UpdateParameters(cfDef.cfm, variables, getTimestamp(now), getTimeToLive());
 
+        MutationContainer container = new MutationContainer(cl);
         for (ByteBuffer key: keys)
-            mutations.add(mutationForKey(cfDef, key, builder, params, rows == null ? null : rows.get(key), cl));
-
-        return mutations;
+            mutationForKey(cfDef, key, builder, params, rows == null ? null : rows.get(key), cl, container);
+        return container;
     }
 
     // Returns the first empty component or null if none are
@@ -197,11 +197,9 @@ public class UpdateStatement extends ModificationStatement
     /**
      * Compute a row mutation for a single key
      *
-     * @return row mutation
-     *
      * @throws InvalidRequestException on the wrong request
      */
-    private IMutation mutationForKey(CFDefinition cfDef, ByteBuffer key, ColumnNameBuilder builder, UpdateParameters params, ColumnGroupMap group, ConsistencyLevel cl)
+    private void mutationForKey(CFDefinition cfDef, ByteBuffer key, ColumnNameBuilder builder, UpdateParameters params, ColumnGroupMap group, ConsistencyLevel cl, MutationContainer container)
     throws InvalidRequestException
     {
         validateKey(key);
@@ -258,7 +256,10 @@ public class UpdateStatement extends ModificationStatement
             }
         }
 
-        return (hasCounterColumn) ? new CounterMutation(rm, cl) : rm;
+        if (hasCounterColumn)
+            container.addCounterMutation(new CounterMutation(rm, cl));
+        else
+            container.addRowMutation(rm);
     }
 
     private boolean addToMutation(ColumnFamily cf,

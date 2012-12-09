@@ -31,6 +31,7 @@ import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.thrift.ThriftClientState;
 
 import static org.apache.cassandra.cql.QueryProcessor.validateColumn;
@@ -121,14 +122,14 @@ public class UpdateStatement extends AbstractModification
     }
 
     /** {@inheritDoc} */
-    public List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables)
+    public void prepareRowMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException
     {
-        return prepareRowMutations(keyspace, clientState, null, variables);
+        prepareRowMutations(keyspace, clientState, null, variables, container);
     }
 
     /** {@inheritDoc} */
-    public List<IMutation> prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables)
+    public void prepareRowMutations(String keyspace, ThriftClientState clientState, Long timestamp, List<ByteBuffer> variables, MutationContainer container)
     throws InvalidRequestException, UnauthorizedException
     {
         boolean hasCommutativeOperation = false;
@@ -150,14 +151,10 @@ public class UpdateStatement extends AbstractModification
 
         clientState.hasColumnFamilyAccess(keyspace, columnFamily, Permission.MODIFY);
 
-        List<IMutation> rowMutations = new LinkedList<IMutation>();
-
         for (Term key: keys)
         {
-            rowMutations.add(mutationForKey(keyspace, key.getByteBuffer(getKeyType(keyspace),variables), metadata, timestamp, clientState, variables));
+            mutationForKey(keyspace, key.getByteBuffer(getKeyType(keyspace),variables), metadata, timestamp, clientState, variables, container);
         }
-
-        return rowMutations;
     }
 
     /**
@@ -170,11 +167,11 @@ public class UpdateStatement extends AbstractModification
      * @param timestamp global timestamp to use for every key mutation
      *
      * @param clientState
-     * @return row mutation
+     * @param mutations 
      *
      * @throws InvalidRequestException on the wrong request
      */
-    private IMutation mutationForKey(String keyspace, ByteBuffer key, CFMetaData metadata, Long timestamp, ThriftClientState clientState, List<ByteBuffer> variables)
+    private void mutationForKey(String keyspace, ByteBuffer key, CFMetaData metadata, Long timestamp, ThriftClientState clientState, List<ByteBuffer> variables, MutationContainer mutations)
     throws InvalidRequestException
     {
         validateKey(key);
@@ -225,7 +222,10 @@ public class UpdateStatement extends AbstractModification
             }
         }
 
-        return (hasCounterColumn) ? new CounterMutation(rm, getConsistencyLevel()) : rm;
+        if (hasCounterColumn)
+            mutations.addCounterMutation(new CounterMutation(rm, getConsistencyLevel()));
+        else 
+            mutations.addRowMutation(rm);
     }
 
     public String getColumnFamily()

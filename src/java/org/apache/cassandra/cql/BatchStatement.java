@@ -18,13 +18,12 @@
 package org.apache.cassandra.cql;
 
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.thrift.ThriftClientState;
 
 /**
@@ -75,13 +74,13 @@ public class BatchStatement
         return timeToLive;
     }
 
-    public List<IMutation> getMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables)
+    public MutationContainer getMutations(String keyspace, ThriftClientState clientState, List<ByteBuffer> variables)
     throws InvalidRequestException, UnauthorizedException
     {
-        List<IMutation> batch = new LinkedList<IMutation>();
+        MutationContainer batch = new MutationContainer(getConsistencyLevel());
 
         for (AbstractModification statement : statements) {
-            batch.addAll(statement.prepareRowMutations(keyspace, clientState, timestamp, variables));
+            statement.prepareRowMutations(keyspace, clientState, timestamp, variables, batch);
         }
 
         return batch;

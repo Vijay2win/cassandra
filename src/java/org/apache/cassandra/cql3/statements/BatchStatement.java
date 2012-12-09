@@ -28,6 +28,7 @@ import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.exceptions.*;
 import org.apache.cassandra.service.ClientState;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.utils.Pair;
 
 /**
@@ -97,9 +98,10 @@ public class BatchStatement extends ModificationStatement
             statement.validateConsistency(cl);
     }
 
-    public Collection<? extends IMutation> getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
+    public MutationContainer getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
     throws RequestExecutionException, RequestValidationException
     {
+        MutationContainer container = new MutationContainer(cl);
         Map<Pair<String, ByteBuffer>, IMutation> mutations = new HashMap<Pair<String, ByteBuffer>, IMutation>();
         for (ModificationStatement statement : statements)
         {
@@ -107,7 +109,8 @@ public class BatchStatement extends ModificationStatement
                 statement.setTimestamp(getTimestamp(now));
 
             // Group mutation together, otherwise they won't get applied atomically
-            for (IMutation m : statement.getMutations(variables, local, cl, now))
+            MutationContainer mutationContainer = statement.getMutations(variables, local, cl, now);
+            for (IMutation m : mutationContainer.mergeMutations())
             {
                 if (m instanceof CounterMutation && type != Type.COUNTER)
                     throw new InvalidRequestException("Counter mutations are only allowed in COUNTER batches");
@@ -125,7 +128,11 @@ public class BatchStatement extends ModificationStatement
             }
         }
 
-        return mutations.values();
+        if (type == Type.COUNTER)
+            container.addCounterMutation(mutations.values());
+        else
+            container.addRowMutation(mutations.values());
+        return container;
     }
 
     public ParsedStatement.Prepared prepare(CFDefinition.Name[] boundNames) throws InvalidRequestException

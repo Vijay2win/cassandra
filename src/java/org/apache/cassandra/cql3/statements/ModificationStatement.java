@@ -33,6 +33,7 @@ import org.apache.cassandra.exceptions.*;
 import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.ExpiringColumn;
 import org.apache.cassandra.service.ClientState;
+import org.apache.cassandra.service.MutationContainer;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -89,7 +90,7 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
         validateConsistency(cl);
 
-        Collection<? extends IMutation> mutations = getMutations(variables, false, cl, queryState.getTimestamp());
+        MutationContainer mutations = getMutations(variables, false, cl, queryState.getTimestamp());
 
         // The type should have been set by now or we have a bug
         assert type != null;
@@ -97,14 +98,14 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
         switch (type)
         {
             case LOGGED:
-                if (mutations.size() > 1)
-                    StorageProxy.mutateAtomically((Collection<RowMutation>) mutations, cl);
+                if (mutations.mergeMutations().size() > 1)
+                    StorageProxy.mutateAtomically(mutations);
                 else
-                    StorageProxy.mutate(mutations, cl);
+                    StorageProxy.mutate(mutations);
                 break;
             case UNLOGGED:
             case COUNTER:
-                StorageProxy.mutate(mutations, cl);
+                StorageProxy.mutate(mutations);
                 break;
             default:
                 throw new AssertionError();
@@ -115,7 +116,8 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
     public ResultMessage executeInternal(QueryState queryState) throws RequestValidationException, RequestExecutionException
     {
-        for (IMutation mutation : getMutations(Collections.<ByteBuffer>emptyList(), true, null, queryState.getTimestamp()))
+        MutationContainer container = getMutations(Collections.<ByteBuffer>emptyList(), true, null, queryState.getTimestamp());
+        for (IMutation mutation : container.mergeMutations())
             mutation.apply();
         return null;
     }
@@ -204,11 +206,12 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
      * @param local if true, any requests (for collections) performed by getMutation should be done locally only.
      * @param cl the consistency to use for the potential reads involved in generating the mutations (for lists set/delete operations)
      * @param now the current timestamp in microseconds to use if no timestamp is user provided.
+     * @param mutations 
      *
      * @return list of the mutations
      * @throws InvalidRequestException on invalid requests
      */
-    protected abstract Collection<? extends IMutation> getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
+    protected abstract MutationContainer getMutations(List<ByteBuffer> variables, boolean local, ConsistencyLevel cl, long now)
     throws RequestExecutionException, RequestValidationException;
 
     public abstract ParsedStatement.Prepared prepare(CFDefinition.Name[] boundNames) throws InvalidRequestException;

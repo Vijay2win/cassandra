@@ -148,6 +148,7 @@ public class CreateColumnFamilyStatement extends SchemaAlteringStatement
         private final List<List<ColumnIdentifier>> keyAliases = new ArrayList<List<ColumnIdentifier>>();
         private final List<ColumnIdentifier> columnAliases = new ArrayList<ColumnIdentifier>();
         private final Map<ColumnIdentifier, Boolean> definedOrdering = new LinkedHashMap<ColumnIdentifier, Boolean>(); // Insertion ordering is important
+        private final List<ColumnIdentifier> definedGrouping = new LinkedList<ColumnIdentifier>();
 
         private boolean useCompactStorage;
         private final Multiset<ColumnIdentifier> definedNames = HashMultiset.create(1);
@@ -367,6 +368,11 @@ public class CreateColumnFamilyStatement extends SchemaAlteringStatement
         public void setOrdering(ColumnIdentifier alias, boolean reversed)
         {
             definedOrdering.put(alias, reversed);
+        }
+
+        public void setGrouping(ColumnIdentifier alias)
+        {
+            definedGrouping.add(alias);
         }
 
         public void setCompactStorage()

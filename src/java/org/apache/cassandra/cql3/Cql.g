@@ -197,12 +197,14 @@ selectStatement returns [SelectStatement.RawStatement expr]
         boolean isCount = false;
         int limit = Integer.MAX_VALUE;
         Map<ColumnIdentifier, Boolean> orderings = new LinkedHashMap<ColumnIdentifier, Boolean>();
+        List<ColumnIdentifier> grouping = new ArrayList<ColumnIdentifier>();
         boolean allowFiltering = false;
     }
     : K_SELECT ( sclause=selectClause | (K_COUNT '(' sclause=selectCountClause ')' { isCount = true; }) )
       K_FROM cf=columnFamilyName
       ( K_WHERE wclause=whereClause )?
       ( K_ORDER K_BY orderByClause[orderings] ( ',' orderByClause[orderings] )* )?
+      ( K_GROUP K_BY groupByClause[grouping] ( ',' groupByClause[grouping] )* )?
       ( K_LIMIT rows=INTEGER { limit = Integer.parseInt($rows.text); } )?
       ( K_ALLOW K_FILTERING  { allowFiltering = true; } )?
       {
@@ -241,6 +243,11 @@ orderByClause[Map<ColumnIdentifier, Boolean> orderings]
         boolean reversed = false;
     }
     : c=cident { orderBy = c; } (K_ASC | K_DESC { reversed = true; })? { orderings.put(c, reversed); }
+    ;
+
+groupByClause[List<ColumnIdentifier> grouping]
+    @init{ ColumnIdentifier groupBy = null; }
+    : c=cident { groupBy = c; } { grouping.add(c); }
     ;
 
 /**
@@ -417,11 +424,16 @@ cfamProperty[CreateColumnFamilyStatement.RawStatement expr]
     : property[expr.properties]
     | K_COMPACT K_STORAGE { $expr.setCompactStorage(); }
     | K_CLUSTERING K_ORDER K_BY '(' cfamOrdering[expr] (',' cfamOrdering[expr])* ')'
+    | K_CLUSTERING K_GROUP K_BY '(' cfamGrouping[expr] (',' cfamGrouping[expr])* ')'
     ;
 
 cfamOrdering[CreateColumnFamilyStatement.RawStatement expr]
     @init{ boolean reversed=false; }
     : k=cident (K_ASC | K_DESC { reversed=true;} ) { $expr.setOrdering(k, reversed); }
+    ;
+
+cfamGrouping[CreateColumnFamilyStatement.RawStatement expr]
+    : k=cident { $expr.setGrouping(k); }
     ;
 
 /**
@@ -891,6 +903,7 @@ K_TYPE:        T Y P E;
 K_COMPACT:     C O M P A C T;
 K_STORAGE:     S T O R A G E;
 K_ORDER:       O R D E R;
+K_GROUP:       G R O U P;
 K_BY:          B Y;
 K_ASC:         A S C;
 K_DESC:        D E S C;

@@ -115,4 +115,9 @@ public class Bounds<T extends RingPosition> extends AbstractBounds<T>
     {
         return (left instanceof RowPosition) ? new Bounds<Token>(((RowPosition)left).getToken(), ((RowPosition)right).getToken(), partitioner) : (Bounds<Token>)this;
     }
+
+    public AbstractBounds<T> cloneWithRight(T right)
+    {
+        return new Bounds<T>(left, right);
+    }
 }

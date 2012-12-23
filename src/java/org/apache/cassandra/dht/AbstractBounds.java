@@ -197,4 +197,6 @@ public abstract class AbstractBounds<T extends RingPosition> implements Serializ
             return size;
         }
     }
+
+    public abstract AbstractBounds<T> cloneWithRight(T right);
 }

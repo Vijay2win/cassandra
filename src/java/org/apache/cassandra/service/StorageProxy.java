@@ -1101,8 +1101,9 @@ public class StorageProxy implements StorageProxyMBean
             int cql3RowCount = 0;
             rows = new ArrayList<Row>();
             List<AbstractBounds<RowPosition>> ranges = getRestrictedRanges(command.range);
-            for (AbstractBounds<RowPosition> range : ranges)
+            for (int i = 0; i < ranges.size(); i++)
             {
+                AbstractBounds<RowPosition> range = ranges.get(i);
                 RangeSliceCommand nodeCmd = new RangeSliceCommand(command.keyspace,
                                                                   command.column_family,
                                                                   command.super_column,
@@ -1120,6 +1121,18 @@ public class StorageProxy implements StorageProxyMBean
                 RangeSliceResponseResolver resolver = new RangeSliceResponseResolver(nodeCmd.keyspace);
                 ReadCallback<RangeSliceReply, Iterable<Row>> handler = getReadCallback(resolver, nodeCmd, consistency_level, liveEndpoints);
                 handler.assureSufficientLiveNodes();
+                // optimization to avoid multiple range query calls.
+                OUTER: while ((i + 1) < ranges.size())
+                {
+                    AbstractBounds<RowPosition> range2 = ranges.get(i + 1);
+                    List<InetAddress> liveEndpoints2 = StorageService.instance.getLiveNaturalEndpoints(command.keyspace, range2.right);
+                    for (int j = 0; j < handler.endpoints.size(); j++)
+                        if (!liveEndpoints2.contains(handler.endpoints.get(j)))
+                            break OUTER;
+                    // collect all ranges to be queried for a host.
+                    nodeCmd.setRange(range.cloneWithRight(range2.right));
+                    i++;
+                }
                 resolver.setSources(handler.endpoints);
                 if (handler.endpoints.size() == 1
                     && handler.endpoints.get(0).equals(FBUtilities.getBroadcastAddress())

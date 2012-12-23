@@ -81,7 +81,7 @@ public class RangeSliceCommand implements IReadCommand
     public final IDiskAtomFilter predicate;
     public final List<IndexExpression> row_filter;
 
-    public final AbstractBounds<RowPosition> range;
+    public AbstractBounds<RowPosition> range;
     public final int maxResults;
     public final boolean countCQL3Rows;
     public final boolean isPaging;
@@ -112,6 +112,11 @@ public class RangeSliceCommand implements IReadCommand
         this.maxResults = maxResults;
         this.countCQL3Rows = countCQL3Rows;
         this.isPaging = isPaging;
+    }
+
+    public void setRange(AbstractBounds<RowPosition> range)
+    {
+        this.range = range; 
     }
 
     public MessageOut<RangeSliceCommand> createMessage()

@@ -52,6 +52,7 @@ import org.apache.cassandra.gms.FailureDetector;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTable;
+import org.apache.cassandra.metrics.HintedHandoffMetrics;
 import org.apache.cassandra.net.IAsyncCallback;
 import org.apache.cassandra.net.MessageOut;
 import org.apache.cassandra.net.MessagingService;
@@ -93,6 +94,8 @@ public class HintedHandOffManager implements HintedHandOffManagerMBean
     private static final int PAGE_SIZE = 128;
     private static final int LARGE_NUMBER = 65536; // 64k nodes ought to be enough for anybody.
 
+    public final HintedHandoffMetrics metrics = new HintedHandoffMetrics();
+
     static final CompositeType comparator = CompositeType.getInstance(Arrays.<AbstractType<?>>asList(UUIDType.instance, Int32Type.instance));
 
     private final NonBlockingHashSet<InetAddress> queuedDeliveries = new NonBlockingHashSet<InetAddress>();
@@ -121,6 +124,7 @@ public class HintedHandOffManager implements HintedHandOffManagerMBean
             public void run()
             {
                 scheduleAllDeliveries();
+                metrics.log();
             }
         };
         StorageService.optionalTasks.scheduleWithFixedDelay(runnable, 10, 10, TimeUnit.MINUTES);

@@ -25,11 +25,12 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import com.google.common.base.Function;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -78,18 +79,15 @@ public class StorageProxy implements StorageProxyMBean
 
     public static final StorageProxy instance = new StorageProxy();
 
-    private static volatile boolean hintedHandoffEnabled = DatabaseDescriptor.hintedHandoffEnabled();
-    private static volatile int maxHintWindow = DatabaseDescriptor.getMaxHintWindow();
     private static volatile int maxHintsInProgress = 1024 * FBUtilities.getAvailableProcessors();
     private static final AtomicInteger totalHintsInProgress = new AtomicInteger();
-    private static final Map<InetAddress, AtomicInteger> hintsInProgress = new MapMaker().concurrencyLevel(1).makeComputingMap(new Function<InetAddress, AtomicInteger>()
+    private static final LoadingCache<InetAddress, AtomicInteger> hintsInProgress = CacheBuilder.newBuilder().concurrencyLevel(1).build(new CacheLoader<InetAddress, AtomicInteger>()
     {
-        public AtomicInteger apply(InetAddress inetAddress)
+        public AtomicInteger load(InetAddress key)
         {
             return new AtomicInteger(0);
         }
     });
-    private static final AtomicLong totalHints = new AtomicLong();
     private static final ClientRequestMetrics readMetrics = new ClientRequestMetrics("Read");
     private static final ClientRequestMetrics rangeMetrics = new ClientRequestMetrics("RangeSlice");
     private static final ClientRequestMetrics writeMetrics = new ClientRequestMetrics("Write");
@@ -493,7 +491,7 @@ public class StorageProxy implements StorageProxyMBean
             // a small number of nodes causing problems, so we should avoid shutting down writes completely to
             // healthy nodes.  Any node with no hintsInProgress is considered healthy.
             if (totalHintsInProgress.get() > maxHintsInProgress
-                && (hintsInProgress.get(destination).get() > 0 && shouldHint(destination)))
+                && (hintsInProgress(destination).get() > 0 && shouldHint(destination)))
             {
                 throw new OverloadedException("Too many in flight hints: " + totalHintsInProgress.get());
             }
@@ -534,6 +532,18 @@ public class StorageProxy implements StorageProxyMBean
         sendMessages(localDataCenter, dcMessages, responseHandler);
     }
 
+    private static AtomicInteger hintsInProgress(InetAddress destination)
+    {
+        try
+        {
+            return hintsInProgress.get(destination);
+        }
+        catch (ExecutionException e)
+        {
+            throw new RuntimeException(e); // this wont happen.
+        }
+    }
+
     public static Future<Void> submitHint(final RowMutation mutation,
                                           final InetAddress target,
                                           final AbstractWriteResponseHandler responseHandler,
@@ -561,7 +571,7 @@ public class StorageProxy implements StorageProxyMBean
     private static Future<Void> submitHint(HintRunnable runnable)
     {
         totalHintsInProgress.incrementAndGet();
-        hintsInProgress.get(runnable.target).incrementAndGet();
+        hintsInProgress(runnable.target).incrementAndGet();
         return (Future<Void>) StageManager.getStage(Stage.MUTATION).submit(runnable);
     }
 
@@ -577,7 +587,7 @@ public class StorageProxy implements StorageProxyMBean
         RowMutation hintedMutation = RowMutation.hintFor(mutation, hostId);
         hintedMutation.apply();
 
-        totalHints.incrementAndGet();
+        HintedHandOffManager.instance.metrics.incrHintsCount();
     }
 
     /**
@@ -1411,11 +1421,16 @@ public class StorageProxy implements StorageProxyMBean
     public static boolean shouldHint(InetAddress ep)
     {
         if (!DatabaseDescriptor.hintedHandoffEnabled())
+        {
+            HintedHandOffManager.instance.metrics.incrPastWindow(ep);
             return false;
+        }
 
         boolean hintWindowExpired = Gossiper.instance.getEndpointDowntime(ep) > DatabaseDescriptor.getMaxHintWindow();
-        if (hintWindowExpired)
+        if (hintWindowExpired) {
+            HintedHandOffManager.instance.metrics.incrPastWindow(ep);
             logger.trace("not hinting {} which has been down {}ms", ep, Gossiper.instance.getEndpointDowntime(ep));
+        }
         return !hintWindowExpired;
     }
 
@@ -1568,7 +1583,7 @@ public class StorageProxy implements StorageProxyMBean
             finally
             {
                 totalHintsInProgress.decrementAndGet();
-                hintsInProgress.get(target).decrementAndGet();
+                hintsInProgress(target).decrementAndGet();
             }
         }
 
@@ -1577,7 +1592,7 @@ public class StorageProxy implements StorageProxyMBean
 
     public long getTotalHints()
     {
-        return totalHints.get();
+        return HintedHandOffManager.instance.metrics.hintsCount();
     }
 
     public int getMaxHintsInProgress()

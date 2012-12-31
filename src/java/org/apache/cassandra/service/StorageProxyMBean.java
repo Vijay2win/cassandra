@@ -66,8 +66,9 @@ public interface StorageProxyMBean
     public long[] getTotalWriteLatencyHistogramMicros();
     @Deprecated
     public long[] getRecentWriteLatencyHistogramMicros();
-
+    @Deprecated
     public long getTotalHints();
+
     public boolean getHintedHandoffEnabled();
     public void setHintedHandoffEnabled(boolean b);
     public int getMaxHintWindow();

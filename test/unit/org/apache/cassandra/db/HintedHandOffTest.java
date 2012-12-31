@@ -21,8 +21,12 @@ package org.apache.cassandra.db;
  */
 
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import junit.framework.Assert;
 
 import org.junit.Test;
 
@@ -76,5 +80,16 @@ public class HintedHandOffTest extends SchemaLoader
         // single row should not be removed because of gc_grace_seconds
         // is 10 hours and there are no any tombstones in sstable
         assertEquals(1, hintStore.getSSTables().size());
+    }
+
+    @Test
+    public void testHintsMetrics() throws UnknownHostException
+    {
+        for (int i = 0; i < 100; i++)
+            HintedHandOffManager.instance.metrics.incrHintsCount();
+        for (int i = 0; i < 100; i++)
+            HintedHandOffManager.instance.metrics.incrPastWindow(InetAddress.getLocalHost());
+        HintedHandOffManager.instance.metrics.log();
+        Assert.assertEquals(100, HintedHandOffManager.instance.metrics.hintsCount());
     }
 }

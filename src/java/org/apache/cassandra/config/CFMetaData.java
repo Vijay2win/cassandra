@@ -175,6 +175,13 @@ public final class CFMetaData
                                                          + "rack text"
                                                          + ") WITH COMMENT='known peers in the cluster'");
 
+    public static final CFMetaData EventsCf = compile(12, "CREATE TABLE " + SystemTable.EVENTS_CF + " ("
+                                                         + "key uuid PRIMARY KEY,"
+                                                         + "severity text,"
+                                                         + "about text,"
+                                                         + "message text,"
+                                                         + ") WITH COMMENT='audit cf contains queryiable events'");
+
     public static final CFMetaData LocalCf = compile(13, "CREATE TABLE " + SystemTable.LOCAL_CF + " ("
                                                          + "key text PRIMARY KEY,"
                                                          + "tokens set<varchar>,"

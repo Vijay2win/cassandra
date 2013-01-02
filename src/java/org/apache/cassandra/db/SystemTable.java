@@ -18,7 +18,6 @@
 package org.apache.cassandra.db;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -32,7 +31,6 @@ import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.avro.ipc.ByteBufferInputStream;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.commitlog.ReplayPosition;
@@ -50,14 +48,14 @@ import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.util.DataOutputBuffer;
-import org.apache.cassandra.io.util.FastByteArrayOutputStream;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Constants;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.CounterId;
 import org.apache.cassandra.utils.FBUtilities;
-import org.apache.cassandra.utils.Pair;
+import org.apache.cassandra.utils.UUIDGen;
+import org.apache.log4j.lf5.LogLevel;
 
 import static org.apache.cassandra.cql3.QueryProcessor.processInternal;
 
@@ -73,6 +71,7 @@ public class SystemTable
     public static final String HINTS_CF = "hints";
     public static final String RANGE_XFERS_CF = "range_xfers";
     public static final String BATCHLOG_CF = "batchlog";
+    public static final String EVENTS_CF = "events";
     // see layout description in the DefsTable class header
     public static final String SCHEMA_KEYSPACES_CF = "schema_keyspaces";
     public static final String SCHEMA_COLUMNFAMILIES_CF = "schema_columnfamilies";
@@ -271,6 +270,14 @@ public class SystemTable
     {
         String req = "INSERT INTO system.%s (key, schema_version) VALUES ('%s', %s)";
         processInternal(String.format(req, LOCAL_CF, LOCAL_KEY, version.toString()));
+    }
+
+    public static void updateAuditInfo(LogLevel severity, String about, String message)
+    {
+        String req = "INSERT INTO system.%s (key, severity, about, message) " +
+        		                    "VALUES ('%s', '%s', '%s', '%s') " +
+        		                    "USING TTL 2592000"; // 30 Day TTL
+        processInternal(String.format(req, EVENTS_CF, UUIDGen.getTimeUUID(), severity, about, message));
     }
 
     private static String tokensAsSet(Collection<Token> tokens)

@@ -21,6 +21,9 @@ package org.apache.cassandra.db;
  */
 
 
+import static junit.framework.Assert.assertEquals;
+import static org.apache.cassandra.cql3.QueryProcessor.processInternal;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.UUID;
@@ -28,16 +31,16 @@ import java.util.concurrent.TimeUnit;
 
 import junit.framework.Assert;
 
-import org.junit.Test;
-
 import org.apache.cassandra.SchemaLoader;
+import org.apache.cassandra.cql3.UntypedResultSet;
 import org.apache.cassandra.db.compaction.CompactionManager;
 import org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy;
 import org.apache.cassandra.db.filter.QueryPath;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
+import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
+import com.google.common.collect.Iterators;
 
 public class HintedHandOffTest extends SchemaLoader
 {
@@ -90,6 +93,18 @@ public class HintedHandOffTest extends SchemaLoader
         for (int i = 0; i < 100; i++)
             HintedHandOffManager.instance.metrics.incrPastWindow(InetAddress.getLocalHost());
         HintedHandOffManager.instance.metrics.log();
+
         Assert.assertEquals(100, HintedHandOffManager.instance.metrics.hintsCount());
+
+        UntypedResultSet rows = processInternal("SELECT message FROM system." + SystemTable.EVENTS_CF);
+        String returned = rows.one().getString("message");
+        Assert.assertTrue(returned.contains("100"));
+
+        for (int i = 0; i < 88; i++)
+            HintedHandOffManager.instance.metrics.incrPastWindow(InetAddress.getLocalHost());
+        HintedHandOffManager.instance.metrics.log();
+        rows = processInternal("SELECT message FROM system." + SystemTable.EVENTS_CF);
+        returned = Iterators.getLast(rows.iterator(), null).getString("message");
+        Assert.assertTrue(returned.contains("88"));
     }
 }

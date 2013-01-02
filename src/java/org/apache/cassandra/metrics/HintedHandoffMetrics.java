@@ -5,6 +5,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.db.SystemTable;
+import org.apache.log4j.lf5.LogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +67,9 @@ public class HintedHandoffMetrics
             long diffrence = entry.getValue().diffrence();
             if (diffrence == 0)
                 continue;
-            logger.info("{} has {} hints dropped, because node is down past configured window.", entry.getKey(), diffrence);
+            String message = String.format("%s has %s dropped hints, because node is down past configured hint window.", entry.getKey(), diffrence);
+            logger.warn(message);
+            SystemTable.updateAuditInfo(LogLevel.WARN, "Dropped Hints", message);
         }
     }
 
@@ -82,7 +86,7 @@ public class HintedHandoffMetrics
         public long diffrence()
         {
             long current = meter.count();
-            long diffrence = reported - current;
+            long diffrence = current - reported;
             this.reported = current;
             return diffrence;
         }

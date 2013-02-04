@@ -86,4 +86,6 @@ public interface StorageProxyMBean
     public void setRangeRpcTimeout(Long timeoutInMillis);
     public Long getTruncateRpcTimeout();
     public void setTruncateRpcTimeout(Long timeoutInMillis);
+
+    public void reloadTriggerClass();
 }

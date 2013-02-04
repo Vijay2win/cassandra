@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.cassandra.cql.QueryProcessor;
 import org.apache.cassandra.db.ColumnFamily;
@@ -59,17 +60,13 @@ public class TriggerExecutor
 
     private Collection<RowMutation> execute(IMutation update) throws InvalidRequestException
     {
-        List<RowMutation> mutations = Lists.newLinkedList();
+        List<RowMutation> tmutations = Lists.newLinkedList();
         for (ColumnFamily cf : update.getColumnFamilies())
         {
-            Collection<RowMutation> tmutations = execute(update.key(), cf);
-            if (tmutations != null)
-            {
-                validate(tmutations);
-                mutations.addAll(tmutations);
-            }
+            execute(update.key(), cf, tmutations);
+            validate(tmutations);
         }
-        return mutations;
+        return tmutations;
     }
 
     private void validate(Collection<RowMutation> tmutations) throws InvalidRequestException
@@ -83,21 +80,26 @@ public class TriggerExecutor
         }
     }
 
-    private Collection<RowMutation> execute(ByteBuffer key, ColumnFamily columnFamily)
+    private void execute(ByteBuffer key, ColumnFamily columnFamily, Collection<RowMutation> tmutations)
     {
-        String name = columnFamily.metadata().getTriggerClass();
-        if (name == null)
-            return null;
+        Set<String> triggerNames = columnFamily.metadata().getTriggerClass();
+        if (triggerNames == null)
+            return;
         Thread.currentThread().setContextClassLoader(customClassLoader);
         try
         {
-            ITrigger trigger = cachedTriggers.get(columnFamily.id());
-            if (trigger == null)
+            for (String triggerName: triggerNames)
             {
-                trigger = loadTriggerInstance(name);
-                cachedTriggers.put(name, trigger);
+                ITrigger trigger = cachedTriggers.get(triggerName);
+                if (trigger == null)
+                {
+                    trigger = loadTriggerInstance(triggerName);
+                    cachedTriggers.put(triggerName, trigger);
+                }
+                Collection<RowMutation> temp = trigger.augment(key, columnFamily);
+                if (temp != null)
+                    tmutations.addAll(temp);
             }
-            return trigger.augment(key, columnFamily);
         }
         catch (Exception ex)
         {
@@ -109,13 +111,13 @@ public class TriggerExecutor
         }
     }
 
-    private synchronized ITrigger loadTriggerInstance(String name) throws Exception
+    private synchronized ITrigger loadTriggerInstance(String triggerName) throws Exception
     {
         // double check.
-        if (cachedTriggers.get(name) != null)
-            return cachedTriggers.get(name);
+        if (cachedTriggers.get(triggerName) != null)
+            return cachedTriggers.get(triggerName);
 
-        Constructor<? extends ITrigger> costructor = (Constructor<? extends ITrigger>) customClassLoader.loadClass(name).getConstructor(new Class<?>[0]);
+        Constructor<? extends ITrigger> costructor = (Constructor<? extends ITrigger>) customClassLoader.loadClass(triggerName).getConstructor(new Class<?>[0]);
         return costructor.newInstance(new Object[0]);
     }
 }

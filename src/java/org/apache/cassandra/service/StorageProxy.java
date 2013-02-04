@@ -59,6 +59,7 @@ import org.apache.cassandra.locator.TokenMetadata;
 import org.apache.cassandra.metrics.ClientRequestMetrics;
 import org.apache.cassandra.net.*;
 import org.apache.cassandra.tracing.Tracing;
+import org.apache.cassandra.triggers.TriggerExecutor;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
@@ -240,6 +241,23 @@ public class StorageProxy implements StorageProxyMBean
         finally
         {
             writeMetrics.addNano(System.nanoTime() - startTime);
+        }
+    }
+
+    public static void mutateWithTriggers(Collection<? extends IMutation> mutations, ConsistencyLevel consistencyLevel, boolean mutateAtomically) throws WriteTimeoutException, UnavailableException,
+            OverloadedException, InvalidRequestException
+    {
+        Collection<RowMutation> tmutations = TriggerExecutor.instance.execute(mutations);
+        if (mutateAtomically || tmutations != null)
+        {
+            Collection<RowMutation> allMutations = (Collection<RowMutation>) mutations;
+            if (tmutations != null)
+                allMutations.addAll(tmutations);
+            StorageProxy.mutateAtomically(allMutations, consistencyLevel);
+        }
+        else
+        {
+            StorageProxy.mutate(mutations, consistencyLevel);
         }
     }
 
@@ -1645,4 +1663,6 @@ public class StorageProxy implements StorageProxyMBean
 
     public Long getTruncateRpcTimeout() { return DatabaseDescriptor.getTruncateRpcTimeout(); }
     public void setTruncateRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setTruncateRpcTimeout(timeoutInMillis); }
+
+    public void reloadTriggerClass() { TriggerExecutor.instance.reloadClasses(); }
 }

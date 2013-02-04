@@ -24,6 +24,7 @@ import com.google.common.io.Files;
 public class CustomClassLoader extends URLClassLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(CustomClassLoader.class);
+    private static final String[] PACKAGE_EXCLUSION_LIST = new String[] {"org.apache.log4j", "org.slf4j"};
     private final Map<String, Class<?>> cache = new ConcurrentHashMap<String, Class<?>>();
     private final ClassLoader parent;
 
@@ -74,6 +75,7 @@ public class CustomClassLoader extends URLClassLoader
         }
     }
 
+    @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException
     {
         Class<?> clazz = cache.get(name);
@@ -84,21 +86,28 @@ public class CustomClassLoader extends URLClassLoader
 
     public synchronized Class<?> loadClassInternal(String name) throws ClassNotFoundException
     {
-        ClassNotFoundException ex = null;
-        Class<?> clazz = null;
         try
         {
-            clazz = this.findClass(name);
+            if (!isExcluded(name))
+                return parent.loadClass(name);
         }
-        catch (ClassNotFoundException e)
+        catch (ClassNotFoundException ex)
         {
-            ex = e;
+            logger.debug("Class not found using parent class loader,", ex);
+            // Don't throw the exception here, try triggers directory.
         }
-        if (clazz == null)
-            clazz = parent.loadClass(name);
-        if (clazz == null)
-            throw ex;
+        Class<?> clazz = this.findClass(name);
         cache.put(name, clazz);
         return clazz;
+    }
+
+    private boolean isExcluded(String name)
+    {
+        for (String exclusion : PACKAGE_EXCLUSION_LIST)
+        {
+            if (name.startsWith(exclusion))
+                return true;
+        }
+        return false;
     }
 }

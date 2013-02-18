@@ -404,6 +404,10 @@ incremental_backups: false
 # is a data format change.
 snapshot_before_compaction: false
 
+# Cleanup during compaction, if enabled removes data the node doesn't
+# own during compaction. defaults to false.
+# cleanup_during_compaction: false 
+
 # Whether or not a snapshot is taken of the data before keyspace truncation
 # or dropping of column families. The STRONGLY advised default of true 
 # should be used to provide data safety. If you set this flag to false, you will

@@ -26,6 +26,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.*;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Longs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1285,5 +1286,17 @@ public class DatabaseDescriptor
     public static boolean getInterDCTcpNoDelay()
     {
         return conf.inter_dc_tcp_nodelay;
+    }
+
+    public static boolean cleanupDuringCompaction()
+    {
+        return conf.cleanup_during_compaction;
+    }
+
+    /** Do not use this else where other than test **/
+    @VisibleForTesting
+    public static void setCleanupDuringCompaction(boolean value)
+    {
+        conf.cleanup_during_compaction = value;
     }
 }

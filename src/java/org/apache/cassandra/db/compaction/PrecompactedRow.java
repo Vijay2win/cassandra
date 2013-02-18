@@ -20,6 +20,7 @@ package org.apache.cassandra.db.compaction;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.security.MessageDigest;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Functions;
@@ -159,6 +160,11 @@ public class PrecompactedRow extends AbstractCompactedRow
             throw new RuntimeException(e);
         }
         compactedCf.updateDigest(digest);
+    }
+
+    public Iterator<Column> iterator()
+    {
+        return compactedCf.iterator();
     }
 
     public boolean isEmpty()

@@ -27,10 +27,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ConcurrentHashMultiset;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Multiset;
 import com.google.common.primitives.Longs;
 import org.slf4j.Logger;
@@ -54,12 +52,12 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.*;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.metrics.CompactionMetrics;
-import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.service.AntiEntropyService;
 import org.apache.cassandra.service.CacheService;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.CloseableIterator;
 import org.apache.cassandra.utils.CounterId;
+import org.apache.cassandra.utils.CounterId.OneShotRenewer;
 import org.apache.cassandra.utils.Pair;
 import org.apache.cassandra.utils.WrappedRunnable;
 
@@ -635,34 +633,10 @@ public class CompactionManager implements CompactionManagerMBean
                         {
                             if (indexedColumnsInRow != null)
                                 indexedColumnsInRow.clear();
+                            else
+                                indexedColumnsInRow = new ArrayList<Column>();
 
-                            while (row.hasNext())
-                            {
-                                OnDiskAtom column = row.next();
-                                if (column instanceof CounterColumn)
-                                    renewer.maybeRenew((CounterColumn) column);
-                                if (column instanceof Column && cfs.indexManager.indexes((Column)column))
-                                {
-                                    if (indexedColumnsInRow == null)
-                                        indexedColumnsInRow = new ArrayList<Column>();
-
-                                    indexedColumnsInRow.add((Column)column);
-                                }
-                            }
-
-                            if (indexedColumnsInRow != null && !indexedColumnsInRow.isEmpty())
-                            {
-                                // acquire memtable lock here because secondary index deletion may cause a race. See CASSANDRA-3712
-                                Table.switchLock.readLock().lock();
-                                try
-                                {
-                                    cfs.indexManager.deleteFromIndexes(row.getKey(), indexedColumnsInRow);
-                                }
-                                finally
-                                {
-                                    Table.switchLock.readLock().unlock();
-                                }
-                            }
+                            rmIdxRenewCounter(cfs, row.getKey(), row, renewer, indexedColumnsInRow);
                         }
                     }
                     if ((rowsRead++ % 1000) == 0)
@@ -701,6 +675,32 @@ public class CompactionManager implements CompactionManagerMBean
             cfs.indexManager.flushIndexesBlocking();
 
             cfs.replaceCompactedSSTables(Arrays.asList(sstable), results, OperationType.CLEANUP);
+        }
+    }
+
+    public static void rmIdxRenewCounter(ColumnFamilyStore cfs, DecoratedKey key, Iterator<OnDiskAtom> row, OneShotRenewer renewer, List<Column> indexedCols)
+    {
+        while (row.hasNext())
+        {
+            OnDiskAtom column = row.next();
+            if (column instanceof CounterColumn)
+                renewer.maybeRenew((CounterColumn) column);
+            if (column instanceof Column && cfs.indexManager.indexes((Column)column))
+                indexedCols.add((Column)column);
+        }
+
+        if (indexedCols != null && !indexedCols.isEmpty())
+        {
+            // acquire memtable lock here because secondary index deletion may cause a race. See CASSANDRA-3712
+            Table.switchLock.readLock().lock();
+            try
+            {
+                cfs.indexManager.deleteFromIndexes(key, indexedCols);
+            }
+            finally
+            {
+                Table.switchLock.readLock().unlock();
+            }
         }
     }
 

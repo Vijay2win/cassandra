@@ -485,4 +485,9 @@ public class Table
     {
         return metadata.name;
     }
+
+    public boolean isSystemTable()
+    {
+        return metadata.name.equals(SYSTEM_KS);
+    }
 }

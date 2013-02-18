@@ -19,8 +19,9 @@
 package org.apache.cassandra.db.compaction;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.net.InetAddress;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import junit.framework.Assert;
@@ -28,18 +29,26 @@ import junit.framework.Assert;
 import org.junit.Test;
 
 import org.apache.cassandra.SchemaLoader;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.Column;
+import org.apache.cassandra.db.Row;
 import org.apache.cassandra.db.Table;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.filter.QueryFilter;
+import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.locator.TokenMetadata;
 import org.apache.cassandra.Util;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotSame;
 import static org.apache.cassandra.db.TableTest.assertColumns;
+import static org.junit.Assert.assertEquals;
+
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
 
@@ -90,6 +99,38 @@ public class CompactionsPurgeTest extends SchemaLoader
         ColumnFamily cf = cfs.getColumnFamily(QueryFilter.getIdentityFilter(key, cfName));
         assertColumns(cf, "5");
         assert cf.getColumn(ByteBufferUtil.bytes(String.valueOf(5))) != null;
+    }
+
+    @Test
+    public void testCleanupDuringCompaction() throws Exception
+    {
+        DatabaseDescriptor.setCleanupDuringCompaction(true);
+        CompactionManager.instance.disableAutoCompaction();
+        Table table = Table.open(TABLE1);
+        String cfName = "Standard1";
+        ColumnFamilyStore cfs = table.getColumnFamilyStore(cfName);
+        // inserts
+        for (int i = 0; i < 10; i++)
+        {
+            DecoratedKey key = Util.dk("key" + i);
+            RowMutation rm = new RowMutation(TABLE1, key.key);
+            rm.add(cfName, ByteBufferUtil.bytes(String.valueOf(i)), ByteBufferUtil.EMPTY_BYTE_BUFFER, 0);
+            rm.apply();
+        }
+        cfs.forceBlockingFlush();
+
+        List<Row> rows = Util.getRangeSlice(cfs);
+        assertNotSame(0, rows.size());
+        TokenMetadata tmd = StorageService.instance.getTokenMetadata();
+        byte[] tk1 = new byte[1], tk2 = new byte[1];
+        tk1[0] = 2;
+        tk2[0] = 1;
+        tmd.updateNormalToken(new BytesToken(tk1), InetAddress.getByName("127.0.0.1"));
+        tmd.updateNormalToken(new BytesToken(tk2), InetAddress.getByName("127.0.0.2"));
+        CompactionManager.instance.submitMaximal(cfs, Integer.MAX_VALUE).get();
+        tmd.removeEndpoint(InetAddress.getByName("127.0.0.2"));
+        rows = Util.getRangeSlice(cfs);
+        assertEquals(0, rows.size());   
     }
 
     @Test

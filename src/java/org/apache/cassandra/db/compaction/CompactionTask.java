@@ -29,8 +29,12 @@ import org.slf4j.LoggerFactory;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.compaction.CompactionManager.CompactionExecutorStatsCollector;
+import org.apache.cassandra.dht.Range;
+import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.*;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.CloseableIterator;
+import org.apache.cassandra.utils.CounterId;
 
 public class CompactionTask extends AbstractCompactionTask
 {
@@ -127,6 +131,12 @@ public class CompactionTask extends AbstractCompactionTask
         CloseableIterator<AbstractCompactedRow> iter = ci.iterator();
         Map<DecoratedKey, RowIndexEntry> cachedKeys = new HashMap<DecoratedKey, RowIndexEntry>();
 
+        boolean isCommutative = cfs.metadata.getDefaultValidator().isCommutative();
+        boolean hasIndexes = !cfs.indexManager.getIndexes().isEmpty();
+        Collection<Range<Token>> ranges = StorageService.instance.getLocalRanges(cfs.table.getName());
+        CounterId.OneShotRenewer renewer = new CounterId.OneShotRenewer();
+        List<Column> indexedCols = new ArrayList<Column>();
+
         // we can't preheat until the tracker has been set. This doesn't happen until we tell the cfs to
         // replace the old entries.  Track entries to preheat here until then.
         Map<Descriptor, Map<DecoratedKey, RowIndexEntry>> cachedKeyMap =  new HashMap<Descriptor, Map<DecoratedKey, RowIndexEntry>>();
@@ -165,6 +175,13 @@ public class CompactionTask extends AbstractCompactionTask
                 // If the row is cached, we call removeDeleted on at read time it to have coherent query returns,
                 // but if the row is not pushed out of the cache, obsolete tombstones will persist indefinitely.
                 controller.removeDeletedInCache(row.key);
+
+                if (!cfs.table.isSystemTable() && DatabaseDescriptor.cleanupDuringCompaction() && !Range.isInRanges(row.key.token, ranges))
+                {
+                    if (hasIndexes || isCommutative)
+                        CompactionManager.rmIdxRenewCounter(cfs, row.key, row.iterator(), renewer, indexedCols);
+                    continue;
+                }
 
                 RowIndexEntry indexEntry = writer.append(row);
                 totalkeysWritten++;

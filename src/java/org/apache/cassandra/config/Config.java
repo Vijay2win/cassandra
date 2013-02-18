@@ -167,6 +167,7 @@ public class Config
     public boolean populate_io_cache_on_flush = false;
 
     public boolean inter_dc_tcp_nodelay = false;
+    public boolean cleanup_during_compaction = false;
 
     private static boolean loadYaml = true;
     private static boolean outboundBindAny = false;

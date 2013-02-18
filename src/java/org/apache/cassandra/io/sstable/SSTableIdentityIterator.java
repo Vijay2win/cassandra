@@ -30,7 +30,7 @@ import org.apache.cassandra.db.marshal.MarshalException;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.cassandra.utils.BytesReadTracker;
 
-public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterator>, ICountableColumnIterator
+public class SSTableIdentityIterator implements Comparable<SSTableIdentityIterator>, ICountableColumnIterator, Iterator<OnDiskAtom>
 {
     private static final Logger logger = LoggerFactory.getLogger(SSTableIdentityIterator.class);
 

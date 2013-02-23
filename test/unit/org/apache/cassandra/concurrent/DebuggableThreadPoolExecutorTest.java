@@ -52,8 +52,8 @@ public class DebuggableThreadPoolExecutorTest
             executor.execute(runnable);
         }
         assert q.size() > 0 : q.size();
-        while (executor.getCompletedTaskCount() < 10)
-            continue;
+//        while (executor.getCompletedTaskCount() < 10)
+//            continue;
         long delta = System.currentTimeMillis() - start;
         assert delta >= 9 * 50 : delta;
     }

@@ -302,7 +302,7 @@ public abstract class AntiEntropyServiceTestAbstract extends SchemaLoader
 
     void flushAES() throws Exception
     {
-        final ThreadPoolExecutor stage = StageManager.getStage(Stage.ANTI_ENTROPY);
+        final ExecutorService stage = StageManager.getStage(Stage.ANTI_ENTROPY);
         final Callable noop = new Callable<Object>()
         {
             public Boolean call()

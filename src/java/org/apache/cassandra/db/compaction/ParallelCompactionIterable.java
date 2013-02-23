@@ -123,7 +123,7 @@ public class ParallelCompactionIterable extends AbstractCompactionIterable
         private final List<RowContainer> rows = new ArrayList<RowContainer>();
         private int row = 0;
 
-        private final ThreadPoolExecutor executor = new DebuggableThreadPoolExecutor(FBUtilities.getAvailableProcessors(),
+        private final ExecutorService executor = new DebuggableThreadPoolExecutor(FBUtilities.getAvailableProcessors(),
                                                                                      Integer.MAX_VALUE,
                                                                                      TimeUnit.MILLISECONDS,
                                                                                      new SynchronousQueue<Runnable>(),

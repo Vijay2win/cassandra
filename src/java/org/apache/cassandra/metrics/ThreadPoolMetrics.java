@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.metrics;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import com.yammer.metrics.Metrics;
@@ -50,7 +51,7 @@ public class ThreadPoolMetrics
      * @param path Type of thread pool
      * @param poolName Name of thread pool to identify metrics
      */
-    public ThreadPoolMetrics(final ThreadPoolExecutor executor, String path, String poolName)
+    public ThreadPoolMetrics(final ExecutorService executor, String path, String poolName)
     {
         this.factory = new ThreadPoolMetricNameFactory(path, poolName);
 
@@ -58,7 +59,8 @@ public class ThreadPoolMetrics
         {
             public Integer value()
             {
-                return executor.getActiveCount();
+                // return executor.getActiveCount();
+                return 0;
             }
         });
         totalBlocked = Metrics.newCounter(factory.createMetricName("TotalBlockedTasks"));
@@ -67,14 +69,16 @@ public class ThreadPoolMetrics
         {
             public Long value()
             {
-                return executor.getCompletedTaskCount();
+                // return executor.getCompletedTaskCount();
+                return 0L;
             }
         });
         pendingTasks = Metrics.newGauge(factory.createMetricName("PendingTasks"), new Gauge<Long>()
         {
             public Long value()
             {
-                return executor.getTaskCount() - executor.getCompletedTaskCount();
+                //return executor.getTaskCount() - executor.getCompletedTaskCount();
+                return 0L;
             }
         });
     }

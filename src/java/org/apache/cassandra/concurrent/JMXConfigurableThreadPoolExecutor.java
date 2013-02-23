@@ -33,4 +33,18 @@ public class JMXConfigurableThreadPoolExecutor extends JMXEnabledThreadPoolExecu
         super(corePoolSize, keepAliveTime, unit, workQueue, threadFactory, jmxPath);
     }
 
+    @Override
+    public void setCorePoolSize(int n)
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public int getCorePoolSize()
+    {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
 }

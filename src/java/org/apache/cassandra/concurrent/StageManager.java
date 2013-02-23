@@ -39,7 +39,7 @@ public class StageManager
 {
     private static final Logger logger = LoggerFactory.getLogger(StageManager.class);
 
-    private static final EnumMap<Stage, ThreadPoolExecutor> stages = new EnumMap<Stage, ThreadPoolExecutor>(Stage.class);
+    private static final EnumMap<Stage, ExecutorService> stages = new EnumMap<Stage, ExecutorService>(Stage.class);
 
     public static final long KEEPALIVE = 60; // seconds to keep "extra" threads alive for when idle
 
@@ -79,7 +79,7 @@ public class StageManager
                                        reh);
     }
 
-    private static ThreadPoolExecutor multiThreadedStage(Stage stage, int numThreads)
+    private static ExecutorService multiThreadedStage(Stage stage, int numThreads)
     {
         return new JMXEnabledThreadPoolExecutor(numThreads,
                                                 KEEPALIVE,
@@ -89,7 +89,7 @@ public class StageManager
                                                 stage.getJmxType());
     }
 
-    private static ThreadPoolExecutor multiThreadedConfigurableStage(Stage stage, int numThreads)
+    private static ExecutorService multiThreadedConfigurableStage(Stage stage, int numThreads)
     {
         return new JMXConfigurableThreadPoolExecutor(numThreads,
                                                      KEEPALIVE,
@@ -99,7 +99,7 @@ public class StageManager
                                                      stage.getJmxType());
     }
 
-    private static ThreadPoolExecutor multiThreadedConfigurableStage(Stage stage, int numThreads, int maxTasksBeforeBlock)
+    private static ExecutorService multiThreadedConfigurableStage(Stage stage, int numThreads, int maxTasksBeforeBlock)
     {
         return new JMXConfigurableThreadPoolExecutor(numThreads,
                                                      KEEPALIVE,
@@ -113,7 +113,7 @@ public class StageManager
      * Retrieve a stage from the StageManager
      * @param stage name of the stage to be retrieved.
     */
-    public static ThreadPoolExecutor getStage(Stage stage)
+    public static ExecutorService getStage(Stage stage)
     {
         return stages.get(stage);
     }
@@ -125,7 +125,7 @@ public class StageManager
     {
         for (Stage stage : Stage.values())
         {
-            StageManager.stages.get(stage).shutdownNow();
+            //StageManager.stages.get(stage).shutdownNow();
         }
     }
 

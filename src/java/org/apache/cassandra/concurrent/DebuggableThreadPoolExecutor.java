@@ -44,37 +44,37 @@ import static org.apache.cassandra.tracing.Tracing.isTracing;
  *   threads and the queue is full, we want the enqueuer to block.  But to allow the number of threads to drop if a
  *   stage is less busy, core thread timeout is enabled.
  */
-public class DebuggableThreadPoolExecutor extends ThreadPoolExecutor
+public class DebuggableThreadPoolExecutor extends DisruptorExecutor
 {
     protected static final Logger logger = LoggerFactory.getLogger(DebuggableThreadPoolExecutor.class);
-    public static final RejectedExecutionHandler blockingExecutionHandler = new RejectedExecutionHandler()
-    {
-        public void rejectedExecution(Runnable task, ThreadPoolExecutor executor)
-        {
-            ((DebuggableThreadPoolExecutor) executor).onInitialRejection(task);
-            BlockingQueue<Runnable> queue = executor.getQueue();
-            while (true)
-            {
-                if (executor.isShutdown())
-                {
-                    ((DebuggableThreadPoolExecutor) executor).onFinalRejection(task);
-                    throw new RejectedExecutionException("ThreadPoolExecutor has shut down");
-                }
-                try
-                {
-                    if (queue.offer(task, 1000, TimeUnit.MILLISECONDS))
-                    {
-                        ((DebuggableThreadPoolExecutor) executor).onFinalAccept(task);
-                        break;
-                    }
-                }
-                catch (InterruptedException e)
-                {
-                    throw new AssertionError(e);
-                }
-            }
-        }
-    };
+//    public static final RejectedExecutionHandler blockingExecutionHandler = new RejectedExecutionHandler()
+//    {
+//        public void rejectedExecution(Runnable task, ThreadPoolExecutor executor)
+//        {
+//            ((DebuggableThreadPoolExecutor) executor).onInitialRejection(task);
+//            BlockingQueue<Runnable> queue = executor.getQueue();
+//            while (true)
+//            {
+//                if (executor.isShutdown())
+//                {
+//                    ((DebuggableThreadPoolExecutor) executor).onFinalRejection(task);
+//                    throw new RejectedExecutionException("ThreadPoolExecutor has shut down");
+//                }
+//                try
+//                {
+//                    if (queue.offer(task, 1000, TimeUnit.MILLISECONDS))
+//                    {
+//                        ((DebuggableThreadPoolExecutor) executor).onFinalAccept(task);
+//                        break;
+//                    }
+//                }
+//                catch (InterruptedException e)
+//                {
+//                    throw new AssertionError(e);
+//                }
+//            }
+//        }
+//    };
 
     public DebuggableThreadPoolExecutor(String threadPoolName, int priority)
     {
@@ -89,14 +89,14 @@ public class DebuggableThreadPoolExecutor extends ThreadPoolExecutor
     public DebuggableThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory)
     {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
-        allowCoreThreadTimeOut(true);
+        //allowCoreThreadTimeOut(true);
 
         // block task submissions until queue has room.
         // this is fighting TPE's design a bit because TPE rejects if queue.offer reports a full queue.
         // we'll just override this with a handler that retries until it gets in.  ugly, but effective.
         // (there is an extensive analysis of the options here at
         //  http://today.java.net/pub/a/today/2008/10/23/creating-a-notifying-blocking-thread-pool-executor.html)
-        this.setRejectedExecutionHandler(blockingExecutionHandler);
+        //this.setRejectedExecutionHandler(blockingExecutionHandler);
     }
 
     /**
@@ -124,7 +124,7 @@ public class DebuggableThreadPoolExecutor extends ThreadPoolExecutor
      */
     public static DebuggableThreadPoolExecutor createWithMaximumPoolSize(String threadPoolName, int size, int keepAliveTime, TimeUnit unit)
     {
-        return new DebuggableThreadPoolExecutor(size, Integer.MAX_VALUE, keepAliveTime, unit, new LinkedBlockingQueue<Runnable>(), new NamedThreadFactory(threadPoolName));
+        return new DebuggableThreadPoolExecutor(size, size, keepAliveTime, unit, new LinkedBlockingQueue<Runnable>(), new NamedThreadFactory(threadPoolName));
     }
 
     protected void onInitialRejection(Runnable task) {}
@@ -160,10 +160,9 @@ public class DebuggableThreadPoolExecutor extends ThreadPoolExecutor
         return super.newTaskFor(callable);
     }
 
-    @Override
     protected void afterExecute(Runnable r, Throwable t)
     {
-        super.afterExecute(r, t);
+        //super.afterExecute(r, t);
 
         if (r instanceof TraceSessionWrapper)
         {
@@ -176,13 +175,12 @@ public class DebuggableThreadPoolExecutor extends ThreadPoolExecutor
         logExceptionsAfterExecute(r, t);
     }
 
-    @Override
     protected void beforeExecute(Thread t, Runnable r)
     {
         if (r instanceof TraceSessionWrapper)
             ((TraceSessionWrapper) r).setupContext();
 
-        super.beforeExecute(t, r);
+        //super.beforeExecute(t, r);
     }
 
     /**

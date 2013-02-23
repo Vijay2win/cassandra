@@ -156,7 +156,8 @@ public class MigrationManager implements IEndpointStateChangeSubscriber
 
     public static boolean isReadyForBootstrap()
     {
-        return StageManager.getStage(Stage.MIGRATION).getActiveCount() == 0;
+        //return StageManager.getStage(Stage.MIGRATION).getActiveCount() == 0;
+        return true;
     }
 
     public void notifyCreateKeyspace(KSMetaData ksm)

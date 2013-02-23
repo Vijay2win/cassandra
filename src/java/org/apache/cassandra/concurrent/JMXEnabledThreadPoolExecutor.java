@@ -72,7 +72,7 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
                                         String jmxPath)
     {
         super(corePoolSize, maxPoolSize, keepAliveTime, unit, workQueue, threadFactory);
-        super.prestartAllCoreThreads();
+        //super.prestartAllCoreThreads();
 
         metrics = new ThreadPoolMetrics(this, jmxPath, threadFactory.id);
 
@@ -138,7 +138,8 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
      */
     public long getCompletedTasks()
     {
-        return getCompletedTaskCount();
+        //return getCompletedTaskCount();
+        return 0L;
     }
 
     /**
@@ -146,7 +147,8 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
      */
     public long getPendingTasks()
     {
-        return getTaskCount() - getCompletedTaskCount();
+        //return getTaskCount() - getCompletedTaskCount();
+        return 0L;
     }
 
     public int getTotalBlockedTasks()
@@ -161,22 +163,24 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
 
     public int getCoreThreads()
     {
-        return getCorePoolSize();
+        //return getCorePoolSize();
+        return 0;
     }
 
     public void setCoreThreads(int number)
     {
-        setCorePoolSize(number);
+        //setCorePoolSize(number);
     }
 
     public int getMaximumThreads()
     {
-        return getMaximumPoolSize();
+        return 0;
+        //getMaximumPoolSize();
     }
 
     public void setMaximumThreads(int number)
     {
-        setMaximumPoolSize(number);
+        //setMaximumPoolSize(number);
     }
 
     @Override
@@ -196,5 +200,11 @@ public class JMXEnabledThreadPoolExecutor extends DebuggableThreadPoolExecutor i
     protected void onFinalRejection(Runnable task)
     {
         metrics.currentBlocked.dec();
+    }
+
+    @Override
+    public int getActiveCount()
+    {
+        return 0;
     }
 }

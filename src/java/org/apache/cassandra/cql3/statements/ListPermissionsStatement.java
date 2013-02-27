@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.cql3.statements;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 
 import org.apache.cassandra.auth.*;

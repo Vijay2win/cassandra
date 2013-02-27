@@ -24,8 +24,10 @@ import org.apache.cassandra.cql3.CFName;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
+import org.apache.cassandra.transport.NettyAsyncResponse;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 /**
@@ -67,6 +69,13 @@ public abstract class SchemaAlteringStatement extends CFStatement implements CQL
     @Override
     public void validate(ClientState state) throws RequestValidationException
     {}
+
+    @Override
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws RequestValidationException, RequestExecutionException
+    {
+        ResultMessage res = execute(cl, state, variables);
+        response.respond(res);
+    }
 
     public ResultMessage execute(ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws RequestValidationException
     {

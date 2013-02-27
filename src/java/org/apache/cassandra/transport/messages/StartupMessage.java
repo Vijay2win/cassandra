@@ -24,6 +24,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.*;
@@ -66,7 +67,7 @@ public class StartupMessage extends Message.Request
         return codec.encode(this);
     }
 
-    public Message.Response execute(QueryState state)
+    public void execute(QueryState state, AsyncResponse response)
     {
         ClientState cState = state.getClientState();
         String cqlVersion = options.get(CQL_VERSION);
@@ -101,9 +102,9 @@ public class StartupMessage extends Message.Request
         }
 
         if (DatabaseDescriptor.getAuthenticator().requireAuthentication())
-            return new AuthenticateMessage(DatabaseDescriptor.getAuthenticator().getClass().getName());
+            response.respond(new AuthenticateMessage(DatabaseDescriptor.getAuthenticator().getClass().getName()));
         else
-            return new ReadyMessage();
+            response.respond(new ReadyMessage());
     }
 
     @Override

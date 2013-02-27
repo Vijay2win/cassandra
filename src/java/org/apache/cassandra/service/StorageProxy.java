@@ -813,7 +813,7 @@ public class StorageProxy implements StorageProxyMBean
      * Performs the actual reading of a row out of the StorageService, fetching
      * a specific set of column names from a given column family.
      */
-    public static List<Row> read(List<ReadCommand> commands, ConsistencyLevel consistency_level)
+    public static void read(AsyncResponse reply, List<ReadCommand> commands, ConsistencyLevel consistency_level)
     throws IOException, UnavailableException, IsBootstrappingException, ReadTimeoutException
     {
         if (StorageService.instance.isBootstrapMode() && !systemTableQuery(commands))
@@ -823,10 +823,9 @@ public class StorageProxy implements StorageProxyMBean
             throw new IsBootstrappingException();
         }
         long startTime = System.nanoTime();
-        List<Row> rows = null;
         try
         {
-            rows = fetchRows(commands, consistency_level);
+            fetchRows(reply, commands, consistency_level);
         }
         catch (UnavailableException e)
         {
@@ -844,7 +843,6 @@ public class StorageProxy implements StorageProxyMBean
         {
             readMetrics.addNano(System.nanoTime() - startTime);
         }
-        return rows;
     }
 
     /**
@@ -858,7 +856,7 @@ public class StorageProxy implements StorageProxyMBean
      * 4. If the digests (if any) match the data return the data
      * 5. else carry out read repair by getting data from all the nodes.
      */
-    private static List<Row> fetchRows(List<ReadCommand> initialCommands, ConsistencyLevel consistency_level)
+    private static void fetchRows(AsyncResponse reply, List<ReadCommand> initialCommands, ConsistencyLevel consistency_level)
     throws IOException, UnavailableException, ReadTimeoutException
     {
         List<Row> rows = new ArrayList<Row>(initialCommands.size());
@@ -879,7 +877,7 @@ public class StorageProxy implements StorageProxyMBean
                 assert !command.isDigestQuery();
                 logger.trace("Command/ConsistencyLevel is {}/{}", command, consistency_level);
 
-                AbstractReadExecutor exec = AbstractReadExecutor.getReadExecutor(command, consistency_level);
+                AbstractReadExecutor exec = AbstractReadExecutor.getReadExecutor(reply, command, consistency_level);
                 exec.executeAsync();
                 readExecutors[i] = exec;
             }
@@ -892,36 +890,36 @@ public class StorageProxy implements StorageProxyMBean
             List<ReadCallback<ReadResponse, Row>> repairResponseHandlers = null;
             for (AbstractReadExecutor exec: readExecutors)
             {
-                try
-                {
-                    Row row = exec.get();
-                    if (row != null)
-                    {
-                        exec.command.maybeTrim(row);
-                        rows.add(row);
-                    }
-                    if (logger.isDebugEnabled())
-                        logger.debug("Read: " + (System.currentTimeMillis() - exec.handler.startTime) + " ms.");
-                }
-                catch (DigestMismatchException ex)
-                {
-                    logger.trace("Digest mismatch: {}", ex);
-                    // Do a full data read to resolve the correct response (and repair node that need be)
-                    RowDataResolver resolver = new RowDataResolver(exec.command.table, exec.command.key, exec.command.filter());
-                    ReadCallback<ReadResponse, Row> repairHandler = exec.handler.withNewResolver(resolver);
-
-                    if (repairCommands == null)
-                    {
-                        repairCommands = new ArrayList<ReadCommand>();
-                        repairResponseHandlers = new ArrayList<ReadCallback<ReadResponse, Row>>();
-                    }
-                    repairCommands.add(exec.command);
-                    repairResponseHandlers.add(repairHandler);
-
-                    MessageOut<ReadCommand> message = exec.command.createMessage();
-                    for (InetAddress endpoint : exec.handler.endpoints)
-                        MessagingService.instance().sendRR(message, endpoint, repairHandler);
-                }
+//                try
+//                {
+//                    Row row = exec.get();
+//                    if (row != null)
+//                    {
+//                        exec.command.maybeTrim(row);
+//                        rows.add(row);
+//                    }
+//                    if (logger.isDebugEnabled())
+//                        logger.debug("Read: " + (System.currentTimeMillis() - exec.handler.startTime) + " ms.");
+//                }
+//                catch (DigestMismatchException ex)
+//                {
+//                    logger.trace("Digest mismatch: {}", ex);
+//                    // Do a full data read to resolve the correct response (and repair node that need be)
+//                    RowDataResolver resolver = new RowDataResolver(exec.command.table, exec.command.key, exec.command.filter());
+//                    ReadCallback<ReadResponse, Row> repairHandler = exec.handler.withNewResolver(resolver);
+//
+//                    if (repairCommands == null)
+//                    {
+//                        repairCommands = new ArrayList<ReadCommand>();
+//                        repairResponseHandlers = new ArrayList<ReadCallback<ReadResponse, Row>>();
+//                    }
+//                    repairCommands.add(exec.command);
+//                    repairResponseHandlers.add(repairHandler);
+//
+//                    MessageOut<ReadCommand> message = exec.command.createMessage();
+//                    for (InetAddress endpoint : exec.handler.endpoints)
+//                        MessagingService.instance().sendRR(message, endpoint, repairHandler);
+//                }
             }
 
             if (commandsToRetry != Collections.EMPTY_LIST)
@@ -977,8 +975,6 @@ public class StorageProxy implements StorageProxyMBean
                 }
             }
         } while (!commandsToRetry.isEmpty());
-
-        return rows;
     }
 
     static class LocalReadRunnable extends DroppableRunnable
@@ -1053,7 +1049,7 @@ public class StorageProxy implements StorageProxyMBean
         return inter;
     }
 
-    public static List<Row> getRangeSlice(RangeSliceCommand command, ConsistencyLevel consistency_level)
+    public static List<Row> getRangeSlice(AsyncResponse reply, RangeSliceCommand command, ConsistencyLevel consistency_level)
     throws IOException, UnavailableException, ReadTimeoutException
     {
         Tracing.trace("Determining replicas to query");
@@ -1136,7 +1132,7 @@ public class StorageProxy implements StorageProxyMBean
 
                 // collect replies and resolve according to consistency level
                 RangeSliceResponseResolver resolver = new RangeSliceResponseResolver(nodeCmd.keyspace);
-                ReadCallback<RangeSliceReply, Iterable<Row>> handler = new ReadCallback(resolver, consistency_level, nodeCmd, filteredEndpoints);
+                ReadCallback<RangeSliceReply, Iterable<Row>> handler = new ReadCallback(resolver, consistency_level, nodeCmd, filteredEndpoints, null);
                 handler.assureSufficientLiveNodes();
                 resolver.setSources(filteredEndpoints);
                 if (filteredEndpoints.size() == 1

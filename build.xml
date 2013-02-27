@@ -941,8 +941,6 @@
             <include name="*.jar" />
         </fileset>
       </copy>
-      <artifact:writepom pomRefId="dist-pom" 
-            file="${build.dir}/${final.name}-dist.pom"/>
       <tar compression="gzip" longfile="gnu"
         destfile="${build.dir}/${final.name}-bin.tar.gz">
 

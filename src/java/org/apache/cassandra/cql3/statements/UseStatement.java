@@ -25,6 +25,7 @@ import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 
@@ -51,10 +52,10 @@ public class UseStatement extends ParsedStatement implements CQLStatement
     {
     }
 
-    public ResultMessage execute(ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws InvalidRequestException
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws InvalidRequestException
     {
         state.getClientState().setKeyspace(keyspace);
-        return new ResultMessage.SetKeyspace(keyspace);
+        response.respond(new ResultMessage.SetKeyspace(keyspace));
     }
 
     public ResultMessage executeInternal(QueryState state)

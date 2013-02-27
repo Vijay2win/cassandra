@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.config.*;
 import org.apache.cassandra.cli.CliUtils;
-import org.apache.cassandra.db.CounterColumn;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.context.CounterContext;
 import org.apache.cassandra.db.filter.*;
@@ -56,6 +55,7 @@ import org.apache.cassandra.thrift.IndexOperator;
 import org.apache.cassandra.thrift.IndexType;
 import org.apache.cassandra.thrift.ThriftValidation;
 import org.apache.cassandra.thrift.ThriftClientState;
+import org.apache.cassandra.transport.SyncResponse;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
@@ -114,7 +114,9 @@ public class QueryProcessor
 
         try
         {
-            return StorageProxy.read(commands, select.getConsistencyLevel());
+            SyncResponse response = new SyncResponse();
+            StorageProxy.read(response, commands, select.getConsistencyLevel());
+            return (List<Row>) response.getResponse();
         }
         catch (IOException e)
         {
@@ -185,7 +187,7 @@ public class QueryProcessor
 
         try
         {
-            rows = StorageProxy.getRangeSlice(new RangeSliceCommand(metadata.ksName,
+            rows = StorageProxy.getRangeSlice(null, new RangeSliceCommand(metadata.ksName,
                                                                     select.getColumnFamily(),
                                                                     columnFilter,
                                                                     bounds,

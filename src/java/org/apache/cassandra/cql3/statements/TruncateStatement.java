@@ -27,6 +27,7 @@ import org.apache.cassandra.cql3.*;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.*;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageProxy;
@@ -54,7 +55,7 @@ public class TruncateStatement extends CFStatement implements CQLStatement
         ThriftValidation.validateColumnFamily(keyspace(), columnFamily());
     }
 
-    public ResultMessage execute(ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws InvalidRequestException, TruncateException
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws InvalidRequestException, TruncateException
     {
         try
         {
@@ -72,7 +73,7 @@ public class TruncateStatement extends CFStatement implements CQLStatement
         {
             throw new TruncateException(e);
         }
-        return null;
+        response.respond(null);
     }
 
     public ResultMessage executeInternal(QueryState state)

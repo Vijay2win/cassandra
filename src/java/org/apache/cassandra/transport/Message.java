@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.transport.messages.*;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.QueryState;
 
 /**
@@ -156,7 +157,7 @@ public abstract class Message
                 throw new IllegalArgumentException();
         }
 
-        public abstract Response execute(QueryState queryState);
+        public abstract void execute(QueryState queryState, AsyncResponse response);
 
         public void setTracingRequested()
         {
@@ -276,14 +277,8 @@ public abstract class Message
 
                 logger.debug("Received: " + request);
 
-                Response response = request.execute(connection.getQueryState(request.getStreamId()));
-                response.setStreamId(request.getStreamId());
-                response.attach(connection);
-                connection.applyStateTransition(request.type, response.type);
-
-                logger.debug("Responding: " + response);
-
-                ctx.getChannel().write(response);
+                NettyAsyncResponse response = new NettyAsyncResponse(ctx, connection, request);
+                request.execute(connection.getQueryState(request.getStreamId()), response);
             }
             catch (Exception ex)
             {

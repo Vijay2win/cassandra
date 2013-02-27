@@ -30,8 +30,8 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.config.*;
 import org.apache.cassandra.db.*;
 import org.apache.cassandra.db.filter.*;
-import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.tracing.Tracing;
@@ -122,36 +122,31 @@ public class QueryProcessor
         }
     }
 
-    private static ResultMessage processStatement(CQLStatement statement, ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables)
+    private static void processStatement(AsyncResponse response, CQLStatement statement, ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables)
     throws RequestExecutionException, RequestValidationException
     {
         ClientState clientState = queryState.getClientState();
         statement.validate(clientState);
         statement.checkAccess(clientState);
-        ResultMessage result = statement.execute(cl, queryState, variables);
-        return result == null ? new ResultMessage.Void() : result;
+        statement.execute(response, cl, queryState, variables);
     }
 
-    public static ResultMessage process(String queryString, ConsistencyLevel cl, QueryState queryState)
+    public static void process(AsyncResponse response, String queryString, ConsistencyLevel cl, QueryState queryState)
     throws RequestExecutionException, RequestValidationException
     {
         logger.trace("CQL QUERY: {}", queryString);
         CQLStatement prepared = getStatement(queryString, queryState.getClientState()).statement;
         if (prepared.getBoundsTerms() > 0)
             throw new InvalidRequestException("Cannot execute query with bind variables");
-        return processStatement(prepared, cl, queryState, Collections.<ByteBuffer>emptyList());
+        processStatement(response, prepared, cl, queryState, Collections.<ByteBuffer>emptyList());
     }
 
-    public static UntypedResultSet process(String query, ConsistencyLevel cl) throws RequestExecutionException
+    public static void process(AsyncResponse response, String query, ConsistencyLevel cl) throws RequestExecutionException
     {
         try
         {
             QueryState state = new QueryState(new ClientState(true));
-            ResultMessage result = process(query, cl, state);
-            if (result instanceof ResultMessage.Rows)
-                return new UntypedResultSet(((ResultMessage.Rows)result).result);
-            else
-                return null;
+            process(response, query, ConsistencyLevel.ONE, state);
         }
         catch (RequestValidationException e)
         {
@@ -232,7 +227,7 @@ public class QueryProcessor
         }
     }
 
-    public static ResultMessage processPrepared(CQLStatement statement, ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables)
+    public static void processPrepared(AsyncResponse response, CQLStatement statement, ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables)
     throws RequestExecutionException, RequestValidationException
     {
         // Check to see if there are any bound variables to verify
@@ -250,7 +245,8 @@ public class QueryProcessor
                     logger.trace("[{}] '{}'", i+1, variables.get(i));
         }
 
-        return processStatement(statement, cl, queryState, variables);
+
+        processStatement(response, statement, cl, queryState, variables);
     }
 
     private static ParsedStatement.Prepared getStatement(String queryStr, ClientState clientState)

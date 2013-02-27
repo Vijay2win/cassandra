@@ -19,6 +19,7 @@ package org.apache.cassandra.service;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -32,9 +33,12 @@ import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.ReadCommand;
+import org.apache.cassandra.db.ReadResponse;
+import org.apache.cassandra.db.Row;
 import org.apache.cassandra.db.Table;
 import org.apache.cassandra.exceptions.ReadTimeoutException;
 import org.apache.cassandra.exceptions.UnavailableException;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.net.IAsyncCallback;
 import org.apache.cassandra.net.MessageIn;
 import org.apache.cassandra.net.MessageOut;
@@ -58,17 +62,20 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
     private final AtomicInteger received = new AtomicInteger(0);
     private final Table table; // TODO push this into ConsistencyLevel?
 
+    private AsyncResponse reply;
+
     /**
      * Constructor when response count has to be calculated and blocked for.
+     * @param reply
      */
-    public ReadCallback(IResponseResolver<TMessage, TResolved> resolver, ConsistencyLevel consistencyLevel, IReadCommand command, List<InetAddress> filteredEndpoints)
+    public ReadCallback(IResponseResolver<TMessage, TResolved> resolver, ConsistencyLevel consistencyLevel, IReadCommand command, List<InetAddress> filteredEndpoints, AsyncResponse reply)
     {
-        this(resolver, consistencyLevel, consistencyLevel.blockFor(Table.open(command.getKeyspace())), command, Table.open(command.getKeyspace()), filteredEndpoints);
+        this(resolver, consistencyLevel, consistencyLevel.blockFor(Table.open(command.getKeyspace())), command, Table.open(command.getKeyspace()), filteredEndpoints, reply);
         if (logger.isTraceEnabled())
             logger.trace(String.format("Blockfor is %s; setting up requests to %s", blockfor, StringUtils.join(this.endpoints, ",")));
     }
 
-    private ReadCallback(IResponseResolver<TMessage, TResolved> resolver, ConsistencyLevel consistencyLevel, int blockfor, IReadCommand command, Table table, List<InetAddress> endpoints)
+    private ReadCallback(IResponseResolver<TMessage, TResolved> resolver, ConsistencyLevel consistencyLevel, int blockfor, IReadCommand command, Table table, List<InetAddress> endpoints, AsyncResponse reply)
     {
         this.command = command;
         this.table = table;
@@ -77,11 +84,12 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         this.resolver = resolver;
         this.startTime = System.currentTimeMillis();
         this.endpoints = endpoints;
+        this.reply = reply;
     }
 
     public ReadCallback<TMessage, TResolved> withNewResolver(IResponseResolver<TMessage, TResolved> newResolver)
     {
-        return new ReadCallback(newResolver, consistencyLevel, blockfor, command, table, endpoints);
+        return new ReadCallback(newResolver, consistencyLevel, blockfor, command, table, endpoints, null);
     }
 
     public boolean await(long interimTimeout)
@@ -120,6 +128,13 @@ public class ReadCallback<TMessage, TResolved> implements IAsyncCallback<TMessag
         {
             condition.signal();
             maybeResolveForRepair();
+            try
+            {
+                reply.result(blockfor == 1 ? resolver.getData() : resolver.resolve());
+            }
+            catch (Exception e)
+            {
+            }
         }
     }
 

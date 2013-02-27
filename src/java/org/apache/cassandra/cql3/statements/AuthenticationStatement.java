@@ -23,8 +23,10 @@ import java.util.List;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
+import org.apache.cassandra.transport.NettyAsyncResponse;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 public abstract class AuthenticationStatement extends ParsedStatement implements CQLStatement
@@ -38,6 +40,13 @@ public abstract class AuthenticationStatement extends ParsedStatement implements
     public int getBoundsTerms()
     {
         return 0;
+    }
+
+    @Override
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws RequestValidationException, RequestExecutionException
+    {
+        ResultMessage res = execute(cl, state, variables);
+        response.respond(res);
     }
 
     public ResultMessage execute(ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables)

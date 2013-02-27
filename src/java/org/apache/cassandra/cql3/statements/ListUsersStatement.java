@@ -20,12 +20,12 @@ package org.apache.cassandra.cql3.statements;
 import org.apache.cassandra.auth.Auth;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.db.ConsistencyLevel;
-import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.exceptions.RequestValidationException;
 import org.apache.cassandra.exceptions.UnauthorizedException;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
+import org.apache.cassandra.transport.SyncResponse;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 public class ListUsersStatement extends AuthenticationStatement
@@ -41,8 +41,9 @@ public class ListUsersStatement extends AuthenticationStatement
 
     public ResultMessage execute(ClientState state) throws RequestValidationException, RequestExecutionException
     {
-        return QueryProcessor.process(String.format("SELECT * FROM %s.%s", Auth.AUTH_KS, Auth.USERS_CF),
-                                      ConsistencyLevel.QUORUM,
-                                      new QueryState(new ClientState(true)));
+        SyncResponse response = new SyncResponse();
+        QueryProcessor.process(response, String.format("SELECT * FROM %s.%s", Auth.AUTH_KS, Auth.USERS_CF),
+                ConsistencyLevel.QUORUM, new QueryState(new ClientState(true)));
+        return (ResultMessage) response.getResponse();
     }
 }

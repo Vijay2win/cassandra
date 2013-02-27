@@ -35,6 +35,7 @@ import org.apache.cassandra.locator.SimpleStrategy;
 import org.apache.cassandra.service.IMigrationListener;
 import org.apache.cassandra.service.MigrationManager;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.transport.SyncResponse;
 
 public class Auth
 {
@@ -67,7 +68,9 @@ public class Auth
         String query = String.format("SELECT * FROM %s.%s WHERE name = '%s'", AUTH_KS, USERS_CF, escape(username));
         try
         {
-            return !QueryProcessor.process(query, ConsistencyLevel.QUORUM).isEmpty();
+            SyncResponse response = new SyncResponse();
+            QueryProcessor.process(response, query, ConsistencyLevel.QUORUM);
+            return !((UntypedResultSet) response.getResponse().get(0)).isEmpty();
         }
         catch (RequestExecutionException e)
         {
@@ -86,7 +89,9 @@ public class Auth
         String query = String.format("SELECT super FROM %s.%s WHERE name = '%s'", AUTH_KS, USERS_CF, escape(username));
         try
         {
-            UntypedResultSet result = QueryProcessor.process(query, ConsistencyLevel.QUORUM);
+            SyncResponse response = new SyncResponse();
+            QueryProcessor.process(response, query, ConsistencyLevel.QUORUM);
+            UntypedResultSet result = (UntypedResultSet) response.getResponse().get(0);
             return !result.isEmpty() && result.one().getBoolean("super");
         }
         catch (RequestExecutionException e)
@@ -104,7 +109,8 @@ public class Auth
      */
     public static void insertUser(String username, boolean isSuper) throws RequestExecutionException
     {
-        QueryProcessor.process(String.format("INSERT INTO %s.%s (name, super) VALUES ('%s', %s)",
+        SyncResponse response = new SyncResponse();
+        QueryProcessor.process(response, String.format("INSERT INTO %s.%s (name, super) VALUES ('%s', %s)",
                                              AUTH_KS,
                                              USERS_CF,
                                              escape(username),
@@ -120,7 +126,8 @@ public class Auth
      */
     public static void deleteUser(String username) throws RequestExecutionException
     {
-        QueryProcessor.process(String.format("DELETE FROM %s.%s WHERE name = '%s'",
+        SyncResponse response = new SyncResponse();
+        QueryProcessor.process(response, String.format("DELETE FROM %s.%s WHERE name = '%s'",
                                              AUTH_KS,
                                              USERS_CF,
                                              escape(username)),
@@ -177,7 +184,8 @@ public class Auth
         {
             try
             {
-                QueryProcessor.process(USERS_CF_SCHEMA, ConsistencyLevel.ONE);
+                SyncResponse response = new SyncResponse();
+                QueryProcessor.process(response, USERS_CF_SCHEMA, ConsistencyLevel.ONE);
             }
             catch (RequestExecutionException e)
             {
@@ -190,10 +198,13 @@ public class Auth
     {
         try
         {
+            SyncResponse response = new SyncResponse();
+            QueryProcessor.process(response, String.format("SELECT * FROM %s.%s", AUTH_KS, USERS_CF), ConsistencyLevel.QUORUM);
             // insert a default superuser if AUTH_KS.USERS_CF is empty.
-            if (QueryProcessor.process(String.format("SELECT * FROM %s.%s", AUTH_KS, USERS_CF), ConsistencyLevel.QUORUM).isEmpty())
+            if (response.getResponse().isEmpty())
             {
-                QueryProcessor.process(String.format("INSERT INTO %s.%s (name, super) VALUES ('%s', %s) USING TIMESTAMP 0",
+                SyncResponse response2 = new SyncResponse();
+                QueryProcessor.process(response2, String.format("INSERT INTO %s.%s (name, super) VALUES ('%s', %s) USING TIMESTAMP 0",
                                                      AUTH_KS,
                                                      USERS_CF,
                                                      DEFAULT_SUPERUSER_NAME,

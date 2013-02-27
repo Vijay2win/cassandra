@@ -31,6 +31,7 @@ import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.transport.SyncResponse;
 
 /**
  * CassandraAuthorizer is an IAuthorizer implementation that keeps
@@ -249,6 +250,8 @@ public class CassandraAuthorizer implements IAuthorizer
 
     private static UntypedResultSet process(String query) throws RequestExecutionException
     {
-        return QueryProcessor.process(query, ConsistencyLevel.QUORUM);
+        SyncResponse response = new SyncResponse();
+        QueryProcessor.process(response, query, ConsistencyLevel.QUORUM);
+        return (UntypedResultSet) response.getResponse().get(0);
     }
 }

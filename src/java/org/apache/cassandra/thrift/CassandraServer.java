@@ -57,6 +57,8 @@ import org.apache.cassandra.locator.DynamicEndpointSnitch;
 import org.apache.cassandra.scheduler.IRequestScheduler;
 import org.apache.cassandra.service.*;
 import org.apache.cassandra.tracing.Tracing;
+import org.apache.cassandra.transport.SyncResponse;
+import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.Pair;
 import org.apache.cassandra.utils.SemanticVersion;
@@ -100,7 +102,9 @@ public class CassandraServer implements Cassandra.Iface
             schedule(DatabaseDescriptor.getReadRpcTimeout());
             try
             {
-                rows = StorageProxy.read(commands, consistency_level);
+                SyncResponse response = new SyncResponse();
+                StorageProxy.read(response, commands, consistency_level);
+                rows = (List<Row>) response.getResponse();
             }
             finally
             {
@@ -1078,7 +1082,7 @@ public class CassandraServer implements Cassandra.Iface
             try
             {
                 IDiskAtomFilter filter = ThriftValidation.asIFilter(predicate, metadata, column_parent.super_column);
-                rows = StorageProxy.getRangeSlice(new RangeSliceCommand(keyspace, column_parent.column_family, filter, bounds,
+                rows = StorageProxy.getRangeSlice(null, new RangeSliceCommand(keyspace, column_parent.column_family, filter, bounds,
                                                                         range.row_filter, range.count), consistencyLevel);
             }
             finally
@@ -1166,7 +1170,7 @@ public class CassandraServer implements Cassandra.Iface
             try
             {
                 IDiskAtomFilter filter = ThriftValidation.asIFilter(predicate, metadata, null);
-                rows = StorageProxy.getRangeSlice(new RangeSliceCommand(keyspace, column_family, filter,
+                rows = StorageProxy.getRangeSlice(null, new RangeSliceCommand(keyspace, column_family, filter,
                                                                         bounds, range.row_filter, range.count, true, true), consistencyLevel);
             }
             finally
@@ -1253,7 +1257,7 @@ public class CassandraServer implements Cassandra.Iface
                                                               index_clause.expressions,
                                                               index_clause.count);
 
-            List<Row> rows = StorageProxy.getRangeSlice(command, consistencyLevel);
+            List<Row> rows = StorageProxy.getRangeSlice(null, command, consistencyLevel);
             return thriftifyKeySlices(rows, column_parent, column_predicate);
         }
         catch (RequestValidationException e)
@@ -1857,7 +1861,9 @@ public class CassandraServer implements Cassandra.Iface
             }
 
             ThriftClientState cState = state();
-            return org.apache.cassandra.cql3.QueryProcessor.process(queryString, ThriftConversion.fromThrift(cLevel), cState.getQueryState()).toThriftResult();
+            SyncResponse response = new SyncResponse();
+            org.apache.cassandra.cql3.QueryProcessor.process(response, queryString, ThriftConversion.fromThrift(cLevel), cState.getQueryState());
+            return ((ResultMessage) response.getResponse()).toThriftResult();
         }
         catch (RequestExecutionException e)
         {
@@ -1982,7 +1988,9 @@ public class CassandraServer implements Cassandra.Iface
                                                                 itemId, org.apache.cassandra.cql3.QueryProcessor.MAX_CACHE_PREPARED, itemId));
             logger.trace("Retrieved prepared statement #{} with {} bind markers", itemId, statement.getBoundsTerms());
 
-            return org.apache.cassandra.cql3.QueryProcessor.processPrepared(statement, ThriftConversion.fromThrift(cLevel), cState.getQueryState(), bindVariables).toThriftResult();
+            SyncResponse response = new SyncResponse();
+            org.apache.cassandra.cql3.QueryProcessor.processPrepared(response, statement, ThriftConversion.fromThrift(cLevel), cState.getQueryState(), bindVariables);
+            return ((ResultMessage) response.getResponse()).toThriftResult();
         }
         catch (RequestExecutionException e)
         {

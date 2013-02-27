@@ -35,6 +35,7 @@ import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.transport.SyncResponse;
 import org.mindrot.jbcrypt.BCrypt;
 
 /**
@@ -218,6 +219,8 @@ public class PasswordAuthenticator implements IAuthenticator
 
     private static UntypedResultSet process(String query) throws RequestExecutionException
     {
-        return QueryProcessor.process(query, ConsistencyLevel.QUORUM);
+        SyncResponse response = new SyncResponse();
+        QueryProcessor.process(response, query, ConsistencyLevel.QUORUM);
+        return (UntypedResultSet) response.getResponse().get(0);
     }
 }

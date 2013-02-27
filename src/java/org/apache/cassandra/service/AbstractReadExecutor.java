@@ -19,13 +19,10 @@ package org.apache.cassandra.service;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.concurrent.StageManager;
-import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.ReadCommand;
@@ -34,14 +31,13 @@ import org.apache.cassandra.db.Row;
 import org.apache.cassandra.db.Table;
 import org.apache.cassandra.exceptions.ReadTimeoutException;
 import org.apache.cassandra.exceptions.UnavailableException;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.net.MessageOut;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.service.StorageProxy.LocalReadRunnable;
 import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.primitives.Longs;
 
 public abstract class AbstractReadExecutor
 {
@@ -53,7 +49,7 @@ public abstract class AbstractReadExecutor
     protected final List<InetAddress> endpoints;
     protected final ColumnFamilyStore cfs;
 
-    AbstractReadExecutor(ColumnFamilyStore cfs,
+    AbstractReadExecutor(AsyncResponse reply, ColumnFamilyStore cfs,
                          ReadCommand command,
                          ConsistencyLevel consistency_level,
                          List<InetAddress> allReplicas,
@@ -63,7 +59,7 @@ public abstract class AbstractReadExecutor
         unfiltered = allReplicas;
         this.endpoints = queryTargets;
         this.resolver = new RowDigestResolver(command.table, command.key);
-        this.handler = new ReadCallback<ReadResponse, Row>(resolver, consistency_level, command, this.endpoints);
+        this.handler = new ReadCallback<ReadResponse, Row>(resolver, consistency_level, command, this.endpoints, reply);
         this.command = command;
         this.cfs = cfs;
 
@@ -123,7 +119,7 @@ public abstract class AbstractReadExecutor
         return handler.get();
     }
 
-    public static AbstractReadExecutor getReadExecutor(ReadCommand command, ConsistencyLevel consistency_level) throws UnavailableException
+    public static AbstractReadExecutor getReadExecutor(AsyncResponse reply, ReadCommand command, ConsistencyLevel consistency_level) throws UnavailableException
     {
         Table table = Table.open(command.table);
         ColumnFamilyStore cfs = table.getColumnFamilyStore(command.cfName);
@@ -133,30 +129,30 @@ public abstract class AbstractReadExecutor
         switch (cfs.metadata.getSpeculativeRetry().type)
         {
             case ALWAYS:
-                return new SpeculateAlwaysExecutor(cfs, command, consistency_level, allReplicas, queryTargets);
+                return new SpeculateAlwaysExecutor(reply, cfs, command, consistency_level, allReplicas, queryTargets);
             case PERCENTILE:
             case CUSTOM:
                 return queryTargets.size() < allReplicas.size()
-                       ? new SpeculativeReadExecutor(cfs, command, consistency_level, allReplicas, queryTargets)
-                       : new DefaultReadExecutor(cfs, command, consistency_level, allReplicas, queryTargets);
+                       ? new SpeculativeReadExecutor(reply, cfs, command, consistency_level, allReplicas, queryTargets)
+                       : new DefaultReadExecutor(reply, cfs, command, consistency_level, allReplicas, queryTargets);
             default:
-                return new DefaultReadExecutor(cfs, command, consistency_level, allReplicas, queryTargets);
+                return new DefaultReadExecutor(reply, cfs, command, consistency_level, allReplicas, queryTargets);
         }
     }
 
     private static class DefaultReadExecutor extends AbstractReadExecutor
     {
-        public DefaultReadExecutor(ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
+        public DefaultReadExecutor(AsyncResponse reply, ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
         {
-            super(cfs, command, consistency_level, allReplicas, queryTargets);
+            super(reply, cfs, command, consistency_level, allReplicas, queryTargets);
         }
     }
 
     private static class SpeculativeReadExecutor extends AbstractReadExecutor
     {
-        public SpeculativeReadExecutor(ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
+        public SpeculativeReadExecutor(AsyncResponse reply, ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
         {
-            super(cfs, command, consistency_level, allReplicas, queryTargets);
+            super(reply, cfs, command, consistency_level, allReplicas, queryTargets);
             assert handler.endpoints.size() < unfiltered.size();
         }
 
@@ -188,9 +184,9 @@ public abstract class AbstractReadExecutor
 
     private static class SpeculateAlwaysExecutor extends AbstractReadExecutor
     {
-        public SpeculateAlwaysExecutor(ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
+        public SpeculateAlwaysExecutor(AsyncResponse reply, ColumnFamilyStore cfs, ReadCommand command, ConsistencyLevel consistency_level, List<InetAddress> allReplicas, List<InetAddress> queryTargets) throws UnavailableException
         {
-            super(cfs, command, consistency_level, allReplicas, queryTargets);
+            super(reply, cfs, command, consistency_level, allReplicas, queryTargets);
         }
 
         @Override

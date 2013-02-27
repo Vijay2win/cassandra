@@ -29,6 +29,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.PreparedQueryNotFoundException;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.*;
@@ -96,7 +97,7 @@ public class ExecuteMessage extends Message.Request
         return codec.encode(this);
     }
 
-    public Message.Response execute(QueryState state)
+    public void execute(QueryState state, AsyncResponse response)
     {
         try
         {
@@ -119,16 +120,14 @@ public class ExecuteMessage extends Message.Request
                 Tracing.instance().begin("Execute CQL3 prepared query", Collections.<String, String>emptyMap());
             }
 
-            Message.Response response = QueryProcessor.processPrepared(statement, consistency, state, values);
+            QueryProcessor.processPrepared(response, statement, consistency, state, values);
 
             if (tracingId != null)
                 response.setTracingId(tracingId);
-
-            return response;
         }
         catch (Exception e)
         {
-            return ErrorMessage.fromException(e);
+            response.respond(ErrorMessage.fromException(e));
         }
         finally
         {

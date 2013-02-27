@@ -23,6 +23,7 @@ import java.util.List;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.*;
 
@@ -57,14 +58,14 @@ public class RegisterMessage extends Message.Request
         this.eventTypes = eventTypes;
     }
 
-    public Response execute(QueryState state)
+    public void execute(QueryState state, AsyncResponse response)
     {
         assert connection instanceof ServerConnection;
         Connection.Tracker tracker = ((ServerConnection)connection).getTracker();
         assert tracker instanceof Server.ConnectionTracker;
         for (Event.Type type : eventTypes)
             ((Server.ConnectionTracker)tracker).register(type, connection().channel());
-        return new ReadyMessage();
+        response.respond(new ReadyMessage());
     }
 
     public ChannelBuffer encode()

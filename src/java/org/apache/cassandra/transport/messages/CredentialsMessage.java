@@ -24,9 +24,11 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
 import org.apache.cassandra.exceptions.AuthenticationException;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.CBUtil;
 import org.apache.cassandra.transport.Message;
+import org.apache.cassandra.transport.NettyAsyncResponse;
 
 /**
  * Message to indicate that the server is ready to receive requests.
@@ -74,16 +76,16 @@ public class CredentialsMessage extends Message.Request
         return codec.encode(this);
     }
 
-    public Message.Response execute(QueryState state)
+    public void execute(QueryState state, AsyncResponse response)
     {
         try
         {
             state.getClientState().login(credentials);
-            return new ReadyMessage();
+            response.respond(new ReadyMessage());
         }
         catch (AuthenticationException e)
         {
-            return ErrorMessage.fromException(e);
+            response.respond(ErrorMessage.fromException(e));
         }
     }
 

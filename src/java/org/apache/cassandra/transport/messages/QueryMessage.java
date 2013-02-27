@@ -26,6 +26,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.tracing.Tracing;
 import org.apache.cassandra.transport.*;
@@ -68,7 +69,7 @@ public class QueryMessage extends Message.Request
         return codec.encode(this);
     }
 
-    public Message.Response execute(QueryState state)
+    public void execute(QueryState state, AsyncResponse response)
     {
         try
         {
@@ -85,18 +86,13 @@ public class QueryMessage extends Message.Request
                 Tracing.instance().begin("Execute CQL3 query", ImmutableMap.of("query", query));
             }
 
-            Message.Response response = QueryProcessor.process(query, consistency, state);
-
-            if (tracingId != null)
-                response.setTracingId(tracingId);
-
-            return response;
+            QueryProcessor.process(response, query, consistency, state);
         }
         catch (Exception e)
         {
             if (!((e instanceof RequestValidationException) || (e instanceof RequestExecutionException)))
                 logger.error("Unexpected error during query", e);
-            return ErrorMessage.fromException(e);
+            response.respond(ErrorMessage.fromException(e));
         }
         finally
         {

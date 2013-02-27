@@ -28,18 +28,22 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.auth.Permission;
 import org.apache.cassandra.cql3.*;
+import org.apache.cassandra.transport.Message;
+import org.apache.cassandra.transport.Message.Response;
+import org.apache.cassandra.transport.NettyAsyncResponse;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.ColumnDefinition;
-import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.exceptions.RequestValidationException;
 import org.apache.cassandra.db.*;
-import org.apache.cassandra.db.context.CounterContext;
 import org.apache.cassandra.db.filter.*;
 import org.apache.cassandra.db.index.SecondaryIndex;
 import org.apache.cassandra.db.index.SecondaryIndexManager;
 import org.apache.cassandra.db.marshal.*;
 import org.apache.cassandra.dht.*;
 import org.apache.cassandra.exceptions.*;
+import org.apache.cassandra.net.AsyncResponse;
+import org.apache.cassandra.net.IResponseTransformer;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.RangeSliceVerbHandler;
@@ -52,7 +56,6 @@ import org.apache.cassandra.thrift.ThriftValidation;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
-import org.apache.cassandra.utils.UUIDGen;
 
 /**
  * Encapsulates a completely parsed SELECT query, including the target
@@ -120,7 +123,7 @@ public class SelectStatement implements CQLStatement
         // Nothing to do, all validation has been done by RawStatement.prepare()
     }
 
-    public ResultMessage.Rows execute(ConsistencyLevel cl, QueryState state, List<ByteBuffer> variables) throws RequestExecutionException, RequestValidationException
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState state, final List<ByteBuffer> variables) throws RequestExecutionException, RequestValidationException
     {
         if (cl == null)
             throw new InvalidRequestException("Invalid empty consistency level");
@@ -129,11 +132,31 @@ public class SelectStatement implements CQLStatement
 
         try
         {
-            List<Row> rows = isKeyRange
-                           ? StorageProxy.getRangeSlice(getRangeCommand(variables), cl)
-                           : StorageProxy.read(getSliceCommands(variables), cl);
+            response.setTransformer(new IResponseTransformer<Message.Response>()
+            {
+                public void timeout() {}
 
-            return processResults(rows, variables);
+                public Response transform(List responses)
+                {
+                    try
+                    {
+                        if (responses.get(0) instanceof List)
+                            return processResults((List<Row>) responses.get(0), variables);
+                        else
+                            return processResults((List<Row>) responses, variables);
+                    }
+                    catch (RequestValidationException e)
+                    {
+                        throw new RuntimeException(e); // TODO fix it.
+                    }
+                }});
+            if (isKeyRange)
+            {
+                response.result(StorageProxy.getRangeSlice(response, getRangeCommand(variables), cl));
+                response.respond();
+            }
+            else
+                StorageProxy.read(response, getSliceCommands(variables), cl);
         }
         catch (IOException e)
         {

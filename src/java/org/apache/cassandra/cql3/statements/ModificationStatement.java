@@ -31,9 +31,12 @@ import org.apache.cassandra.db.marshal.CompositeType;
 import org.apache.cassandra.exceptions.*;
 import org.apache.cassandra.db.IMutation;
 import org.apache.cassandra.db.ExpiringColumn;
+import org.apache.cassandra.db.Row;
+import org.apache.cassandra.net.AsyncResponse;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.transport.SyncResponse;
 import org.apache.cassandra.transport.messages.ResultMessage;
 
 /**
@@ -81,7 +84,7 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
     protected abstract void validateConsistency(ConsistencyLevel cl) throws InvalidRequestException;
 
-    public ResultMessage execute(ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables) throws RequestExecutionException, RequestValidationException
+    public void execute(AsyncResponse response, ConsistencyLevel cl, QueryState queryState, List<ByteBuffer> variables) throws RequestExecutionException, RequestValidationException
     {
         if (cl == null)
             throw new InvalidRequestException("Invalid empty consistency level");
@@ -109,7 +112,7 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
                 throw new AssertionError();
         }
 
-        return null;
+        response.respond();
     }
 
     public ResultMessage executeInternal(QueryState queryState) throws RequestValidationException, RequestExecutionException
@@ -169,9 +172,17 @@ public abstract class ModificationStatement extends CFStatement implements CQLSt
 
         try
         {
-            List<Row> rows = local
-                           ? SelectStatement.readLocally(keyspace(), commands)
-                           : StorageProxy.read(commands, cl);
+            List<Row> rows;
+            if (local)
+            {
+                rows = SelectStatement.readLocally(keyspace(), commands);
+            }
+            else
+            {
+                SyncResponse response = new SyncResponse();
+                StorageProxy.read(response, commands, cl);
+                rows = (List<Row>) response.getResponse();
+            }
 
             Map<ByteBuffer, ColumnGroupMap> map = new HashMap<ByteBuffer, ColumnGroupMap>();
             for (Row row : rows)

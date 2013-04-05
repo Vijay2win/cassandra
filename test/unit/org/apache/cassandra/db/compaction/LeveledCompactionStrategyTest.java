@@ -38,6 +38,7 @@ import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.SSTable;
 import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.service.ActiveRepairService;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 
@@ -54,6 +55,7 @@ public class LeveledCompactionStrategyTest extends SchemaLoader
     @Test
     public void testValidationMultipleSSTablePerLevel() throws Exception
     {
+        StorageService.instance.initServer();
         String ksname = "Keyspace1";
         String cfname = "StandardLeveled";
         Table table = Table.open(ksname);
@@ -99,6 +101,7 @@ public class LeveledCompactionStrategyTest extends SchemaLoader
     @Test
     public void testCompactionProgress() throws Exception
     {
+        StorageService.instance.initServer();
         String ksname = "Keyspace1";
         String cfname = "StandardLeveled";
         Table table = Table.open(ksname);

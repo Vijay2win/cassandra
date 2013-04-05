@@ -142,6 +142,11 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         return getRangesForEndpoint(table, FBUtilities.getBroadcastAddress());
     }
 
+    public Collection<Range<Token>> getPendingRanges(String table)
+    {
+        return tokenMetadata.getPendingRanges(table).keySet();
+    }
+
     public Collection<Range<Token>> getLocalPrimaryRanges()
     {
         return getPrimaryRangesForEndpoint(FBUtilities.getBroadcastAddress());

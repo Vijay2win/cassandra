@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.*;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -46,6 +47,7 @@ import org.apache.cassandra.dht.LocalPartitioner;
 import org.apache.cassandra.dht.LocalToken;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.service.CacheService;
 import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.io.util.FileUtils;
@@ -62,6 +64,12 @@ import static org.junit.Assert.assertTrue;
 @RunWith(OrderedJUnit4ClassRunner.class)
 public class SSTableReaderTest extends SchemaLoader
 {
+    @BeforeClass
+    public static void setup() throws Exception
+    {
+        StorageService.instance.initServer();
+    }
+
     static Token t(int i)
     {
         return StorageService.getPartitioner().getToken(ByteBufferUtil.bytes(String.valueOf(i)));

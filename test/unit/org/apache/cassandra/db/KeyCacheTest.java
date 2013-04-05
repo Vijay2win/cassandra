@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.cache.KeyCacheKey;
 import org.apache.cassandra.db.filter.QueryFilter;
 import org.apache.cassandra.service.CacheService;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.ColumnParent;
 
 import org.junit.AfterClass;
@@ -54,6 +55,7 @@ public class KeyCacheTest extends SchemaLoader
     @Test
     public void testKeyCacheLoad() throws Exception
     {
+        StorageService.instance.initServer();
         CompactionManager.instance.disableAutoCompaction();
 
         ColumnFamilyStore store = Table.open(TABLE1).getColumnFamilyStore(COLUMN_FAMILY2);

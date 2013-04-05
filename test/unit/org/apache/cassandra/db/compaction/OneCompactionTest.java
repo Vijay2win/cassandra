@@ -32,15 +32,18 @@ import org.apache.cassandra.db.Table;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.db.ColumnFamilyStore;
+import org.apache.cassandra.exceptions.ConfigurationException;
 
 import org.apache.cassandra.SchemaLoader;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
 
 public class OneCompactionTest extends SchemaLoader
 {
-    private void testCompaction(String columnFamilyName, int insertsPerTable) throws IOException, ExecutionException, InterruptedException
+    private void testCompaction(String columnFamilyName, int insertsPerTable) throws Exception
     {
+        StorageService.instance.initServer();
         CompactionManager.instance.disableAutoCompaction();
 
         Table table = Table.open("Keyspace1");
@@ -61,13 +64,13 @@ public class OneCompactionTest extends SchemaLoader
     }
 
     @Test
-    public void testCompaction1() throws IOException, ExecutionException, InterruptedException
+    public void testCompaction1() throws Exception
     {
         testCompaction("Standard1", 1);
     }
 
     @Test
-    public void testCompaction2() throws IOException, ExecutionException, InterruptedException
+    public void testCompaction2() throws Exception
     {
         testCompaction("Standard2", 2);
     }

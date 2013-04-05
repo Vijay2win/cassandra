@@ -43,6 +43,7 @@ import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.io.sstable.SSTableScanner;
 import org.apache.cassandra.io.util.FileUtils;
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.Pair;
@@ -68,6 +69,7 @@ public class CompactionsTest extends SchemaLoader
 
     public ColumnFamilyStore testSingleSSTableCompaction(String strategyClassName) throws Exception
     {
+        StorageService.instance.initServer();
         Table table = Table.open(TABLE1);
         ColumnFamilyStore store = table.getColumnFamilyStore("Standard1");
         store.clearUnsafe();
@@ -361,6 +363,7 @@ public class CompactionsTest extends SchemaLoader
 
     public void testBlacklisting(String compactionStrategy) throws Exception
     {
+        StorageService.instance.initServer();
         // this test does enough rows to force multiple block indexes to be used
         Table table = Table.open(TABLE1);
         final ColumnFamilyStore cfs = table.getColumnFamilyStore("Standard1");

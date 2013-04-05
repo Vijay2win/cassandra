@@ -149,7 +149,6 @@ public class NodeCmd
         STATUSTHRIFT,
         STOP,
         TPSTATS,
-        UPGRADESSTABLES,
         VERSION,
         DESCRIBERING,
         RANGEKEYSAMPLE,
@@ -1167,7 +1166,6 @@ public class NodeCmd
                 case REPAIR  :
                 case FLUSH   :
                 case SCRUB   :
-                case UPGRADESSTABLES   :
                     optionalKSandCFs(command, cmd, arguments, probe);
                     break;
 
@@ -1414,11 +1412,6 @@ public class NodeCmd
                 case SCRUB :
                     try { probe.scrub(keyspace, columnFamilies); }
                     catch (ExecutionException ee) { err(ee, "Error occurred while scrubbing keyspace " + keyspace); }
-                    break;
-                case UPGRADESSTABLES :
-                    boolean excludeCurrentVersion = !cmd.hasOption(UPGRADE_ALL_SSTABLE_OPT.left);
-                    try { probe.upgradeSSTables(keyspace, excludeCurrentVersion, columnFamilies); }
-                    catch (ExecutionException ee) { err(ee, "Error occurred while upgrading the sstables for keyspace " + keyspace); }
                     break;
                 default:
                     throw new RuntimeException("Unreachable code.");

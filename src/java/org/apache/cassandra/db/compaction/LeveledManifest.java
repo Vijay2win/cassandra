@@ -530,7 +530,6 @@ public class LeveledManifest
             case SCRUB:
             case TOMBSTONE_COMPACTION:
             case CLEANUP:
-            case UPGRADE_SSTABLES:
                 return minimumLevel;
         }
 

@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.SchemaLoader;
+import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.Column;
 import org.apache.cassandra.db.Row;
 import org.apache.cassandra.db.Table;
@@ -43,6 +45,7 @@ import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.locator.SimpleSeedProvider;
 import org.apache.cassandra.locator.TokenMetadata;
 import org.apache.cassandra.Util;
 
@@ -55,6 +58,7 @@ import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 
@@ -129,9 +133,7 @@ public class CompactionsPurgeTest extends SchemaLoader
         List<Row> rows = Util.getRangeSlice(cfs);
         assertNotSame(0, rows.size());
         TokenMetadata tmd = StorageService.instance.getTokenMetadata();
-        byte[] tk1 = new byte[1], tk2 = new byte[1];
-        tk1[0] = 2;
-        tk2[0] = 1;
+        final byte[] tk1 = new byte[] {2}, tk2 = new byte[] {1};
         tmd.updateNormalToken(new BytesToken(tk1), InetAddress.getByName("127.0.0.1"));
         tmd.updateNormalToken(new BytesToken(tk2), InetAddress.getByName("127.0.0.2"));
         CompactionManager.instance.submitMaximal(cfs, Integer.MAX_VALUE).get();
@@ -143,6 +145,7 @@ public class CompactionsPurgeTest extends SchemaLoader
     @Test
     public void testCleanupDuringRangeMovement() throws Exception
     {
+        byte[] tk0 = new byte[] { 0 }, tk1 = new byte[] { 1 }, tk2 = new byte[] { 2 };
         CompactionManager.instance.disableAutoCompaction();
         Table table = Table.open(TABLE1);
         String cfName = "Standard1";
@@ -161,7 +164,31 @@ public class CompactionsPurgeTest extends SchemaLoader
         assertNotSame(0, rows.size());
         TokenMetadata tmd = StorageService.instance.getTokenMetadata();
         tmd.clearUnsafe();
-        byte[] tk0 = new byte[] { 0 }, tk1 = new byte[] { 1 }, tk2 = new byte[] { 2 };
+
+        // test if node streaming is not dropping the data.
+        tmd.addBootstrapToken(new BytesToken(tk0), InetAddress.getByName("127.0.0.3"));
+        tmd.updateNormalToken(new BytesToken(tk2), FBUtilities.getBroadcastAddress());
+        StorageService.calculatePendingRanges(table.getReplicationStrategy(), table.getName());
+        logger.info("Range movement scheduled for: {}", tmd.getPendingRanges(table.getName()));
+        CompactionManager.instance.submitMaximal(cfs, Integer.MAX_VALUE).get();
+        tmd.removeEndpoint(InetAddress.getByName("127.0.0.3"));
+        rows = Util.getRangeSlice(cfs);
+        assertEquals(10, rows.size());
+
+        // test that we are not dropping the data during local bootstrap
+        tmd.clearUnsafe();
+        StorageService.instance.startBootstrapping();
+        tmd.updateNormalToken(new BytesToken(tk2), InetAddress.getByName("127.0.0.3"));
+        tmd.addBootstrapToken(new BytesToken(tk0), FBUtilities.getBroadcastAddress());
+        StorageService.calculatePendingRanges(table.getReplicationStrategy(), table.getName());
+        logger.info("Range movement scheduled for: {}", tmd.getPendingRanges(table.getName()));
+        CompactionManager.instance.submitMaximal(cfs, Integer.MAX_VALUE).get();
+        tmd.removeEndpoint(InetAddress.getByName("127.0.0.3"));
+        rows = Util.getRangeSlice(cfs);
+        assertEquals(10, rows.size());
+
+        // test if node which is not bootstrapping is actually dropping the data.
+        tmd.clearUnsafe();
         tmd.addBootstrapToken(new BytesToken(tk0), InetAddress.getByName("127.0.0.3"));
         tmd.updateNormalToken(new BytesToken(tk1), InetAddress.getByName("127.0.0.2"));
         tmd.updateNormalToken(new BytesToken(tk2), FBUtilities.getBroadcastAddress());
@@ -171,7 +198,7 @@ public class CompactionsPurgeTest extends SchemaLoader
         tmd.removeEndpoint(InetAddress.getByName("127.0.0.2"));
         tmd.removeEndpoint(InetAddress.getByName("127.0.0.3"));
         rows = Util.getRangeSlice(cfs);
-        assertEquals(10, rows.size());
+        assertEquals(0, rows.size());
     }
 
     @Test

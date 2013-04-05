@@ -199,6 +199,11 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
 
     private final ObjectName jmxObjectName;
 
+    public void startBootstrapping()
+    {
+        isBootstrapMode = true;
+    }
+
     public void finishBootstrapping()
     {
         isBootstrapMode = false;
@@ -687,7 +692,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
             }
 
             bootstrap(tokens);
-            assert !isBootstrapMode; // bootstrap will block until finished
+            assert !isBootstrapMode(); // bootstrap will block until finished
         }
         else
         {
@@ -773,6 +778,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
             // start participating in the ring.
             SystemTable.setBootstrapState(SystemTable.BootstrapState.COMPLETED);
             setTokens(tokens);
+            finishBootstrapping();
             // remove the existing info about the replaced node.
             if (!current.isEmpty())
                 for (InetAddress existing : current)
@@ -891,7 +897,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
 
     private void bootstrap(Collection<Token> tokens)
     {
-        isBootstrapMode = true;
+        startBootstrapping();
         SystemTable.updateTokens(tokens); // DON'T use setToken, that makes us part of the ring locally which is incorrect until we are done bootstrapping
         if (0 == DatabaseDescriptor.getReplaceTokens().size())
         {
@@ -2127,12 +2133,6 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
     {
         for (ColumnFamilyStore cfStore : getValidColumnFamilies(false, false, tableName, columnFamilies))
             cfStore.scrub();
-    }
-
-    public void upgradeSSTables(String tableName, boolean excludeCurrentVersion, String... columnFamilies) throws IOException, ExecutionException, InterruptedException
-    {
-        for (ColumnFamilyStore cfStore : getValidColumnFamilies(true, true, tableName, columnFamilies))
-            cfStore.sstablesRewrite(excludeCurrentVersion);
     }
 
     public void forceTableCompaction(String tableName, String... columnFamilies) throws IOException, ExecutionException, InterruptedException

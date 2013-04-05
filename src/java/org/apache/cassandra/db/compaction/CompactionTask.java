@@ -138,8 +138,7 @@ public class CompactionTask extends AbstractCompactionTask
 
         boolean isCommutative = cfs.metadata.getDefaultValidator().isCommutative();
         boolean hasIndexes = !cfs.indexManager.getIndexes().isEmpty();
-        List<Range<Token>> ranges = new ArrayList<Range<Token>>(StorageService.instance.getLocalRanges(cfs.table.getName()));
-        ranges.addAll(StorageService.instance.getPendingRanges(cfs.table.getName())); // include PendingRanges so we don't accidentally delete data.
+        List<Range<Token>> ranges = getNodeRange();
         CounterId.OneShotRenewer renewer = new CounterId.OneShotRenewer();
 
         // we can't preheat until the tracker has been set. This doesn't happen until we tell the cfs to
@@ -181,7 +180,7 @@ public class CompactionTask extends AbstractCompactionTask
                 // but if the row is not pushed out of the cache, obsolete tombstones will persist indefinitely.
                 controller.removeDeletedInCache(row.key);
 
-                if (cfs.table.metadata.strategyClass != LocalStrategy.class && !Range.isInRanges(row.key.token, ranges))
+                if (cfs.table.metadata.strategyClass != LocalStrategy.class && !isInRanges(row.key.token, ranges))
                 {
                     if (hasIndexes || isCommutative)
                         CompactionManager.rmIdxRenewCounter(cfs, row.key, row.iterator(), renewer);
@@ -296,6 +295,26 @@ public class CompactionTask extends AbstractCompactionTask
                                       toCompact.size(), builder.toString(), startsize, endsize, (int) (ratio * 100), dTime, mbps, totalSourceRows, totalkeysWritten, mergeSummary.toString()));
             logger.debug(String.format("CF Total Bytes Compacted: %,d", CompactionTask.addToTotalBytesCompacted(endsize)));
         }
+    }
+
+    private List<Range<Token>> getNodeRange()
+    {
+        List<Range<Token>> ranges = new ArrayList<Range<Token>>(StorageService.instance.getLocalRanges(cfs.table.getName()));
+        Collection<Range<Token>> pending = StorageService.instance.getPendingRanges(cfs.table.getName());
+        for (Range<Token> range : pending)
+            if (Range.isInRanges(range.right, ranges))
+                ranges.add(range); // include PendingRanges so we don't accidentally delete data.
+        return ranges;
+    }
+
+    private static boolean isInRanges(Token token, List<Range<Token>> ranges)
+    {
+        if (ranges.isEmpty())
+        {
+            assert StorageService.instance.isBootstrapMode() : "Nodes range cannot be empty";
+            return true;
+        }
+        return Range.isInRanges(token, ranges);
     }
 
     protected boolean partialCompactionsAcceptable()

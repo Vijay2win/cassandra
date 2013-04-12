@@ -479,4 +479,9 @@ public abstract class ColumnFamily implements Iterable<Column>, IRowCacheEntry
             return create(Schema.instance.getCFMetaData(keyspace, cfName));
         }
     }
+
+    public long size()
+    {
+        return ObjectSizes.measureDeep(this);
+    }
 }

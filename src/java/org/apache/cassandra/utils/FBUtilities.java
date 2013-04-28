@@ -52,6 +52,7 @@ import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.io.util.DataOutputBuffer;
 import org.apache.cassandra.io.util.IAllocator;
+import org.apache.cassandra.io.util.MemoryInputStream;
 import org.apache.cassandra.net.AsyncOneResponse;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
@@ -616,5 +617,24 @@ public class FBUtilities
                : String.format("Final buffer length %s to accommodate data size of %s (predicted %s) for %s",
                                buffer.getData().length, buffer.getLength(), size, object);
         return buffer.getData();
+    }
+
+    public static long copy(InputStream from, OutputStream to, long limit) throws IOException
+    {
+        byte[] buffer = new byte[64]; // 64 byte buffer
+        long copied = 0;
+        while (true)
+        {
+            if (limit < buffer.length + copied)
+                buffer = new byte[(int) (limit - copied)];
+            int sofar = from.read(buffer);
+            if (sofar == -1)
+                break;
+            to.write(buffer, 0, sofar);
+            copied += sofar;
+            if (limit == copied)
+                break;
+        }
+        return copied;
     }
 }

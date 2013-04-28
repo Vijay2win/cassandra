@@ -17,51 +17,49 @@
  */
 package org.apache.cassandra.io.sstable;
 
-import java.io.DataInput;
-import java.io.DataOutput;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.RowPosition;
 import org.apache.cassandra.dht.IPartitioner;
-import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.cassandra.io.util.Memory;
+import org.apache.cassandra.io.util.MemoryInputStream;
+import org.apache.cassandra.io.util.MemoryOutputStream;
+import org.apache.cassandra.utils.FBUtilities;
 
 public class IndexSummary
 {
     public static final IndexSummarySerializer serializer = new IndexSummarySerializer();
     private final int indexInterval;
-    private final long[] positions;
-    private final byte[][] keys;
     private final IPartitioner partitioner;
+    private int[] summaryIdx;
+    private Memory memory;
 
-    public IndexSummary(IPartitioner partitioner, byte[][] keys, long[] positions, int indexInterval)
+    public IndexSummary(IPartitioner partitioner, Memory memory, int[] summaryIdx, int indexInterval)
     {
         this.partitioner = partitioner;
         this.indexInterval = indexInterval;
-        assert keys != null && keys.length > 0;
-        assert keys.length == positions.length;
-
-        this.keys = keys;
-        this.positions = positions;
+        this.summaryIdx = summaryIdx;
+        this.memory = memory;
     }
 
     public byte[][] getKeys()
     {
-        return keys;
+        //return keys;
+        return null;
     }
 
     // binary search is notoriously more difficult to get right than it looks; this is lifted from
     // Harmony's Collections implementation
     public int binarySearch(RowPosition key)
     {
-        int low = 0, mid = keys.length, high = mid - 1, result = -1;
-
+        int low = 0, mid = summaryIdx.length, high = mid - 1, result = -1;
         while (low <= high)
         {
             mid = (low + high) >> 1;
-            result = -partitioner.decorateKey(ByteBuffer.wrap(keys[mid])).compareTo(key);
-
+            result = -partitioner.decorateKey(getKey(mid)).compareTo(key);
             if (result > 0)
             {
                 low = mid + 1;
@@ -79,14 +77,25 @@ public class IndexSummary
         return -mid - (result < 0 ? 1 : 2);
     }
 
-    public byte[] getKey(int index)
+    public ByteBuffer getKey(int index)
     {
-        return keys[index];
+        byte[] temp = getIndexPair(index);
+        return ByteBuffer.wrap(temp, 0, temp.length - 8);
+    }
+
+    public byte[] getIndexPair(int index)
+    {
+        int end = (index == (summaryIdx.length - 1)) ? (int) memory.size() : summaryIdx[index + 1];
+        int byteSize = (end - summaryIdx[index]);
+        byte[] temp = new byte[byteSize];
+        memory.getBytes((long) summaryIdx[index], temp, 0, byteSize);
+        return temp;
     }
 
     public long getPosition(int index)
     {
-        return positions[index];
+        byte[] temp = getIndexPair(index);
+        return ByteBuffer.wrap(temp, temp.length - 8, 8).getLong();
     }
 
     public int getIndexInterval()
@@ -96,36 +105,32 @@ public class IndexSummary
 
     public int size()
     {
-        return positions.length;
+        return summaryIdx.length;
     }
 
     public static class IndexSummarySerializer
     {
-        public void serialize(IndexSummary t, DataOutput out) throws IOException
+        public void serialize(IndexSummary t, DataOutputStream out) throws IOException
         {
             out.writeInt(t.indexInterval);
-            out.writeInt(t.keys.length);
-            for (int i = 0; i < t.keys.length; i++)
-            {
-                out.writeLong(t.getPosition(i));
-                ByteBufferUtil.writeWithLength(t.keys[i], out);
-            }
+            out.writeInt(t.summaryIdx.length);
+            for (int i = 0; i < t.summaryIdx.length; i++)
+                out.writeInt(t.summaryIdx[i]);
+            out.writeLong(t.memory.size());
+            FBUtilities.copy(new MemoryInputStream(t.memory), out, t.memory.size());
         }
 
-        public IndexSummary deserialize(DataInput in, IPartitioner partitioner) throws IOException
+        public IndexSummary deserialize(DataInputStream in, IPartitioner partitioner) throws IOException
         {
             int indexInterval = in.readInt();
             int size = in.readInt();
-            long[] positions = new long[size];
-            byte[][] keys = new byte[size][];
-
+            int[] summaryIdx = new int[size];
             for (int i = 0; i < size; i++)
-            {
-                positions[i] = in.readLong();
-                keys[i] = ByteBufferUtil.readBytes(in, in.readInt());
-            }
-
-            return new IndexSummary(partitioner, keys, positions, indexInterval);
+                summaryIdx[i] = in.readInt();
+            long offheapSize = in.readLong();
+            Memory memory = Memory.allocate(offheapSize);
+            FBUtilities.copy(in, new MemoryOutputStream(memory), offheapSize);
+            return new IndexSummary(partitioner, memory, summaryIdx, indexInterval);
         }
     }
 }

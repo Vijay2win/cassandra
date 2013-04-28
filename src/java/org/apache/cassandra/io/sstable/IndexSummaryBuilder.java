@@ -17,16 +17,20 @@
  */
 package org.apache.cassandra.io.sstable;
 
+import java.io.IOError;
+import java.io.IOException;
 import java.util.ArrayList;
 
-import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.DecoratedKey;
+import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.io.util.FileUtils;
+import org.apache.cassandra.io.util.Memory;
+import org.apache.cassandra.io.util.MemoryOutputStream;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
 public class IndexSummaryBuilder
@@ -36,6 +40,7 @@ public class IndexSummaryBuilder
     private final ArrayList<Long> positions;
     private final ArrayList<byte[]> keys;
     private long keysWritten = 0;
+    private long offheapSize = 0;
 
     public IndexSummaryBuilder(long expectedKeys, int indexInterval)
     {
@@ -57,8 +62,11 @@ public class IndexSummaryBuilder
     {
         if (keysWritten % indexInterval == 0)
         {
-            keys.add(ByteBufferUtil.getArray(decoratedKey.key));
+            byte[] key = ByteBufferUtil.getArray(decoratedKey.key);
+            keys.add(key);
+            offheapSize += key.length;
             positions.add(indexPosition);
+            offheapSize += TypeSizes.NATIVE.sizeof(indexPosition);
         }
         keysWritten++;
 
@@ -67,10 +75,29 @@ public class IndexSummaryBuilder
 
     public IndexSummary build(IPartitioner partitioner, int indexInterval)
     {
-        byte[][] keysArray = new byte[keys.size()][];
-        for (int i = 0; i < keys.size(); i++)
-            keysArray[i] = keys.get(i);
+        assert keys != null && keys.size() > 0;
+        assert keys.size() == positions.size();
 
-        return new IndexSummary(partitioner, keysArray, Longs.toArray(positions), indexInterval);
+        Memory memory = Memory.allocate(offheapSize);
+        MemoryOutputStream out = new MemoryOutputStream(memory);
+        int[] summaryIdx = new int[keys.size()];
+        try
+        {
+            for (int i = 0; i < keys.size(); i++)
+            {
+                summaryIdx[i] = out.position();
+                out.write(keys.get(i));
+                out.write(Longs.toByteArray(positions.get(i)));
+            }
+        }
+        catch (IOException ex)
+        {
+            throw new IOError(ex);
+        }
+        finally
+        {
+            FileUtils.closeQuietly(out);
+        }
+        return new IndexSummary(partitioner, memory, summaryIdx, indexInterval);
     }
 }

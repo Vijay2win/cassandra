@@ -108,7 +108,7 @@ public class SSTableReader extends SSTable
 
         for (SSTableReader sstable : sstables)
         {
-            int indexKeyCount = sstable.getKeySamples().length;
+            int indexKeyCount = sstable.getKeySampleSize();
             count = count + (indexKeyCount + 1) * metadata.getIndexInterval();
             if (logger.isDebugEnabled())
                 logger.debug("index size for bloom filter calc for file  : " + sstable.getFilename() + "   : " + count);
@@ -427,7 +427,7 @@ public class SSTableReader extends SSTable
     public static boolean loadSummary(SSTableReader reader, SegmentedFile.Builder ibuilder, SegmentedFile.Builder dbuilder, CFMetaData metadata)
     {
         File summariesFile = new File(reader.descriptor.filenameFor(Component.SUMMARY));
-        if (!summariesFile.exists())
+        if (!reader.descriptor.version.hasSummaries || !summariesFile.exists())
             return false;
 
         DataInputStream iStream = null;
@@ -572,9 +572,14 @@ public class SSTableReader extends SSTable
     /**
      * @return Approximately 1/INDEX_INTERVALth of the keys in this SSTable.
      */
-    public byte[][] getKeySamples()
+    public int getKeySampleSize()
     {
-        return indexSummary.getKeys();
+        return indexSummary.size();
+    }
+
+    public ByteBuffer getKeySample(int position)
+    {
+        return indexSummary.getKey(position);
     }
 
     private static List<Pair<Integer,Integer>> getSampleIndexesForRanges(IndexSummary summary, Collection<Range<Token>> ranges)
@@ -654,8 +659,8 @@ public class SSTableReader extends SSTable
 
                     public DecoratedKey next()
                     {
-                        byte[] bytes = indexSummary.getKey(idx++);
-                        return partitioner.decorateKey(ByteBuffer.wrap(bytes));
+                        ByteBuffer buffer = indexSummary.getKey(idx++);
+                        return partitioner.decorateKey(buffer);
                     }
 
                     public void remove()

@@ -956,6 +956,7 @@ public class SSTableReader extends SSTable
             deletingTask.schedule();
             // close the BF so it can be opened later.
             FileUtils.closeQuietly(bf);
+            FileUtils.closeQuietly(indexSummary);
         }
         assert references.get() >= 0 : "Reference counter " +  references.get() + " for " + dfile.path;
     }

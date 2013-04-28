@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.io.sstable;
 
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -29,7 +30,7 @@ import org.apache.cassandra.io.util.MemoryInputStream;
 import org.apache.cassandra.io.util.MemoryOutputStream;
 import org.apache.cassandra.utils.FBUtilities;
 
-public class IndexSummary
+public class IndexSummary implements Closeable
 {
     public static final IndexSummarySerializer serializer = new IndexSummarySerializer();
     private final int indexInterval;
@@ -132,5 +133,11 @@ public class IndexSummary
             FBUtilities.copy(in, new MemoryOutputStream(memory), offheapSize);
             return new IndexSummary(partitioner, memory, summaryIdx, indexInterval);
         }
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        memory.free();
     }
 }

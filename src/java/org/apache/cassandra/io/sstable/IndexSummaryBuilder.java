@@ -17,21 +17,15 @@
  */
 package org.apache.cassandra.io.sstable;
 
-import java.io.IOError;
-import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.dht.IPartitioner;
-import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.Memory;
-import org.apache.cassandra.io.util.MemoryOutputStream;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.primitives.Longs;
 
 public class IndexSummaryBuilder
 {

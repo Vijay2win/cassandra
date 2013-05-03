@@ -427,7 +427,7 @@ public class SSTableReader extends SSTable
     public static boolean loadSummary(SSTableReader reader, SegmentedFile.Builder ibuilder, SegmentedFile.Builder dbuilder, CFMetaData metadata)
     {
         File summariesFile = new File(reader.descriptor.filenameFor(Component.SUMMARY));
-        if (!reader.descriptor.version.hasSummaries || !summariesFile.exists())
+        if (!reader.descriptor.version.offHeapSummaries || !summariesFile.exists())
             return false;
 
         DataInputStream iStream = null;

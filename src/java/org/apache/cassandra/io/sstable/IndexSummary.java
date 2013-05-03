@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.RowPosition;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.io.util.Memory;
@@ -54,7 +55,7 @@ public class IndexSummary implements Closeable
         while (low <= high)
         {
             mid = (low + high) >> 1;
-            result = -partitioner.decorateKey(ByteBuffer.wrap(getKey(mid))).compareTo(key);
+            result = -DecoratedKey.compareTo(partitioner, ByteBuffer.wrap(getKey(mid)), key);
             if (result > 0)
             {
                 low = mid + 1;
@@ -74,14 +75,13 @@ public class IndexSummary implements Closeable
 
     public int getIndex(int index)
     {
-        // multiply by 4 and add the block start
+        // multiply by 4.
         return bytes.getInt(index << 2);
     }
 
     public byte[] getKey(int index)
     {
         long start = getIndex(index);
-        // end - start - sizeOf(position)
         int keySize = (int) (caclculateEnd(index) - start - 8L);
         byte[] key = new byte[keySize];
         bytes.getBytes(start, key, 0, keySize);

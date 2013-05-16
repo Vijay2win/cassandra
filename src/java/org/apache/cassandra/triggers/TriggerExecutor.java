@@ -42,30 +42,26 @@ public class TriggerExecutor
     public Collection<RowMutation> execute(Collection<? extends IMutation> updates) throws InvalidRequestException
     {
         boolean hasCounters = false;
-        Collection<RowMutation> mutations = null;
+        Collection<RowMutation> tmutations = null;
         for (IMutation mutation : updates)
         {
-            if (mutations == null)
-                mutations = execute(mutation);
-            else
-                mutations.addAll(execute(mutation));
+            for (ColumnFamily cf : mutation.getColumnFamilies())
+            {
+                List<RowMutation> intermediate = execute(mutation.key(), cf);
+                if (intermediate == null)
+                    continue;
 
+                validate(intermediate);
+                if (tmutations == null)
+                    tmutations = intermediate;
+                else
+                    tmutations.addAll(intermediate);
+            }
             if (mutation instanceof CounterMutation)
                 hasCounters = true;
         }
-        if (!mutations.isEmpty() && hasCounters)
+        if (tmutations != null && hasCounters)
             throw new InvalidRequestException("Counter mutations and trigger mutations cannot be applied together atomically.");
-        return mutations;
-    }
-
-    private Collection<RowMutation> execute(IMutation update) throws InvalidRequestException
-    {
-        List<RowMutation> tmutations = Lists.newLinkedList();
-        for (ColumnFamily cf : update.getColumnFamilies())
-        {
-            execute(update.key(), cf, tmutations);
-            validate(tmutations);
-        }
         return tmutations;
     }
 
@@ -80,15 +76,16 @@ public class TriggerExecutor
         }
     }
 
-    private void execute(ByteBuffer key, ColumnFamily columnFamily, Collection<RowMutation> tmutations)
+    private List<RowMutation> execute(ByteBuffer key, ColumnFamily columnFamily)
     {
         Set<String> triggerNames = columnFamily.metadata().getTriggerClass();
         if (triggerNames == null)
-            return;
+            return null;
+        List<RowMutation> tmutations = Lists.newLinkedList();
         Thread.currentThread().setContextClassLoader(customClassLoader);
         try
         {
-            for (String triggerName: triggerNames)
+            for (String triggerName : triggerNames)
             {
                 ITrigger trigger = cachedTriggers.get(triggerName);
                 if (trigger == null)
@@ -100,6 +97,7 @@ public class TriggerExecutor
                 if (temp != null)
                     tmutations.addAll(temp);
             }
+            return tmutations;
         }
         catch (Exception ex)
         {

@@ -454,7 +454,7 @@ public class StorageProxy implements StorageProxyMBean
             OverloadedException, InvalidRequestException
     {
         Collection<RowMutation> tmutations = TriggerExecutor.instance.execute(mutations);
-        if (mutateAtomically || !tmutations.isEmpty())
+        if (mutateAtomically || tmutations != null)
         {
             Collection<RowMutation> allMutations = (Collection<RowMutation>) mutations;
             if (tmutations != null)

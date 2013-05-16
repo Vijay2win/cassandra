@@ -33,6 +33,10 @@ public class TriggerExecutor
         reloadClasses();
     }
 
+    /**
+     * Reload the triggers which is already loaded, Invoking this will update
+     * the class loader so new jars can be loaded.
+     */
     public void reloadClasses()
     {
         customClassLoader = new CustomClassLoader(parent, triggerDirectory);
@@ -76,6 +80,10 @@ public class TriggerExecutor
         }
     }
 
+    /**
+     * Switch class loader before using the triggers for the column family, if
+     * not loaded them with the custom class loader.
+     */
     private List<RowMutation> execute(ByteBuffer key, ColumnFamily columnFamily)
     {
         Set<String> triggerNames = columnFamily.metadata().getTriggerClass();

@@ -86,7 +86,7 @@ public class TriggerExecutor
      */
     private List<RowMutation> execute(ByteBuffer key, ColumnFamily columnFamily)
     {
-        Set<String> triggerNames = columnFamily.metadata().getTriggerClass();
+        Set<String> triggerNames = columnFamily.metadata().getTriggerClasses();
         if (triggerNames == null)
             return null;
         List<RowMutation> tmutations = Lists.newLinkedList();

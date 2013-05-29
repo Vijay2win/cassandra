@@ -23,6 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.exceptions.SyntaxException;
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.collect.Sets;
 
 public class PropertyDefinitions
 {
@@ -81,9 +84,7 @@ public class PropertyDefinitions
         Object val = properties.get(name);
         if (val == null)
             return defaultValue;
-        if (!(val instanceof Set))
-            throw new SyntaxException(String.format("Invalid value for property '%s'", name));
-        return (Set<String>) val;
+        return Sets.newHashSet(StringUtils.split((String) val, ','));
     }
 
     public Boolean hasProperty(String name)

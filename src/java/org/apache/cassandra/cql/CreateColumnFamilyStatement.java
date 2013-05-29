@@ -203,7 +203,7 @@ public class CreateColumnFamilyStatement
                    .memtableFlushPeriod(getPropertyInt(CFPropDefs.KW_MEMTABLE_FLUSH_PERIOD, 0))
                    .defaultTimeToLive(getPropertyInt(CFPropDefs.KW_DEFAULT_TIME_TO_LIVE, CFMetaData.DEFAULT_DEFAULT_TIME_TO_LIVE))
                    .populateIoCacheOnFlush(getPropertyBoolean(CFPropDefs.KW_POPULATE_IO_CACHE_ON_FLUSH, CFMetaData.DEFAULT_POPULATE_IO_CACHE_ON_FLUSH))
-                   .triggerClass(getPropertySet(CFPropDefs.KW_TRIGGER_CLASS, null));
+                   .triggerClasses(getPropertySet(CFPropDefs.KW_TRIGGER_CLASSES, null));
 
             // CQL2 can have null keyAliases
             if (keyAlias != null)

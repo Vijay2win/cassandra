@@ -82,7 +82,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   private static final org.apache.thrift.protocol.TField DEFAULT_TIME_TO_LIVE_FIELD_DESC = new org.apache.thrift.protocol.TField("default_time_to_live", org.apache.thrift.protocol.TType.I32, (short)40);
   private static final org.apache.thrift.protocol.TField INDEX_INTERVAL_FIELD_DESC = new org.apache.thrift.protocol.TField("index_interval", org.apache.thrift.protocol.TType.I32, (short)41);
   private static final org.apache.thrift.protocol.TField SPECULATIVE_RETRY_FIELD_DESC = new org.apache.thrift.protocol.TField("speculative_retry", org.apache.thrift.protocol.TType.STRING, (short)42);
-  private static final org.apache.thrift.protocol.TField TRIGGER_CLASS_FIELD_DESC = new org.apache.thrift.protocol.TField("trigger_class", org.apache.thrift.protocol.TType.SET, (short)43);
+  private static final org.apache.thrift.protocol.TField TRIGGER_CLASSES_FIELD_DESC = new org.apache.thrift.protocol.TField("trigger_classes", org.apache.thrift.protocol.TType.SET, (short)43);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)9);
   private static final org.apache.thrift.protocol.TField KEY_CACHE_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("key_cache_size", org.apache.thrift.protocol.TType.DOUBLE, (short)11);
   private static final org.apache.thrift.protocol.TField ROW_CACHE_SAVE_PERIOD_IN_SECONDS_FIELD_DESC = new org.apache.thrift.protocol.TField("row_cache_save_period_in_seconds", org.apache.thrift.protocol.TType.I32, (short)19);
@@ -127,7 +127,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   public int default_time_to_live; // optional
   public int index_interval; // optional
   public String speculative_retry; // optional
-  public Set<String> trigger_class; // optional
+  public Set<String> trigger_classes; // optional
   /**
    * @deprecated
    */
@@ -198,7 +198,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     DEFAULT_TIME_TO_LIVE((short)40, "default_time_to_live"),
     INDEX_INTERVAL((short)41, "index_interval"),
     SPECULATIVE_RETRY((short)42, "speculative_retry"),
-    TRIGGER_CLASS((short)43, "trigger_class"),
+    TRIGGER_CLASSES((short)43, "trigger_classes"),
     /**
      * @deprecated
      */
@@ -307,8 +307,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
           return INDEX_INTERVAL;
         case 42: // SPECULATIVE_RETRY
           return SPECULATIVE_RETRY;
-        case 43: // TRIGGER_CLASS
-          return TRIGGER_CLASS;
+        case 43: // TRIGGER_CLASSES
+          return TRIGGER_CLASSES;
         case 9: // ROW_CACHE_SIZE
           return ROW_CACHE_SIZE;
         case 11: // KEY_CACHE_SIZE
@@ -391,7 +391,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
   private static final int __MERGE_SHARDS_CHANCE_ISSET_ID = 19;
   private static final int __ROW_CACHE_KEYS_TO_SAVE_ISSET_ID = 20;
   private int __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.COLUMN_TYPE,_Fields.COMPARATOR_TYPE,_Fields.SUBCOMPARATOR_TYPE,_Fields.COMMENT,_Fields.READ_REPAIR_CHANCE,_Fields.COLUMN_METADATA,_Fields.GC_GRACE_SECONDS,_Fields.DEFAULT_VALIDATION_CLASS,_Fields.ID,_Fields.MIN_COMPACTION_THRESHOLD,_Fields.MAX_COMPACTION_THRESHOLD,_Fields.REPLICATE_ON_WRITE,_Fields.KEY_VALIDATION_CLASS,_Fields.KEY_ALIAS,_Fields.COMPACTION_STRATEGY,_Fields.COMPACTION_STRATEGY_OPTIONS,_Fields.COMPRESSION_OPTIONS,_Fields.BLOOM_FILTER_FP_CHANCE,_Fields.CACHING,_Fields.DCLOCAL_READ_REPAIR_CHANCE,_Fields.POPULATE_IO_CACHE_ON_FLUSH,_Fields.MEMTABLE_FLUSH_PERIOD_IN_MS,_Fields.DEFAULT_TIME_TO_LIVE,_Fields.INDEX_INTERVAL,_Fields.SPECULATIVE_RETRY,_Fields.TRIGGER_CLASS,_Fields.ROW_CACHE_SIZE,_Fields.KEY_CACHE_SIZE,_Fields.ROW_CACHE_SAVE_PERIOD_IN_SECONDS,_Fields.KEY_CACHE_SAVE_PERIOD_IN_SECONDS,_Fields.MEMTABLE_FLUSH_AFTER_MINS,_Fields.MEMTABLE_THROUGHPUT_IN_MB,_Fields.MEMTABLE_OPERATIONS_IN_MILLIONS,_Fields.MERGE_SHARDS_CHANCE,_Fields.ROW_CACHE_PROVIDER,_Fields.ROW_CACHE_KEYS_TO_SAVE};
+  private _Fields optionals[] = {_Fields.COLUMN_TYPE,_Fields.COMPARATOR_TYPE,_Fields.SUBCOMPARATOR_TYPE,_Fields.COMMENT,_Fields.READ_REPAIR_CHANCE,_Fields.COLUMN_METADATA,_Fields.GC_GRACE_SECONDS,_Fields.DEFAULT_VALIDATION_CLASS,_Fields.ID,_Fields.MIN_COMPACTION_THRESHOLD,_Fields.MAX_COMPACTION_THRESHOLD,_Fields.REPLICATE_ON_WRITE,_Fields.KEY_VALIDATION_CLASS,_Fields.KEY_ALIAS,_Fields.COMPACTION_STRATEGY,_Fields.COMPACTION_STRATEGY_OPTIONS,_Fields.COMPRESSION_OPTIONS,_Fields.BLOOM_FILTER_FP_CHANCE,_Fields.CACHING,_Fields.DCLOCAL_READ_REPAIR_CHANCE,_Fields.POPULATE_IO_CACHE_ON_FLUSH,_Fields.MEMTABLE_FLUSH_PERIOD_IN_MS,_Fields.DEFAULT_TIME_TO_LIVE,_Fields.INDEX_INTERVAL,_Fields.SPECULATIVE_RETRY,_Fields.TRIGGER_CLASSES,_Fields.ROW_CACHE_SIZE,_Fields.KEY_CACHE_SIZE,_Fields.ROW_CACHE_SAVE_PERIOD_IN_SECONDS,_Fields.KEY_CACHE_SAVE_PERIOD_IN_SECONDS,_Fields.MEMTABLE_FLUSH_AFTER_MINS,_Fields.MEMTABLE_THROUGHPUT_IN_MB,_Fields.MEMTABLE_OPERATIONS_IN_MILLIONS,_Fields.MERGE_SHARDS_CHANCE,_Fields.ROW_CACHE_PROVIDER,_Fields.ROW_CACHE_KEYS_TO_SAVE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -454,7 +454,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.SPECULATIVE_RETRY, new org.apache.thrift.meta_data.FieldMetaData("speculative_retry", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.TRIGGER_CLASS, new org.apache.thrift.meta_data.FieldMetaData("trigger_class", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+    tmpMap.put(_Fields.TRIGGER_CLASSES, new org.apache.thrift.meta_data.FieldMetaData("trigger_classes", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     tmpMap.put(_Fields.ROW_CACHE_SIZE, new org.apache.thrift.meta_data.FieldMetaData("row_cache_size", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -594,12 +594,12 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     if (other.isSetSpeculative_retry()) {
       this.speculative_retry = other.speculative_retry;
     }
-    if (other.isSetTrigger_class()) {
-      Set<String> __this__trigger_class = new HashSet<String>();
-      for (String other_element : other.trigger_class) {
-        __this__trigger_class.add(other_element);
+    if (other.isSetTrigger_classes()) {
+      Set<String> __this__trigger_classes = new HashSet<String>();
+      for (String other_element : other.trigger_classes) {
+        __this__trigger_classes.add(other_element);
       }
-      this.trigger_class = __this__trigger_class;
+      this.trigger_classes = __this__trigger_classes;
     }
     this.row_cache_size = other.row_cache_size;
     this.key_cache_size = other.key_cache_size;
@@ -664,7 +664,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     this.index_interval = 0;
     this.speculative_retry = "NONE";
 
-    this.trigger_class = null;
+    this.trigger_classes = null;
     setRow_cache_sizeIsSet(false);
     this.row_cache_size = 0.0;
     setKey_cache_sizeIsSet(false);
@@ -1369,42 +1369,42 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     }
   }
 
-  public int getTrigger_classSize() {
-    return (this.trigger_class == null) ? 0 : this.trigger_class.size();
+  public int getTrigger_classesSize() {
+    return (this.trigger_classes == null) ? 0 : this.trigger_classes.size();
   }
 
-  public java.util.Iterator<String> getTrigger_classIterator() {
-    return (this.trigger_class == null) ? null : this.trigger_class.iterator();
+  public java.util.Iterator<String> getTrigger_classesIterator() {
+    return (this.trigger_classes == null) ? null : this.trigger_classes.iterator();
   }
 
-  public void addToTrigger_class(String elem) {
-    if (this.trigger_class == null) {
-      this.trigger_class = new HashSet<String>();
+  public void addToTrigger_classes(String elem) {
+    if (this.trigger_classes == null) {
+      this.trigger_classes = new HashSet<String>();
     }
-    this.trigger_class.add(elem);
+    this.trigger_classes.add(elem);
   }
 
-  public Set<String> getTrigger_class() {
-    return this.trigger_class;
+  public Set<String> getTrigger_classes() {
+    return this.trigger_classes;
   }
 
-  public CfDef setTrigger_class(Set<String> trigger_class) {
-    this.trigger_class = trigger_class;
+  public CfDef setTrigger_classes(Set<String> trigger_classes) {
+    this.trigger_classes = trigger_classes;
     return this;
   }
 
-  public void unsetTrigger_class() {
-    this.trigger_class = null;
+  public void unsetTrigger_classes() {
+    this.trigger_classes = null;
   }
 
-  /** Returns true if field trigger_class is set (has been assigned a value) and false otherwise */
-  public boolean isSetTrigger_class() {
-    return this.trigger_class != null;
+  /** Returns true if field trigger_classes is set (has been assigned a value) and false otherwise */
+  public boolean isSetTrigger_classes() {
+    return this.trigger_classes != null;
   }
 
-  public void setTrigger_classIsSet(boolean value) {
+  public void setTrigger_classesIsSet(boolean value) {
     if (!value) {
-      this.trigger_class = null;
+      this.trigger_classes = null;
     }
   }
 
@@ -1917,11 +1917,11 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       }
       break;
 
-    case TRIGGER_CLASS:
+    case TRIGGER_CLASSES:
       if (value == null) {
-        unsetTrigger_class();
+        unsetTrigger_classes();
       } else {
-        setTrigger_class((Set<String>)value);
+        setTrigger_classes((Set<String>)value);
       }
       break;
 
@@ -2091,8 +2091,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     case SPECULATIVE_RETRY:
       return getSpeculative_retry();
 
-    case TRIGGER_CLASS:
-      return getTrigger_class();
+    case TRIGGER_CLASSES:
+      return getTrigger_classes();
 
     case ROW_CACHE_SIZE:
       return Double.valueOf(getRow_cache_size());
@@ -2189,8 +2189,8 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       return isSetIndex_interval();
     case SPECULATIVE_RETRY:
       return isSetSpeculative_retry();
-    case TRIGGER_CLASS:
-      return isSetTrigger_class();
+    case TRIGGER_CLASSES:
+      return isSetTrigger_classes();
     case ROW_CACHE_SIZE:
       return isSetRow_cache_size();
     case KEY_CACHE_SIZE:
@@ -2471,12 +2471,12 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         return false;
     }
 
-    boolean this_present_trigger_class = true && this.isSetTrigger_class();
-    boolean that_present_trigger_class = true && that.isSetTrigger_class();
-    if (this_present_trigger_class || that_present_trigger_class) {
-      if (!(this_present_trigger_class && that_present_trigger_class))
+    boolean this_present_trigger_classes = true && this.isSetTrigger_classes();
+    boolean that_present_trigger_classes = true && that.isSetTrigger_classes();
+    if (this_present_trigger_classes || that_present_trigger_classes) {
+      if (!(this_present_trigger_classes && that_present_trigger_classes))
         return false;
-      if (!this.trigger_class.equals(that.trigger_class))
+      if (!this.trigger_classes.equals(that.trigger_classes))
         return false;
     }
 
@@ -2712,10 +2712,10 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
     if (present_speculative_retry)
       builder.append(speculative_retry);
 
-    boolean present_trigger_class = true && (isSetTrigger_class());
-    builder.append(present_trigger_class);
-    if (present_trigger_class)
-      builder.append(trigger_class);
+    boolean present_trigger_classes = true && (isSetTrigger_classes());
+    builder.append(present_trigger_classes);
+    if (present_trigger_classes)
+      builder.append(trigger_classes);
 
     boolean present_row_cache_size = true && (isSetRow_cache_size());
     builder.append(present_row_cache_size);
@@ -3048,12 +3048,12 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetTrigger_class()).compareTo(typedOther.isSetTrigger_class());
+    lastComparison = Boolean.valueOf(isSetTrigger_classes()).compareTo(typedOther.isSetTrigger_classes());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTrigger_class()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.trigger_class, typedOther.trigger_class);
+    if (isSetTrigger_classes()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.trigger_classes, typedOther.trigger_classes);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -3395,13 +3395,13 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       }
       first = false;
     }
-    if (isSetTrigger_class()) {
+    if (isSetTrigger_classes()) {
       if (!first) sb.append(", ");
-      sb.append("trigger_class:");
-      if (this.trigger_class == null) {
+      sb.append("trigger_classes:");
+      if (this.trigger_classes == null) {
         sb.append("null");
       } else {
-        sb.append(this.trigger_class);
+        sb.append(this.trigger_classes);
       }
       first = false;
     }
@@ -3771,20 +3771,20 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 43: // TRIGGER_CLASS
+          case 43: // TRIGGER_CLASSES
             if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
               {
                 org.apache.thrift.protocol.TSet _set103 = iprot.readSetBegin();
-                struct.trigger_class = new HashSet<String>(2*_set103.size);
+                struct.trigger_classes = new HashSet<String>(2*_set103.size);
                 for (int _i104 = 0; _i104 < _set103.size; ++_i104)
                 {
                   String _elem105; // optional
                   _elem105 = iprot.readString();
-                  struct.trigger_class.add(_elem105);
+                  struct.trigger_classes.add(_elem105);
                 }
                 iprot.readSetEnd();
               }
-              struct.setTrigger_classIsSet(true);
+              struct.setTrigger_classesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -4120,12 +4120,12 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
           oprot.writeFieldEnd();
         }
       }
-      if (struct.trigger_class != null) {
-        if (struct.isSetTrigger_class()) {
-          oprot.writeFieldBegin(TRIGGER_CLASS_FIELD_DESC);
+      if (struct.trigger_classes != null) {
+        if (struct.isSetTrigger_classes()) {
+          oprot.writeFieldBegin(TRIGGER_CLASSES_FIELD_DESC);
           {
-            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.trigger_class.size()));
-            for (String _iter109 : struct.trigger_class)
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.trigger_classes.size()));
+            for (String _iter109 : struct.trigger_classes)
             {
               oprot.writeString(_iter109);
             }
@@ -4229,7 +4229,7 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       if (struct.isSetSpeculative_retry()) {
         optionals.set(24);
       }
-      if (struct.isSetTrigger_class()) {
+      if (struct.isSetTrigger_classes()) {
         optionals.set(25);
       }
       if (struct.isSetRow_cache_size()) {
@@ -4358,10 +4358,10 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       if (struct.isSetSpeculative_retry()) {
         oprot.writeString(struct.speculative_retry);
       }
-      if (struct.isSetTrigger_class()) {
+      if (struct.isSetTrigger_classes()) {
         {
-          oprot.writeI32(struct.trigger_class.size());
-          for (String _iter113 : struct.trigger_class)
+          oprot.writeI32(struct.trigger_classes.size());
+          for (String _iter113 : struct.trigger_classes)
           {
             oprot.writeString(_iter113);
           }
@@ -4542,15 +4542,15 @@ public class CfDef implements org.apache.thrift.TBase<CfDef, CfDef._Fields>, jav
       if (incoming.get(25)) {
         {
           org.apache.thrift.protocol.TSet _set125 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.trigger_class = new HashSet<String>(2*_set125.size);
+          struct.trigger_classes = new HashSet<String>(2*_set125.size);
           for (int _i126 = 0; _i126 < _set125.size; ++_i126)
           {
             String _elem127; // optional
             _elem127 = iprot.readString();
-            struct.trigger_class.add(_elem127);
+            struct.trigger_classes.add(_elem127);
           }
         }
-        struct.setTrigger_classIsSet(true);
+        struct.setTrigger_classesIsSet(true);
       }
       if (incoming.get(26)) {
         struct.row_cache_size = iprot.readDouble();

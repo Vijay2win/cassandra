@@ -31,6 +31,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Charsets;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -1360,8 +1361,7 @@ public class CliClient
                 cfDef.setPopulate_io_cache_on_flush(Boolean.parseBoolean(mValue));
                 break;
             case TRIGGER_CLASSES:
-                Iterable<String> tcIt = Splitter.on(',').trimResults(CharMatcher.is('\'')).split(mValue);
-                cfDef.setTrigger_class(Sets.newHashSet(tcIt));
+                cfDef.setTrigger_classes(getTriggerClasses(mValue));
                 break;
             default:
                 //must match one of the above or we'd throw an exception at the valueOf statement above.
@@ -1827,8 +1827,8 @@ public class CliClient
 
         if (cfDef.isSetBloom_filter_fp_chance())
             writeAttr(output, false, "bloom_filter_fp_chance", cfDef.bloom_filter_fp_chance);
-        if (cfDef.isSetTrigger_class())
-            writeAttr(output, false, "trigger_class", StringUtils.join(cfDef.trigger_class, ','));
+        if (cfDef.isSetTrigger_classes())
+            writeAttr(output, false, "trigger_classes", StringUtils.join(cfDef.trigger_classes, ','));
 
         if (!cfDef.compaction_strategy_options.isEmpty())
         {
@@ -2199,8 +2199,8 @@ public class CliClient
         sessionState.out.printf("      Index interval: %s%n", cf_def.isSetIndex_interval() ? cf_def.index_interval : "default");
         sessionState.out.printf("      Speculative Retry: %s%n", cf_def.speculative_retry);
 
-        if (cf_def.trigger_class != null)
-            sessionState.out.printf("      Trigger class: %s%n", cf_def.trigger_class);
+        if (cf_def.trigger_classes != null)
+            sessionState.out.printf("      Trigger classes: %s%n", StringUtils.join(cf_def.trigger_classes, ','));
 
         // if we have connection to the cfMBean established
         if (cfMBean != null)
@@ -2749,6 +2749,16 @@ public class CliClient
         }
 
         return strategyOptions;
+    }
+
+    private Set<String> getTriggerClasses(String mValue)
+    {
+        String triggerClasses = CliUtils.unescapeSQLString(mValue);
+        Iterable<String> tcIt = Splitter.on(',').trimResults().split(triggerClasses);
+        if (Strings.isNullOrEmpty(triggerClasses))
+            return Collections.EMPTY_SET;
+        else
+            return Sets.newHashSet(tcIt);
     }
 
     /**

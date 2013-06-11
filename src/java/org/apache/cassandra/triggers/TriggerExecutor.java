@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.cassandra.cql.QueryProcessor;
 import org.apache.cassandra.db.ColumnFamily;
@@ -86,7 +85,7 @@ public class TriggerExecutor
      */
     private List<RowMutation> execute(ByteBuffer key, ColumnFamily columnFamily)
     {
-        Set<String> triggerNames = columnFamily.metadata().getTriggerClass();
+        Collection<String> triggerNames = columnFamily.metadata().getTriggerClass();
         if (triggerNames == null)
             return null;
         List<RowMutation> tmutations = Lists.newLinkedList();
@@ -117,7 +116,7 @@ public class TriggerExecutor
         }
     }
 
-    private synchronized ITrigger loadTriggerInstance(String triggerName) throws Exception
+    public synchronized ITrigger loadTriggerInstance(String triggerName) throws Exception
     {
         // double check.
         if (cachedTriggers.get(triggerName) != null)

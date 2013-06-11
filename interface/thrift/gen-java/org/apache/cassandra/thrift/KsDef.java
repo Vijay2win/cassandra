@@ -837,15 +837,15 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
           case 3: // STRATEGY_OPTIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map128 = iprot.readMapBegin();
-                struct.strategy_options = new HashMap<String,String>(2*_map128.size);
-                for (int _i129 = 0; _i129 < _map128.size; ++_i129)
+                org.apache.thrift.protocol.TMap _map138 = iprot.readMapBegin();
+                struct.strategy_options = new HashMap<String,String>(2*_map138.size);
+                for (int _i139 = 0; _i139 < _map138.size; ++_i139)
                 {
-                  String _key130; // required
-                  String _val131; // required
-                  _key130 = iprot.readString();
-                  _val131 = iprot.readString();
-                  struct.strategy_options.put(_key130, _val131);
+                  String _key140; // required
+                  String _val141; // required
+                  _key140 = iprot.readString();
+                  _val141 = iprot.readString();
+                  struct.strategy_options.put(_key140, _val141);
                 }
                 iprot.readMapEnd();
               }
@@ -865,14 +865,14 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
           case 5: // CF_DEFS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list132 = iprot.readListBegin();
-                struct.cf_defs = new ArrayList<CfDef>(_list132.size);
-                for (int _i133 = 0; _i133 < _list132.size; ++_i133)
+                org.apache.thrift.protocol.TList _list142 = iprot.readListBegin();
+                struct.cf_defs = new ArrayList<CfDef>(_list142.size);
+                for (int _i143 = 0; _i143 < _list142.size; ++_i143)
                 {
-                  CfDef _elem134; // optional
-                  _elem134 = new CfDef();
-                  _elem134.read(iprot);
-                  struct.cf_defs.add(_elem134);
+                  CfDef _elem144; // optional
+                  _elem144 = new CfDef();
+                  _elem144.read(iprot);
+                  struct.cf_defs.add(_elem144);
                 }
                 iprot.readListEnd();
               }
@@ -919,10 +919,10 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
           oprot.writeFieldBegin(STRATEGY_OPTIONS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.strategy_options.size()));
-            for (Map.Entry<String, String> _iter135 : struct.strategy_options.entrySet())
+            for (Map.Entry<String, String> _iter145 : struct.strategy_options.entrySet())
             {
-              oprot.writeString(_iter135.getKey());
-              oprot.writeString(_iter135.getValue());
+              oprot.writeString(_iter145.getKey());
+              oprot.writeString(_iter145.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -938,9 +938,9 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
         oprot.writeFieldBegin(CF_DEFS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.cf_defs.size()));
-          for (CfDef _iter136 : struct.cf_defs)
+          for (CfDef _iter146 : struct.cf_defs)
           {
-            _iter136.write(oprot);
+            _iter146.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -972,9 +972,9 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
       oprot.writeString(struct.strategy_class);
       {
         oprot.writeI32(struct.cf_defs.size());
-        for (CfDef _iter137 : struct.cf_defs)
+        for (CfDef _iter147 : struct.cf_defs)
         {
-          _iter137.write(oprot);
+          _iter147.write(oprot);
         }
       }
       BitSet optionals = new BitSet();
@@ -991,10 +991,10 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
       if (struct.isSetStrategy_options()) {
         {
           oprot.writeI32(struct.strategy_options.size());
-          for (Map.Entry<String, String> _iter138 : struct.strategy_options.entrySet())
+          for (Map.Entry<String, String> _iter148 : struct.strategy_options.entrySet())
           {
-            oprot.writeString(_iter138.getKey());
-            oprot.writeString(_iter138.getValue());
+            oprot.writeString(_iter148.getKey());
+            oprot.writeString(_iter148.getValue());
           }
         }
       }
@@ -1014,29 +1014,29 @@ public class KsDef implements org.apache.thrift.TBase<KsDef, KsDef._Fields>, jav
       struct.strategy_class = iprot.readString();
       struct.setStrategy_classIsSet(true);
       {
-        org.apache.thrift.protocol.TList _list139 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.cf_defs = new ArrayList<CfDef>(_list139.size);
-        for (int _i140 = 0; _i140 < _list139.size; ++_i140)
+        org.apache.thrift.protocol.TList _list149 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.cf_defs = new ArrayList<CfDef>(_list149.size);
+        for (int _i150 = 0; _i150 < _list149.size; ++_i150)
         {
-          CfDef _elem141; // optional
-          _elem141 = new CfDef();
-          _elem141.read(iprot);
-          struct.cf_defs.add(_elem141);
+          CfDef _elem151; // optional
+          _elem151 = new CfDef();
+          _elem151.read(iprot);
+          struct.cf_defs.add(_elem151);
         }
       }
       struct.setCf_defsIsSet(true);
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map142 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.strategy_options = new HashMap<String,String>(2*_map142.size);
-          for (int _i143 = 0; _i143 < _map142.size; ++_i143)
+          org.apache.thrift.protocol.TMap _map152 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.strategy_options = new HashMap<String,String>(2*_map152.size);
+          for (int _i153 = 0; _i153 < _map152.size; ++_i153)
           {
-            String _key144; // required
-            String _val145; // required
-            _key144 = iprot.readString();
-            _val145 = iprot.readString();
-            struct.strategy_options.put(_key144, _val145);
+            String _key154; // required
+            String _val155; // required
+            _key154 = iprot.readString();
+            _val155 = iprot.readString();
+            struct.strategy_options.put(_key154, _val155);
           }
         }
         struct.setStrategy_optionsIsSet(true);

@@ -528,6 +528,18 @@ public class FBUtilities
         }
     }
 
+    public static List<?> fromJsonListObject(String json)
+    {
+        try
+        {
+            return jsonMapper.readValue(json, List.class);
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String json(Object object)
     {
         try

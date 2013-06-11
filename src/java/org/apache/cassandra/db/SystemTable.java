@@ -36,6 +36,7 @@ import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.cql3.ColumnNameBuilder;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.UntypedResultSet;
 import org.apache.cassandra.db.columniterator.IdentityQueryFilter;
@@ -73,6 +74,7 @@ public class SystemTable
     public static final String SCHEMA_KEYSPACES_CF = "schema_keyspaces";
     public static final String SCHEMA_COLUMNFAMILIES_CF = "schema_columnfamilies";
     public static final String SCHEMA_COLUMNS_CF = "schema_columns";
+    public static final String SCHEMA_TRIGGERS_CF = "schema_triggers";
     public static final String COMPACTION_LOG = "compactions_in_progress";
     public static final String PAXOS_CF = "paxos";
 
@@ -553,6 +555,15 @@ public class SystemTable
         rm.delete(INDEX_CF, ByteBufferUtil.bytes(indexName), FBUtilities.timestampMicros());
         rm.apply();
         forceBlockingFlush(INDEX_CF);
+    }
+
+    public static Map<String, String> getAllTriggers(String ksName, String cfName)
+    {
+        String req = "SELECT * FROM system.%s WHERE keyspace_name='%s' AND column_family='%s'";
+        UntypedResultSet result = processInternal(String.format(req, SCHEMA_TRIGGERS_CF, ksName, cfName));
+        if (result.isEmpty())
+            return new HashMap<String, String>();
+        return result.one().getMap("trigger_classes", UTF8Type.instance, UTF8Type.instance);
     }
 
     /**

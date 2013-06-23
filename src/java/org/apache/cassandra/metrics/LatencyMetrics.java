@@ -87,16 +87,21 @@ public class LatencyMetrics
     /** takes nanoseconds **/
     public void addNano(long nanos)
     {
-        // convert to microseconds. 1 millionth
-        addMicro(nanos / 1000);
+        add(nanos, TimeUnit.NANOSECONDS);
     }
 
     public void addMicro(long micros)
     {
-        latency.update(micros, TimeUnit.MICROSECONDS);
-        totalLatency.inc(micros);
-        totalLatencyHistogram.add(micros);
-        recentLatencyHistogram.add(micros);
+        add(micros, TimeUnit.MICROSECONDS);
+    }
+
+    private void add(long lat, TimeUnit unit)
+    {
+        latency.update(lat, unit);
+        long microlat = unit.toMicros(lat);
+        totalLatency.inc(microlat);
+        totalLatencyHistogram.add(microlat);
+        recentLatencyHistogram.add(microlat);
     }
 
     public void release()

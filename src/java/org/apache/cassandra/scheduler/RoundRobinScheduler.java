@@ -74,7 +74,7 @@ public class RoundRobinScheduler implements IRequestScheduler
         logger.info("Started the RoundRobin Request Scheduler");
     }
 
-    public void queue(Thread t, String id, long timeoutMS) throws TimeoutException
+    public void queue(Thread t, String id, long timeoutNanos) throws TimeoutException
     {
         WeightedQueue weightedQueue = getWeightedQueue(id);
 
@@ -83,7 +83,7 @@ public class RoundRobinScheduler implements IRequestScheduler
             queueSize.release();
             try
             {
-                weightedQueue.put(t, timeoutMS);
+                weightedQueue.put(t, timeoutNanos);
                 // the scheduler will release us when a slot is available
             }
             catch (TimeoutException e)

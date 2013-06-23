@@ -141,7 +141,7 @@ public class OutboundTcpConnection extends Thread
                     break;
                 continue;
             }
-            if (qm.timestamp < System.currentTimeMillis() - m.getTimeout())
+            if (qm.timestamp < System.nanoTime() - m.getTimeout())
                 dropped.incrementAndGet();
             else if (socket != null || connect())
                 writeConnected(qm);
@@ -237,13 +237,17 @@ public class OutboundTcpConnection extends Thread
         out.writeInt(MessagingService.PROTOCOL_MAGIC);
 
         if (targetVersion < MessagingService.VERSION_20)
+        {
             out.writeUTF(String.valueOf(id));
+            // int cast cuts off the high-order half of the nanotime, which we can assume remains
+            // the same between now and when the recipient reconstructs it.
+            out.writeInt((int) TimeUnit.NANOSECONDS.toMillis(timestamp));
+        }
         else
+        {
             out.writeInt(id);
-
-        // int cast cuts off the high-order half of the timestamp, which we can assume remains
-        // the same between now and when the recipient reconstructs it.
-        out.writeInt((int) timestamp);
+            out.writeLong(timestamp);
+        }
         message.serialize(out, targetVersion);
     }
 
@@ -288,7 +292,7 @@ public class OutboundTcpConnection extends Thread
         targetVersion = MessagingService.instance().getVersion(poolReference.endPoint());
 
         long start = System.nanoTime();
-        long timeout = TimeUnit.MILLISECONDS.toNanos(DatabaseDescriptor.getRpcTimeout());
+        long timeout = DatabaseDescriptor.getRpcTimeout();
         while (System.nanoTime() - start < timeout)
         {
             try
@@ -365,7 +369,7 @@ public class OutboundTcpConnection extends Thread
         while (true)
         {
             QueuedMessage qm = backlog.peek();
-            if (qm == null || qm.timestamp >= System.currentTimeMillis() - qm.message.getTimeout())
+            if (qm == null || qm.timestamp >= System.nanoTime() - qm.message.getTimeout())
                 break;
 
             QueuedMessage qm2 = backlog.poll();
@@ -394,7 +398,7 @@ public class OutboundTcpConnection extends Thread
         {
             this.message = message;
             this.id = id;
-            this.timestamp = System.currentTimeMillis();
+            this.timestamp = System.nanoTime();
         }
 
         boolean shouldRetry()

@@ -53,7 +53,7 @@ public class ExpiringMap<K, V>
 
         private boolean isReadyToDieAt(long atNano)
         {
-            return atNano - createdAt > TimeUnit.MILLISECONDS.toNanos(timeout);
+            return atNano - createdAt > timeout;
         }
     }
 
@@ -100,7 +100,7 @@ public class ExpiringMap<K, V>
                 logger.trace("Expired {} entries", n);
             }
         };
-        service.scheduleWithFixedDelay(runnable, defaultExpiration / 2, defaultExpiration / 2, TimeUnit.MILLISECONDS);
+        service.scheduleWithFixedDelay(runnable, defaultExpiration / 2, defaultExpiration / 2, TimeUnit.MICROSECONDS);
     }
 
     public void shutdownBlocking()
@@ -108,7 +108,7 @@ public class ExpiringMap<K, V>
         service.shutdown();
         try
         {
-            service.awaitTermination(defaultExpiration * 2, TimeUnit.MILLISECONDS);
+            service.awaitTermination(defaultExpiration * 2, TimeUnit.MICROSECONDS);
         }
         catch (InterruptedException e)
         {

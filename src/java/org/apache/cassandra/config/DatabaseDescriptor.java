@@ -22,6 +22,7 @@ import java.io.FileFilter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -679,62 +680,62 @@ public class DatabaseDescriptor
 
     public static long getRpcTimeout()
     {
-        return conf.request_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.request_timeout_in_micors);
     }
 
-    public static void setRpcTimeout(Long timeOutInMillis)
+    public static void setRpcTimeout(Long timeoutInMicros)
     {
-        conf.request_timeout_in_ms = timeOutInMillis;
+        conf.request_timeout_in_micors = timeoutInMicros;
     }
 
     public static long getReadRpcTimeout()
     {
-        return conf.read_request_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.read_request_timeout_in_micros);
     }
 
-    public static void setReadRpcTimeout(Long timeOutInMillis)
+    public static void setReadRpcTimeout(Long timeOutInMicros)
     {
-        conf.read_request_timeout_in_ms = timeOutInMillis;
+        conf.read_request_timeout_in_micros = timeOutInMicros;
     }
 
     public static long getRangeRpcTimeout()
     {
-        return conf.range_request_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.range_request_timeout_in_micros);
     }
 
-    public static void setRangeRpcTimeout(Long timeOutInMillis)
+    public static void setRangeRpcTimeout(Long timeOutInMicros)
     {
-        conf.range_request_timeout_in_ms = timeOutInMillis;
+        conf.range_request_timeout_in_micros = timeOutInMicros;
     }
 
     public static long getWriteRpcTimeout()
     {
-        return conf.write_request_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.write_request_timeout_in_micros);
     }
 
-    public static void setWriteRpcTimeout(Long timeOutInMillis)
+    public static void setWriteRpcTimeout(Long timeOutInMicros)
     {
-        conf.write_request_timeout_in_ms = timeOutInMillis;
+        conf.write_request_timeout_in_micros = timeOutInMicros;
     }
 
     public static long getCasContentionTimeout()
     {
-        return conf.cas_contention_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.cas_contention_timeout_in_micros);
     }
 
     public static void setCasContentionTimeout(Long timeOutInMillis)
     {
-        conf.cas_contention_timeout_in_ms = timeOutInMillis;
+        conf.cas_contention_timeout_in_micros = timeOutInMillis;
     }
 
     public static long getTruncateRpcTimeout()
     {
-        return conf.truncate_request_timeout_in_ms;
+        return TimeUnit.MICROSECONDS.toNanos(conf.truncate_request_timeout_in_micros);
     }
 
-    public static void setTruncateRpcTimeout(Long timeOutInMillis)
+    public static void setTruncateRpcTimeout(Long timeOutInMicros)
     {
-        conf.truncate_request_timeout_in_ms = timeOutInMillis;
+        conf.truncate_request_timeout_in_micros = timeOutInMicros;
     }
 
     public static boolean hasCrossNodeTimeout()

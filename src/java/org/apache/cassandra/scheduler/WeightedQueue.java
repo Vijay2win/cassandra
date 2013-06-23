@@ -55,9 +55,9 @@ class WeightedQueue implements WeightedQueueMBean
         }
     }
 
-    public void put(Thread t, long timeoutMS) throws InterruptedException, TimeoutException
+    public void put(Thread t, long timeoutNanos) throws InterruptedException, TimeoutException
     {
-        if (!queue.offer(new WeightedQueue.Entry(t), timeoutMS, TimeUnit.MILLISECONDS))
+        if (!queue.offer(new WeightedQueue.Entry(t), timeoutNanos, TimeUnit.NANOSECONDS))
             throw new TimeoutException("Failed to acquire request scheduler slot for '" + key + "'");
     }
 

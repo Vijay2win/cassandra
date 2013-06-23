@@ -1763,7 +1763,7 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
             AsyncOneResponse iar = MessagingService.instance().sendRR(msg, remote);
             try
             {
-                iar.get(DatabaseDescriptor.getRpcTimeout(), TimeUnit.MILLISECONDS);
+                iar.get(DatabaseDescriptor.getRpcTimeout(), TimeUnit.NANOSECONDS);
                 return; // done
             }
             catch(TimeoutException e)

@@ -49,7 +49,7 @@ public class TruncateResponseHandler implements IAsyncCallback
 
     public void get() throws TimeoutException
     {
-        long timeout = TimeUnit.MILLISECONDS.toNanos(DatabaseDescriptor.getTruncateRpcTimeout()) - (System.nanoTime() - start);
+        long timeout = DatabaseDescriptor.getTruncateRpcTimeout() - (System.nanoTime() - start);
         boolean success;
         try
         {

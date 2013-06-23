@@ -813,7 +813,7 @@ commands:
           Supported values are:
             - ALWAYS
             - Xpercentile
-            - Xms
+            - Xmicro
             - NONE;
 
         - max_compaction_threshold: The maximum number of SSTables allowed before a

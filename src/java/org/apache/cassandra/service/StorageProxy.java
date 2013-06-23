@@ -211,7 +211,7 @@ public class StorageProxy implements StorageProxyMBean
         CFMetaData metadata = Schema.instance.getCFMetaData(table, cfName);
 
         long start = System.nanoTime();
-        long timeout = TimeUnit.MILLISECONDS.toNanos(DatabaseDescriptor.getCasContentionTimeout());
+        long timeout = DatabaseDescriptor.getCasContentionTimeout();
         while (System.nanoTime() - start < timeout)
         {
             // for simplicity, we'll do a single liveness check at the start of each attempt
@@ -1090,7 +1090,7 @@ public class StorageProxy implements StorageProxyMBean
                 CFMetaData metadata = Schema.instance.getCFMetaData(command.table, command.cfName);
 
                 long start = System.nanoTime();
-                long timeout = TimeUnit.MILLISECONDS.toNanos(DatabaseDescriptor.getCasContentionTimeout());
+                long timeout = DatabaseDescriptor.getCasContentionTimeout();
                 while (true)
                 {
                     Pair<List<InetAddress>, Integer> p = getPaxosParticipants(command.table, command.key);
@@ -1526,7 +1526,7 @@ public class StorageProxy implements StorageProxyMBean
         try
         {
             // wait for as long as possible. timeout-1s if possible.
-            latch.await(DatabaseDescriptor.getRpcTimeout(), TimeUnit.MILLISECONDS);
+            latch.await(DatabaseDescriptor.getRpcTimeout(), TimeUnit.NANOSECONDS);
         }
         catch (InterruptedException ex)
         {
@@ -1791,7 +1791,7 @@ public class StorageProxy implements StorageProxyMBean
 
         public final void run()
         {
-            if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - constructionTime) > DatabaseDescriptor.getTimeout(verb))
+            if ((System.nanoTime() - constructionTime) > DatabaseDescriptor.getTimeout(verb))
             {
                 MessagingService.instance().incrementDroppedMessages(verb);
                 return;
@@ -1820,7 +1820,7 @@ public class StorageProxy implements StorageProxyMBean
 
         public final void run()
         {
-            if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - constructionTime) > DatabaseDescriptor.getTimeout(MessagingService.Verb.MUTATION))
+            if ((System.nanoTime() - constructionTime) > DatabaseDescriptor.getTimeout(MessagingService.Verb.MUTATION))
             {
                 MessagingService.instance().incrementDroppedMessages(MessagingService.Verb.MUTATION);
                 HintRunnable runnable = new HintRunnable(FBUtilities.getBroadcastAddress())
@@ -1907,22 +1907,22 @@ public class StorageProxy implements StorageProxyMBean
     }
 
     public Long getRpcTimeout() { return DatabaseDescriptor.getRpcTimeout(); }
-    public void setRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setRpcTimeout(timeoutInMillis); }
+    public void setRpcTimeout(Long timeoutInNanos) { DatabaseDescriptor.setRpcTimeout(timeoutInNanos); }
 
     public Long getReadRpcTimeout() { return DatabaseDescriptor.getReadRpcTimeout(); }
-    public void setReadRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setReadRpcTimeout(timeoutInMillis); }
+    public void setReadRpcTimeout(Long timeoutInNanos) { DatabaseDescriptor.setReadRpcTimeout(timeoutInNanos); }
 
     public Long getWriteRpcTimeout() { return DatabaseDescriptor.getWriteRpcTimeout(); }
-    public void setWriteRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setWriteRpcTimeout(timeoutInMillis); }
+    public void setWriteRpcTimeout(Long timeoutInNanos) { DatabaseDescriptor.setWriteRpcTimeout(timeoutInNanos); }
 
     public Long getCasContentionTimeout() { return DatabaseDescriptor.getCasContentionTimeout(); }
-    public void setCasContentionTimeout(Long timeoutInMillis) { DatabaseDescriptor.setCasContentionTimeout(timeoutInMillis); }
+    public void setCasContentionTimeout(Long timeoutInNanos) { DatabaseDescriptor.setCasContentionTimeout(timeoutInNanos); }
 
     public Long getRangeRpcTimeout() { return DatabaseDescriptor.getRangeRpcTimeout(); }
-    public void setRangeRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setRangeRpcTimeout(timeoutInMillis); }
+    public void setRangeRpcTimeout(Long timeoutInNanos) { DatabaseDescriptor.setRangeRpcTimeout(timeoutInNanos); }
 
     public Long getTruncateRpcTimeout() { return DatabaseDescriptor.getTruncateRpcTimeout(); }
-    public void setTruncateRpcTimeout(Long timeoutInMillis) { DatabaseDescriptor.setTruncateRpcTimeout(timeoutInMillis); }
+    public void setTruncateRpcTimeout(Long timeoutInNanos) { DatabaseDescriptor.setTruncateRpcTimeout(timeoutInNanos); }
     public void reloadTriggerClass() { TriggerExecutor.instance.reloadClasses(); }
 
     

@@ -17,6 +17,8 @@
  */
 package org.apache.cassandra.config;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.cassandra.config.EncryptionOptions.ClientEncryptionOptions;
 import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions;
 import org.apache.cassandra.io.util.NativeAllocator;
@@ -52,17 +54,17 @@ public class Config
     public String initial_token;
     public Integer num_tokens = 1;
 
-    public volatile Long request_timeout_in_ms = new Long(10000);
+    public volatile Long request_timeout_in_micors = TimeUnit.SECONDS.toNanos(10);
 
-    public Long read_request_timeout_in_ms = new Long(10000);
+    public Long read_request_timeout_in_micros = TimeUnit.SECONDS.toNanos(10);
 
-    public Long range_request_timeout_in_ms = new Long(10000);
+    public Long range_request_timeout_in_micros = TimeUnit.SECONDS.toNanos(10);
 
-    public Long write_request_timeout_in_ms = new Long(10000);
+    public Long write_request_timeout_in_micros = TimeUnit.SECONDS.toNanos(10);
 
-    public Long cas_contention_timeout_in_ms = new Long(1000);
+    public Long cas_contention_timeout_in_micros = TimeUnit.SECONDS.toNanos(1);
 
-    public Long truncate_request_timeout_in_ms = new Long(60000);
+    public Long truncate_request_timeout_in_micros = TimeUnit.SECONDS.toNanos(60);
 
     public Integer streaming_socket_timeout_in_ms = new Integer(0);
 

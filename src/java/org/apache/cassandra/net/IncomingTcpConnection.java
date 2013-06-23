@@ -21,6 +21,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,11 +140,20 @@ public class IncomingTcpConnection extends Thread
         else
             id = input.readInt();
 
-        long timestamp = System.currentTimeMillis();
-        // make sure to readInt, even if cross_node_to is not enabled
-        int partial = input.readInt();
-        if (DatabaseDescriptor.hasCrossNodeTimeout())
-            timestamp = (timestamp & 0xFFFFFFFF00000000L) | (((partial & 0xFFFFFFFFL) << 2) >> 2);
+        long timestamp;
+        if (version < MessagingService.VERSION_20)
+        {
+            timestamp = System.currentTimeMillis();
+            // make sure to readInt, even if cross_node_to is not enabled
+            int partial = input.readInt();
+            if (DatabaseDescriptor.hasCrossNodeTimeout())
+                timestamp = (timestamp & 0xFFFFFFFF00000000L) | (((partial & 0xFFFFFFFFL) << 2) >> 2);
+            timestamp = TimeUnit.MILLISECONDS.toNanos(timestamp);
+        }
+        else
+        {
+            timestamp = input.readLong();
+        }
 
         MessageIn message = MessageIn.read(input, version, id);
         if (message == null)

@@ -29,9 +29,9 @@ public interface IRequestScheduler
      *
      * @param t Thread handing the request
      * @param id    Scheduling parameter, an id to distinguish profiles (users/keyspace)
-     * @param timeoutMS   The max time in milliseconds to spend blocking for a slot
+     * @param timeoutNanos   The max time in nanoseconds to spend blocking for a slot
      */
-    public void queue(Thread t, String id, long timeoutMS) throws TimeoutException;
+    public void queue(Thread t, String id, long timeoutNanos) throws TimeoutException;
 
     /**
      * A convenience method for indicating when a particular request has completed

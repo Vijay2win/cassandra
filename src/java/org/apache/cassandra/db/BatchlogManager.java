@@ -61,7 +61,7 @@ public class BatchlogManager implements BatchlogManagerMBean
 {
     private static final String MBEAN_NAME = "org.apache.cassandra.db:type=BatchlogManager";
     private static final int VERSION = MessagingService.VERSION_12;
-    private static final long TIMEOUT = 2 * DatabaseDescriptor.getWriteRpcTimeout();
+    private static final long TIMEOUT = TimeUnit.NANOSECONDS.toMillis(2 * DatabaseDescriptor.getWriteRpcTimeout());
     private static final long REPLAY_INTERVAL = 60 * 1000; // milliseconds
 
     private static final Logger logger = LoggerFactory.getLogger(BatchlogManager.class);

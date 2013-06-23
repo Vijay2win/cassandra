@@ -31,7 +31,7 @@ public class NoScheduler implements IRequestScheduler
 
     public NoScheduler() {}
 
-    public void queue(Thread t, String id, long timeoutMS) {}
+    public void queue(Thread t, String id, long timeoutNanos) {}
 
     public void release() {}
 }

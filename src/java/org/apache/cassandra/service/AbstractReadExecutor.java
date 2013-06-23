@@ -180,7 +180,7 @@ public abstract class AbstractReadExecutor
             if (cfs.sampleLatency > command.getTimeout())
                 return;
 
-            if (!handler.await(cfs.sampleLatency, TimeUnit.MILLISECONDS))
+            if (!handler.await(cfs.sampleLatency, TimeUnit.NANOSECONDS))
             {
                 InetAddress endpoint = unfiltered.get(handler.endpoints.size());
 

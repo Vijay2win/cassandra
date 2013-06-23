@@ -55,7 +55,7 @@ public abstract class AbstractPaxosCallback<T> implements IAsyncCallback<T>
     {
         try
         {
-            if (!latch.await(DatabaseDescriptor.getWriteRpcTimeout(), TimeUnit.MILLISECONDS))
+            if (!latch.await(DatabaseDescriptor.getWriteRpcTimeout(), TimeUnit.NANOSECONDS))
                 throw new WriteTimeoutException(WriteType.CAS, ConsistencyLevel.SERIAL, getResponseCount(), targets);
         }
         catch (InterruptedException ex)

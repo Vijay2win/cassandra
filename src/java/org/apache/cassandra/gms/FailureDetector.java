@@ -23,6 +23,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
@@ -260,7 +262,7 @@ class ArrivalWindow
     // in the event of a long partition, never record an interval longer than the rpc timeout,
     // since if a host is regularly experiencing connectivity problems lasting this long we'd
     // rather mark it down quickly instead of adapting
-    private final double MAX_INTERVAL_IN_MS = DatabaseDescriptor.getRpcTimeout();
+    private final double MAX_INTERVAL_IN_MS = TimeUnit.MICROSECONDS.toMillis(DatabaseDescriptor.getRpcTimeout());
 
     ArrivalWindow(int size)
     {

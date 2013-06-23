@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
@@ -305,10 +306,10 @@ public final class CFMetaData
                         throw new ConfigurationException("PERCENTILE should be between 0 and 100");
                     return new SpeculativeRetry(RetryType.PERCENTILE, value);
                 }
-                else if (name.endsWith("MS"))
+                else if (name.endsWith("MICROS"))
                 {
-                    long value = Long.parseLong(name.substring(0, name.length() - 2));
-                    return new SpeculativeRetry(RetryType.CUSTOM, value);
+                    long value = Long.parseLong(name.substring(0, name.length() - 6));
+                    return new SpeculativeRetry(RetryType.CUSTOM, TimeUnit.MICROSECONDS.toNanos(value));
                 }
                 else
                 {
@@ -339,7 +340,7 @@ public final class CFMetaData
             case PERCENTILE:
                 return value + "PERCENTILE";
             case CUSTOM:
-                return value + "MS";
+                return value + "micros";
             default:
                 return type.toString();
             }

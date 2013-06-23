@@ -1448,11 +1448,11 @@ public class CassandraServer implements Cassandra.Iface
     /**
      * Schedule the current thread for access to the required services
      */
-    private void schedule(long timeoutMS) throws UnavailableException
+    private void schedule(long timeoutNanos) throws UnavailableException
     {
         try
         {
-            requestScheduler.queue(Thread.currentThread(), state().getSchedulingValue(), timeoutMS);
+            requestScheduler.queue(Thread.currentThread(), state().getSchedulingValue(), timeoutNanos);
         }
         catch (TimeoutException e)
         {

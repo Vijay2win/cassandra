@@ -17,34 +17,40 @@
  */
 package org.apache.cassandra.cache;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.cliffc.high_scale_lib.NonBlockingHashSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.ColumnFamilyType;
+import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.compaction.CompactionInfo;
 import org.apache.cassandra.db.compaction.CompactionManager;
 import org.apache.cassandra.db.compaction.OperationType;
 import org.apache.cassandra.db.marshal.BytesType;
-import org.apache.cassandra.db.ColumnFamilyStore;
-import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.io.FSWriteError;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.LengthAvailableInputStream;
 import org.apache.cassandra.io.util.SequentialWriter;
 import org.apache.cassandra.service.CacheService;
 import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.Pair;
+import org.cliffc.high_scale_lib.NonBlockingHashSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K, V>
 {
@@ -57,7 +63,7 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
     protected final CacheService.CacheType cacheType;
 
     private CacheSerializer<K, V> cacheLoader;
-    private static final String CURRENT_VERSION = "b";
+    private static final String CURRENT_VERSION = "c";
 
     public AutoSavingCache(ICache<K, V> cache, CacheService.CacheType cacheType, CacheSerializer<K, V> cacheloader)
     {
@@ -104,32 +110,12 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
         int count = 0;
         long start = System.nanoTime();
 
-        // old cache format that only saves keys
-        File path = getCachePath(cfs.keyspace.getName(), cfs.name, null);
+        // old row cache format that only saves keys
+        File path = getCachePath(cfs.keyspace.getName(), cfs.name, "b");
         if (path.exists())
         {
-            DataInputStream in = null;
-            try
-            {
-                logger.info(String.format("reading saved cache %s", path));
-                in = new DataInputStream(new LengthAvailableInputStream(new BufferedInputStream(new FileInputStream(path)), path.length()));
-                Set<ByteBuffer> keys = new HashSet<ByteBuffer>();
-                while (in.available() > 0)
-                {
-                    keys.add(ByteBufferUtil.readWithLength(in));
-                    count++;
-                }
-                cacheLoader.load(keys, cfs);
-            }
-            catch (Exception e)
-            {
-                logger.debug(String.format("harmless error reading saved cache %s fully, keys loaded so far: %d", path.getAbsolutePath(), count), e);
-                return count;
-            }
-            finally
-            {
-                FileUtils.closeQuietly(in);
-            }
+            path.delete();
+            return 0;
         }
 
         // modern format, allows both key and value (so key cache load can be purely sequential)
@@ -186,7 +172,7 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
 
         protected Writer(int keysToSave)
         {
-            if (keysToSave >= getKeySet().size())
+            if (keysToSave >= size())
                 keys = getKeySet();
             else
                 keys = hotKeySet(keysToSave);
@@ -314,8 +300,5 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
         void serialize(K key, DataOutput out) throws IOException;
 
         Future<Pair<K, V>> deserialize(DataInputStream in, ColumnFamilyStore cfs) throws IOException;
-
-        @Deprecated
-        void load(Set<ByteBuffer> buffer, ColumnFamilyStore cfs);
     }
 }

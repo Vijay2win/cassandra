@@ -26,13 +26,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import junit.framework.Assert;
+
 import org.junit.Test;
 
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.db.ColumnFamily;
 
+import com.google.common.collect.Sets;
 import com.googlecode.concurrentlinkedhashmap.Weighers;
 import org.apache.cassandra.db.TreeMapBackedSortedColumns;
+import org.apache.cassandra.db.columniterator.IdentityQueryFilter;
+import org.apache.cassandra.db.filter.IDiskAtomFilter;
+import org.apache.cassandra.db.filter.QueryFilter;
 
 import static org.apache.cassandra.Util.column;
 import static org.junit.Assert.*;
@@ -48,7 +54,7 @@ public class CacheProviderTest extends SchemaLoader
     private String keyspaceName = "Keyspace1";
     private String cfName = "Standard1";
 
-    private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
+    private <T> void simpleCase(T cf, ICache<MeasureableString, T> cache)
     {
         cache.put(key1, cf);
         assert cache.get(key1) != null;
@@ -62,15 +68,19 @@ public class CacheProviderTest extends SchemaLoader
         assertEquals(CAPACITY, cache.size());
     }
 
-    private void assertDigests(IRowCacheEntry one, ColumnFamily two)
+    private <T> void assertDigests(T one, T two)
     {
         // CF does not implement .equals
-        assert one instanceof ColumnFamily;
-        assert ColumnFamily.digest((ColumnFamily)one).equals(ColumnFamily.digest(two));
+        if (two instanceof QueryCacheValue)
+            assert ColumnFamily.digest(((QueryCacheValue)one).data).equals(ColumnFamily.digest(((QueryCacheValue)two).data));
+        else if (one instanceof ColumnFamily)
+            assert ColumnFamily.digest((ColumnFamily)one).equals(ColumnFamily.digest((ColumnFamily)two));
+        else
+            fail();
     }
 
     // TODO this isn't terribly useful
-    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
+    private <T> void concurrentCase(final T cf, final ICache<MeasureableString, T> cache) throws InterruptedException
     {
         Runnable runable = new Runnable()
         {
@@ -107,23 +117,33 @@ public class CacheProviderTest extends SchemaLoader
     }
 
     @Test
-    public void testHeapCache() throws InterruptedException
+    public void testSerializingCache() throws InterruptedException
     {
-        ICache<MeasureableString, IRowCacheEntry> cache = ConcurrentLinkedHashCache.create(CAPACITY, Weighers.<MeasureableString, IRowCacheEntry>entrySingleton());
-        ColumnFamily cf = createCF();
+        ICache<MeasureableString, QueryCacheValue> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory> singleton(), new QueryCacheValue.QueryCacheValueSerializer());
+        QueryCacheValue cf = new QueryCacheValue(Sets.<IDiskAtomFilter> newHashSet(new IdentityQueryFilter()), createCF());
         simpleCase(cf, cache);
         concurrentCase(cf, cache);
     }
 
     @Test
-    public void testSerializingCache() throws InterruptedException
+    public void testQueryCache() throws InterruptedException
     {
-        ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
-        ColumnFamily cf = createCF();
-        simpleCase(cf, cache);
-        concurrentCase(cf, cache);
+        QueryCache cache = QueryCache.create(1024 * 1024 * 1024);
+        cache.put(createQK("key1"), createCF());
+        cache.put(createQK("key2"), createCF());
+        cache.put(createQK("key3"), createCF());
+
+        System.out.println(cache.size());
+        Assert.assertEquals(createCF(), cache.get(createQK("key1")));
+        Assert.assertEquals(createCF(), cache.get(createQK("key2")));
+        Assert.assertEquals(createCF(), cache.get(createQK("key3")));
     }
-    
+
+    private QueryCacheKey createQK(String string)
+    {
+       return new QueryCacheKey(new UUID(0L, 0L), string.getBytes(), new IdentityQueryFilter());
+    }
+
     @Test
     public void testKeys()
     {

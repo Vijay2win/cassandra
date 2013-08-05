@@ -1167,6 +1167,11 @@ public class DatabaseDescriptor
         return conf.key_cache_keys_to_save;
     }
 
+    public static boolean isQueryCache()
+    {
+        return conf.query_cache;
+    }
+
     public static long getRowCacheSizeInMB()
     {
         return conf.row_cache_size_in_mb;

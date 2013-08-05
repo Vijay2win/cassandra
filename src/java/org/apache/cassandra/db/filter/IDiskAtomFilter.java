@@ -101,7 +101,13 @@ public interface IDiskAtomFilter
 
         public IDiskAtomFilter deserialize(DataInput in, int version) throws IOException
         {
-            throw new UnsupportedOperationException();
+            int type = in.readInt();
+            if (type == 0)
+                return SliceQueryFilter.serializer.deserialize(in, version);
+            else if (type == 1)
+                return NamesQueryFilter.serializer.deserialize(in, version);
+            else
+                throw new UnsupportedOperationException();
         }
 
         public IDiskAtomFilter deserialize(DataInput in, int version, AbstractType<?> comparator) throws IOException
@@ -120,11 +126,16 @@ public interface IDiskAtomFilter
 
         public long serializedSize(IDiskAtomFilter filter, int version)
         {
+            return serializedSize(filter, TypeSizes.NATIVE, version);
+        }
+
+        public long serializedSize(IDiskAtomFilter filter, TypeSizes sizes, int version)
+        {
             int size = 1;
             if (filter instanceof SliceQueryFilter)
-                size += SliceQueryFilter.serializer.serializedSize((SliceQueryFilter)filter, version);
+                size += SliceQueryFilter.serializer.serializedSize((SliceQueryFilter)filter, sizes, version);
             else
-                size += NamesQueryFilter.serializer.serializedSize((NamesQueryFilter)filter, version);
+                size += NamesQueryFilter.serializer.serializedSize((NamesQueryFilter)filter, sizes, version);
             return size;
         }
     }

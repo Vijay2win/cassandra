@@ -27,6 +27,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
+
+import com.google.common.base.Objects;
 import com.google.common.collect.AbstractIterator;
 
 import org.apache.cassandra.db.*;
@@ -229,9 +231,12 @@ public class NamesQueryFilter implements IDiskAtomFilter
             return new NamesQueryFilter(columns, countCQL3Rows);
         }
 
-        public long serializedSize(NamesQueryFilter f, int version)
+        public long serializedSize(NamesQueryFilter f, int version) {
+            return serializedSize(f, TypeSizes.NATIVE, version);
+        }
+        
+        public long serializedSize(NamesQueryFilter f, TypeSizes sizes, int version)
         {
-            TypeSizes sizes = TypeSizes.NATIVE;
             int size = sizes.sizeof(f.columns.size());
             for (ByteBuffer cName : f.columns)
             {
@@ -241,5 +246,20 @@ public class NamesQueryFilter implements IDiskAtomFilter
             size += sizes.sizeof(f.countCQL3Rows);
             return size;
         }
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (!(obj instanceof NamesQueryFilter))
+            return false;
+        NamesQueryFilter other = (NamesQueryFilter) obj; 
+        return columns.equals(other.columns);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hashCode(columns);
     }
 }

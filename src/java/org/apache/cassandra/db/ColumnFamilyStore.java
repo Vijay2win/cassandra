@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.cache.IRowCacheEntry;
+import org.apache.cassandra.cache.QueryCacheKey;
 import org.apache.cassandra.cache.RowCacheKey;
 import org.apache.cassandra.cache.RowCacheSentinel;
 import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutor;
@@ -45,6 +46,7 @@ import org.apache.cassandra.config.CFMetaData.SpeculativeRetry;
 import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.db.columniterator.IdentityQueryFilter;
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.commitlog.ReplayPosition;
@@ -1210,34 +1212,26 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
      */
     private ColumnFamily getThroughCache(UUID cfId, QueryFilter filter)
     {
-        assert isRowCacheEnabled()
-               : String.format("Row cache is not enabled on column family [" + name + "]");
+        assert isRowCacheEnabled() : String.format("Row cache is not enabled on column family [" + name + "]");
 
-        RowCacheKey key = new RowCacheKey(cfId, filter.key);
-
-        // attempt a sentinel-read-cache sequence.  if a write invalidates our sentinel, we'll return our
-        // (now potentially obsolete) data, but won't cache it. see CASSANDRA-3862
+        IDiskAtomFilter ifilter = DatabaseDescriptor.isQueryCache() ? filter.filter : new IdentityQueryFilter();
+        QueryCacheKey key = new QueryCacheKey(cfId, filter.key.key, ifilter);
         IRowCacheEntry cached = CacheService.instance.rowCache.get(key);
         if (cached != null)
         {
-            if (cached instanceof RowCacheSentinel)
-            {
-                // Some other read is trying to cache the value, just do a normal non-caching read
-                Tracing.trace("Row cache miss (race)");
-                return getTopLevelColumns(filter, Integer.MIN_VALUE);
-            }
             Tracing.trace("Row cache hit");
             return (ColumnFamily) cached;
         }
 
         Tracing.trace("Row cache miss");
+        QueryFilter query = DatabaseDescriptor.isQueryCache() ? filter : QueryFilter.getIdentityFilter(filter.key, name, filter.timestamp);
+        // attempt a sentinel-read-cache sequence.  if a write invalidates our sentinel, we'll return our
+        // (now potentially obsolete) data, but won't cache it. see CASSANDRA-3862
         RowCacheSentinel sentinel = new RowCacheSentinel();
         boolean sentinelSuccess = CacheService.instance.rowCache.putIfAbsent(key, sentinel);
-
         try
         {
-            ColumnFamily data = getTopLevelColumns(QueryFilter.getIdentityFilter(filter.key, name, filter.timestamp),
-                                                   Integer.MIN_VALUE);
+            ColumnFamily data = getTopLevelColumns(query, Integer.MIN_VALUE);
             if (sentinelSuccess && data != null)
                 CacheService.instance.rowCache.replace(key, sentinel, data);
 
@@ -1473,10 +1467,10 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
     {
         Collection<Range<Token>> ranges = StorageService.instance.getLocalRanges(keyspace.getName());
 
-        for (RowCacheKey key : CacheService.instance.rowCache.getKeySet())
+        for (QueryCacheKey key : CacheService.instance.rowCache.getKeySet())
         {
             DecoratedKey dk = partitioner.decorateKey(ByteBuffer.wrap(key.key));
-            if (key.cfId == metadata.cfId && !Range.isInRanges(dk.token, ranges))
+            if (key.cfid == metadata.cfId && !Range.isInRanges(dk.token, ranges))
                 invalidateCachedRow(dk);
         }
     }
@@ -1810,8 +1804,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         if (!isRowCacheEnabled())
             return null;
 
-        IRowCacheEntry cached = CacheService.instance.rowCache.getInternal(new RowCacheKey(metadata.cfId, key));
-        return cached == null || cached instanceof RowCacheSentinel ? null : (ColumnFamily) cached;
+        return (ColumnFamily) CacheService.instance.rowCache.getInternal(new QueryCacheKey(metadata.cfId, key.key, new IdentityQueryFilter()));
     }
 
     /**
@@ -1819,12 +1812,12 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
      */
     public boolean containsCachedRow(DecoratedKey key)
     {
-        return CacheService.instance.rowCache.getCapacity() != 0 && CacheService.instance.rowCache.containsKey(new RowCacheKey(metadata.cfId, key));
+        return CacheService.instance.rowCache.getCapacity() != 0 && CacheService.instance.rowCache.containsKey(new QueryCacheKey(metadata.cfId, key.key, new IdentityQueryFilter()));
     }
 
     public void invalidateCachedRow(RowCacheKey key)
     {
-        CacheService.instance.rowCache.remove(key);
+        CacheService.instance.rowCache.remove(new QueryCacheKey(metadata.cfId, ByteBuffer.wrap(key.key), new IdentityQueryFilter()));
     }
 
     public void invalidateCachedRow(DecoratedKey key)
@@ -1950,11 +1943,9 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
                 SystemKeyspace.saveTruncationRecord(ColumnFamilyStore.this, truncatedAt, replayAfter);
 
                 logger.debug("cleaning out row cache");
-                for (RowCacheKey key : CacheService.instance.rowCache.getKeySet())
-                {
-                    if (key.cfId == metadata.cfId)
+                for (QueryCacheKey key : CacheService.instance.rowCache.getKeySet())
+                    if (key.cfid == metadata.cfId)
                         CacheService.instance.rowCache.remove(key);
-                }
             }
         };
 

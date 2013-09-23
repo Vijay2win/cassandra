@@ -45,6 +45,13 @@ public class RowCacheKey implements CacheKey, Comparable<RowCacheKey>
         assert this.key != null;
     }
 
+    public RowCacheKey(UUID cfId, byte[] key)
+    {
+        this.cfId = cfId;
+        this.key = key;
+        assert this.key != null;
+    }
+
     public Pair<String, String> getPathInfo()
     {
         return Schema.instance.getCF(cfId);

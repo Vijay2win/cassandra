@@ -93,13 +93,4 @@ public class ObjectSizeTest
         long size2 = meter.measureDeep(key) - meter.measureDeep(id);
         Assert.assertEquals(size, size2);
     }
-
-    @Test
-    public void testRowCacheSentinel()
-    {
-        RowCacheSentinel sentinel = new RowCacheSentinel(123);
-        long size = sentinel.memorySize();
-        long size2 = meter.measureDeep(sentinel);
-        Assert.assertEquals(size, size2);
-    }
 }

@@ -41,6 +41,8 @@ import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.io.util.FileDataInput;
 import org.apache.cassandra.tracing.Tracing;
 
+import com.google.common.base.Objects;
+
 public class SliceQueryFilter implements IDiskAtomFilter
 {
     private static final Logger logger = LoggerFactory.getLogger(SliceQueryFilter.class);
@@ -332,10 +334,12 @@ public class SliceQueryFilter implements IDiskAtomFilter
             return new SliceQueryFilter(slices, reversed, count, compositesToGroup);
         }
 
-        public long serializedSize(SliceQueryFilter f, int version)
+        public long serializedSize(SliceQueryFilter f, int version) {
+            return serializedSize(f, TypeSizes.NATIVE, version);
+        }
+        
+        public long serializedSize(SliceQueryFilter f, TypeSizes sizes, int version)
         {
-            TypeSizes sizes = TypeSizes.NATIVE;
-
             int size = 0;
             size += sizes.sizeof(f.slices.length);
             for (ColumnSlice slice : f.slices)
@@ -346,5 +350,20 @@ public class SliceQueryFilter implements IDiskAtomFilter
             size += sizes.sizeof(f.compositesToGroup);
             return size;
         }
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (!(obj instanceof SliceQueryFilter))
+            return false;
+        SliceQueryFilter that = (SliceQueryFilter) obj;
+        return Arrays.equals(slices, that.slices) && count == that.count && compositesToGroup == that.compositesToGroup;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return 31 + Arrays.hashCode(slices) + Objects.hashCode(count, compositesToGroup);
     }
 }

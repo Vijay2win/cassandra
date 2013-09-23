@@ -46,7 +46,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
     private final ConcurrentLinkedHashMap<K, RefCountedMemory> map;
     private final ISerializer<V> serializer;
 
-    private SerializingCache(long capacity, Weigher<RefCountedMemory> weigher, ISerializer<V> serializer)
+    protected SerializingCache(long capacity, Weigher<RefCountedMemory> weigher, ISerializer<V> serializer)
     {
         this.serializer = serializer;
 

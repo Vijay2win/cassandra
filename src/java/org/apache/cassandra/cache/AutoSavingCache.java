@@ -18,7 +18,6 @@
 package org.apache.cassandra.cache;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
@@ -30,20 +29,19 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.ColumnFamilyType;
+import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.compaction.CompactionInfo;
 import org.apache.cassandra.db.compaction.CompactionManager;
 import org.apache.cassandra.db.compaction.OperationType;
 import org.apache.cassandra.db.marshal.BytesType;
-import org.apache.cassandra.db.ColumnFamilyStore;
-import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.io.FSWriteError;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.LengthAvailableInputStream;
 import org.apache.cassandra.io.util.SequentialWriter;
 import org.apache.cassandra.service.CacheService;
 import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.Pair;
 
 public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K, V>
@@ -57,7 +55,7 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
     protected final CacheService.CacheType cacheType;
 
     private CacheSerializer<K, V> cacheLoader;
-    private static final String CURRENT_VERSION = "b";
+    private static final String CURRENT_VERSION = "c";
 
     public AutoSavingCache(ICache<K, V> cache, CacheService.CacheType cacheType, CacheSerializer<K, V> cacheloader)
     {
@@ -158,7 +156,7 @@ public class AutoSavingCache<K extends CacheKey, V> extends InstrumentingCache<K
 
         protected Writer(int keysToSave)
         {
-            if (keysToSave >= getKeySet().size())
+            if (keysToSave >= size())
                 keys = getKeySet();
             else
                 keys = hotKeySet(keysToSave);

@@ -34,6 +34,7 @@ public class QueryFilter
     public final String cfName;
     public final IDiskAtomFilter filter;
     public final long timestamp;
+    private UUID cfID; // optional id
 
     public QueryFilter(DecoratedKey key, String cfName, IDiskAtomFilter filter, long timestamp)
     {
@@ -41,6 +42,16 @@ public class QueryFilter
         this.cfName = cfName;
         this.filter = filter;
         this.timestamp = timestamp;
+    }
+
+    public UUID getCfID()
+    {
+        return cfID;
+    }
+
+    public void setCfID(UUID cfID)
+    {
+        this.cfID = cfID;
     }
 
     public OnDiskAtomIterator getMemtableColumnIterator(Memtable memtable)

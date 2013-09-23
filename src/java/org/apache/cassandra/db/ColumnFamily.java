@@ -494,6 +494,11 @@ public abstract class ColumnFamily implements Iterable<Column>, IRowCacheEntry
         return ByteBuffer.wrap(out.getData(), 0, out.getLength());
     }
 
+    public boolean hasEntry()
+    {
+        return true;
+    }
+
     public abstract static class Factory <T extends ColumnFamily>
     {
         /**

@@ -36,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.zip.Checksum;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.AbstractIterator;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -679,5 +680,12 @@ public class FBUtilities
         File historyDir = new File(System.getProperty("user.home"), ".cassandra");
         FileUtils.createDirectory(historyDir);
         return historyDir;
+    }
+
+    public static boolean equal(Object obj, Object other)
+    {
+        if ((obj != null && other != null) || (obj == null && other == null))
+            return Objects.equal(other, obj);
+        return false;
     }
 }

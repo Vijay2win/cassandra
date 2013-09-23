@@ -95,7 +95,7 @@ public class StatusLogger
 
         // Global key/row cache information
         AutoSavingCache<KeyCacheKey, RowIndexEntry> keyCache = CacheService.instance.keyCache;
-        AutoSavingCache<RowCacheKey, IRowCacheEntry> rowCache = CacheService.instance.rowCache;
+        AutoSavingCache<QueryCacheKey, IRowCacheEntry> rowCache = CacheService.instance.rowCache;
 
         int keyCacheKeysToSave = DatabaseDescriptor.getKeyCacheKeysToSave();
         int rowCacheKeysToSave = DatabaseDescriptor.getRowCacheKeysToSave();

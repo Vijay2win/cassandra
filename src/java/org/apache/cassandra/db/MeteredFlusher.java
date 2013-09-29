@@ -40,7 +40,7 @@ public class MeteredFlusher implements Runnable
         // first, find how much memory non-active memtables are using
         long flushingBytes = Memtable.activelyMeasuring == null
                            ? 0
-                           : Memtable.activelyMeasuring.getMemtableThreadSafe().getLiveSize();
+                           : Memtable.activelyMeasuring.getDataTracker().getReadOnlyMemtable().getLiveSize();
         flushingBytes += countFlushingBytes();
         if (flushingBytes > 0)
             logger.debug("Currently flushing {} bytes of {} max", flushingBytes, totalMemtableBytesAllowed);

@@ -20,6 +20,7 @@ package org.apache.cassandra.db;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Function;
@@ -87,6 +88,7 @@ public class Memtable
 
     volatile static ColumnFamilyStore activelyMeasuring;
 
+    private final AtomicInteger references = new AtomicInteger(1);
     private final AtomicLong currentSize = new AtomicLong(0);
     private final AtomicLong currentOperations = new AtomicLong(0);
 
@@ -148,6 +150,29 @@ public class Memtable
         return currentOperations.get();
     }
 
+    public boolean acquireReference()
+    {
+        while (true)
+        {
+            int n = references.get();
+            if (n <= 0)
+                return false;
+            if (references.compareAndSet(n, n + 1))
+                return true;
+        }
+    }
+
+    public void releaseReference()
+    {
+        references.decrementAndGet();
+        assert references.get() >= 0 : "Reference counter " +  references.get() + " for " + cfs.name;
+    }
+
+    public int getReferenceCount()
+    {
+        return references.get();
+    }
+
     /**
      * Should only be called by ColumnFamilyStore.apply.  NOT a public API.
      * (CFS handles locking to avoid submitting an op
@@ -155,6 +180,7 @@ public class Memtable
     */
     void put(DecoratedKey key, ColumnFamily columnFamily, SecondaryIndexManager.Updater indexer)
     {
+        assert references.get() > 0;
         resolve(key, columnFamily, indexer);
     }
 
@@ -405,7 +431,7 @@ public class Memtable
             try
             {
                 activelyMeasuring = cfs;
-                Memtable memtable = cfs.getMemtableThreadSafe();
+                Memtable memtable = cfs.getDataTracker().getReadOnlyMemtable();
 
                 long start = System.nanoTime();
                 // ConcurrentSkipListMap has cycles, so measureDeep will have to track a reference to EACH object it visits.

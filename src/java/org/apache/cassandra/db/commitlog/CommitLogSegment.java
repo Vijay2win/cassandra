@@ -17,18 +17,17 @@
  */
 package org.apache.cassandra.db.commitlog;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.Checksum;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +38,11 @@ import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.RowMutation;
 import org.apache.cassandra.io.FSWriteError;
-import org.apache.cassandra.io.util.ByteBufferOutputStream;
-import org.apache.cassandra.io.util.ChecksummedOutputStream;
 import org.apache.cassandra.io.util.FileUtils;
-import org.apache.cassandra.net.MessagingService;
-import org.apache.cassandra.utils.PureJavaCrc32;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /*
  * A single commit log file on disk. Manages creation of the file and writing row mutations to disk,
@@ -60,20 +59,23 @@ public class CommitLogSegment
     // The commit log entry overhead in bytes (int: length + long: head checksum + long: tail checksum)
     static final int ENTRY_OVERHEAD_SIZE = 4 + 8 + 8;
 
+    private AtomicInteger position = new AtomicInteger(4); //reserve first 4 bytes.
+    private AtomicInteger lastSynced = new AtomicInteger(0);
     // cache which cf is dirty in this segment to avoid having to lookup all ReplayPositions to decide if we can delete this segment
-    private final HashMap<UUID, Integer> cfLastWrite = new HashMap<UUID, Integer>();
+    private final LoadingCache<UUID, AtomicInteger> cfLastWrite = CacheBuilder.newBuilder().build(new CacheLoader<UUID, AtomicInteger>()
+    {
+        public AtomicInteger load(UUID key) throws Exception
+        {
+            return new AtomicInteger(0);
+        }
+    });
 
     public final long id;
 
     private final File logFile;
     private final RandomAccessFile logFileAccessor;
 
-    private boolean needsSync = false;
-
     private final MappedByteBuffer buffer;
-    private final Checksum checksum;
-    private final DataOutputStream bufferStream;
-    private boolean closed;
 
     public final CommitLogDescriptor descriptor;
 
@@ -89,6 +91,7 @@ public class CommitLogSegment
     {
         return idBase + nextId.getAndIncrement();
     }
+
     /**
      * Constructs a new segment file.
      *
@@ -126,12 +129,6 @@ public class CommitLogSegment
             logFileAccessor.setLength(DatabaseDescriptor.getCommitLogSegmentSize());
 
             buffer = logFileAccessor.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, DatabaseDescriptor.getCommitLogSegmentSize());
-            checksum = new PureJavaCrc32();
-            bufferStream = new DataOutputStream(new ChecksummedOutputStream(new ByteBufferOutputStream(buffer), checksum));
-            buffer.putInt(CommitLog.END_OF_SEGMENT_MARKER);
-            buffer.position(0);
-
-            needsSync = true;
         }
         catch (IOException e)
         {
@@ -145,7 +142,7 @@ public class CommitLogSegment
     public void discard(boolean deleteFile)
     {
         // TODO shouldn't we close the file when we're done writing to it, which comes (potentially) much earlier than it's eligible for recyling?
-        close();
+        close(deleteFile);
         if (deleteFile)
             FileUtils.deleteWithConfirm(logFile);
     }
@@ -157,13 +154,9 @@ public class CommitLogSegment
      */
     public CommitLogSegment recycle()
     {
-        // writes an end-of-segment marker at the very beginning of the file and closes it
-        buffer.position(0);
-        buffer.putInt(CommitLog.END_OF_SEGMENT_MARKER);
-        buffer.position(0);
-
         try
         {
+            position.set(4); // remember first 4 bytes are reserved.
             sync();
         }
         catch (FSWriteError e)
@@ -172,7 +165,7 @@ public class CommitLogSegment
             throw e;
         }
 
-        close();
+        close(false);
 
         return new CommitLogSegment(getPath());
     }
@@ -182,13 +175,13 @@ public class CommitLogSegment
      */
     public boolean hasCapacityFor(long size)
     {
-        return size <= buffer.remaining();
+        return size <= (buffer.remaining() - position.get());
     }
 
     /**
      * mark all of the column families we're modifying as dirty at this position
      */
-    private void markDirty(RowMutation rowMutation, ReplayPosition repPos)
+    private void markDirty(RowMutation rowMutation, int position)
     {
         for (ColumnFamily columnFamily : rowMutation.getColumnFamilies())
         {
@@ -201,43 +194,26 @@ public class CommitLogSegment
             }
             else
             {
-                markCFDirty(cfm.cfId, repPos.position);
+                markCFDirty(cfm.cfId, position);
             }
         }
     }
 
-   /**
-     * Appends a row mutation onto the commit log.  Requres that hasCapacityFor has already been checked.
-     *
-     * @param   mutation   the mutation to append to the commit log.
-     * @return  the position of the appended mutation
-     */
-    public ReplayPosition write(RowMutation mutation) throws IOException
+    public ByteBuffer allocate(RowMutation mutation, int size)
     {
-        assert !closed;
-        ReplayPosition repPos = getContext();
-        markDirty(mutation, repPos);
-
-        checksum.reset();
-
-        // checksummed length
-        int length = (int) RowMutation.serializer.serializedSize(mutation, MessagingService.current_version);
-        bufferStream.writeInt(length);
-        buffer.putLong(checksum.getValue());
-
-        // checksummed mutation
-        RowMutation.serializer.serialize(mutation, bufferStream, MessagingService.current_version);
-        buffer.putLong(checksum.getValue());
-
-        if (buffer.remaining() >= 4)
+        while (true)
         {
-            // writes end of segment marker and rewinds back to position where it starts
-            buffer.putInt(CommitLog.END_OF_SEGMENT_MARKER);
-            buffer.position(buffer.position() - CommitLog.END_OF_SEGMENT_MARKER_SIZE);
+            int current = position.get();
+            int newCurrent = current + size;
+            if (newCurrent >= buffer.capacity())
+                return null;
+            if (position.compareAndSet(current, newCurrent))
+            {
+                markDirty(mutation, current);
+                return (ByteBuffer) buffer.duplicate().position(current).limit(newCurrent);
+            }
+            // we need to get another one, its already taken.
         }
-
-        needsSync = true;
-        return repPos;
     }
 
     /**
@@ -245,17 +221,19 @@ public class CommitLogSegment
      */
     public void sync()
     {
-        if (needsSync)
+        try
         {
-            try
+            int current = position.get();
+            if (current != lastSynced.get())
             {
+                buffer.putInt(0, current);
                 buffer.force();
+                lastSynced.set(current);
             }
-            catch (Exception e) // MappedByteBuffer.force() does not declare IOException but can actually throw it
-            {
-                throw new FSWriteError(e, getPath());
-            }
-            needsSync = false;
+        }
+        catch (Exception e) // MappedByteBuffer.force() does not declare IOException but can actually throw it
+        {
+            throw new FSWriteError(e, getPath());
         }
     }
 
@@ -264,7 +242,7 @@ public class CommitLogSegment
      */
     public ReplayPosition getContext()
     {
-        return new ReplayPosition(id, buffer.position());
+        return new ReplayPosition(id, position.get());
     }
 
     /**
@@ -286,16 +264,13 @@ public class CommitLogSegment
     /**
      * Close the segment file.
      */
-    public void close()
+    public void close(boolean hardClose)
     {
-        if (closed)
-            return;
-
         try
         {
             FileUtils.clean(buffer);
-            logFileAccessor.close();
-            closed = true;
+            if (hardClose)
+                logFileAccessor.close();
         }
         catch (IOException e)
         {
@@ -311,7 +286,23 @@ public class CommitLogSegment
      */
     private void markCFDirty(UUID cfId, Integer position)
     {
-        cfLastWrite.put(cfId, position);
+        try
+        {
+            while (true)
+            {
+                AtomicInteger lastWrite = cfLastWrite.get(cfId);
+                int lastposition = lastWrite.get();
+                if (lastposition >= position)
+                    return;
+                if (lastWrite.compareAndSet(lastposition, position))
+                    return;
+            }
+        }
+        catch (ExecutionException e)
+        {
+            // this cannot happen
+            throw new AssertionError(e);
+        }
     }
 
     /**
@@ -324,12 +315,7 @@ public class CommitLogSegment
      */
     public void markClean(UUID cfId, ReplayPosition context)
     {
-        Integer lastWritten = cfLastWrite.get(cfId);
-
-        if (lastWritten != null && (!contains(context) || lastWritten < context.position))
-        {
-            cfLastWrite.remove(cfId);
-        }
+        cfLastWrite.invalidate(cfId);
     }
 
     /**
@@ -337,7 +323,7 @@ public class CommitLogSegment
      */
     public Collection<UUID> getDirtyCFIDs()
     {
-        return cfLastWrite.keySet();
+        return cfLastWrite.asMap().keySet();
     }
 
     /**
@@ -345,7 +331,7 @@ public class CommitLogSegment
      */
     public boolean isUnused()
     {
-        return cfLastWrite.isEmpty();
+        return cfLastWrite.size() == 0;
     }
 
     /**
@@ -363,7 +349,7 @@ public class CommitLogSegment
     public String dirtyString()
     {
         StringBuilder sb = new StringBuilder();
-        for (UUID cfId : cfLastWrite.keySet())
+        for (UUID cfId : cfLastWrite.asMap().keySet())
         {
             CFMetaData m = Schema.instance.getCFMetaData(cfId);
             sb.append(m == null ? "<deleted>" : m.cfName).append(" (").append(cfId).append("), ");
@@ -379,7 +365,7 @@ public class CommitLogSegment
 
     public int position()
     {
-        return buffer.position();
+        return position.get();
     }
 
 

@@ -30,29 +30,11 @@ public class CommitLogMetrics
 {
     public static final MetricNameFactory factory = new DefaultNameFactory("CommitLog");
 
-    /** Number of completed tasks */
-    public final Gauge<Long> completedTasks;
-    /** Number of pending tasks */
-    public final Gauge<Long> pendingTasks;
     /** Current size used by all the commit log segments */
     public final Gauge<Long> totalCommitLogSize;
 
     public CommitLogMetrics(final ICommitLogExecutorService executor, final CommitLogAllocator allocator)
     {
-        completedTasks = Metrics.newGauge(factory.createMetricName("CompletedTasks"), new Gauge<Long>()
-        {
-            public Long value()
-            {
-                return executor.getCompletedTasks();
-            }
-        });
-        pendingTasks = Metrics.newGauge(factory.createMetricName("PendingTasks"), new Gauge<Long>()
-        {
-            public Long value()
-            {
-                return executor.getPendingTasks();
-            }
-        });
         totalCommitLogSize = Metrics.newGauge(factory.createMetricName("TotalCommitLogSize"), new Gauge<Long>()
         {
             public Long value()

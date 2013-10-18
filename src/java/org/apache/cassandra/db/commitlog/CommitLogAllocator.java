@@ -18,7 +18,6 @@
 package org.apache.cassandra.db.commitlog;
 
 import java.io.File;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
@@ -118,23 +117,23 @@ public class CommitLogAllocator
      *
      * @return the next writable segment
      */
-    public CommitLogSegment fetchSegment()
+    public CommitLogSegment initSegment(CommitLogSegment next)
     {
-        CommitLogSegment next;
-        try
-        {
-            next = availableSegments.take();
-        }
-        catch (InterruptedException e)
-        {
-            throw new AssertionError(e);
-        }
+        availableSegments.remove(next);
 
         assert !activeSegments.contains(next);
         activeSegments.add(next);
         if (isCapExceeded())
             flushOldestKeyspaces();
 
+        return next;
+    }
+
+    public CommitLogSegment peekSegment()
+    {
+        CommitLogSegment next;
+        while ((next = availableSegments.peek()) == null)
+            Thread.yield();
         return next;
     }
 
@@ -334,9 +333,6 @@ public class CommitLogAllocator
 
         while (!queue.isEmpty())
             Thread.yield();
-
-        for (CommitLogSegment segment : Iterables.concat(activeSegments, availableSegments))
-            segment.close();
 
         activeSegments.clear();
         availableSegments.clear();

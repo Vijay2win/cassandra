@@ -17,7 +17,6 @@
  */
 package org.apache.cassandra.db.commitlog;
 
-import java.util.ArrayList;
 import java.util.concurrent.*;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -26,7 +25,7 @@ import org.apache.cassandra.utils.WrappedRunnable;
 
 class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
 {
-    private final BlockingQueue<CheaterFutureTask> queue;
+    private final BlockingQueue<CheaterFutureTask<?>> queue;
     private final Thread appendingThread;
     private volatile boolean run = true;
 
@@ -37,15 +36,14 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
 
     public BatchCommitLogExecutorService(int queueSize)
     {
-        queue = new LinkedBlockingQueue<CheaterFutureTask>(queueSize);
+        queue = new LinkedBlockingQueue<CheaterFutureTask<?>>(queueSize);
         Runnable runnable = new WrappedRunnable()
         {
             public void runMayThrow() throws Exception
             {
                 while (run)
                 {
-                    if (processWithSyncBatch())
-                        completedTaskCount++;
+                    processWithSyncBatch();
                 }
             }
         };
@@ -59,46 +57,29 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
         return queue.size();
     }
 
-    private final ArrayList<CheaterFutureTask> incompleteTasks = new ArrayList<CheaterFutureTask>();
-    private final ArrayList taskValues = new ArrayList(); // TODO not sure how to generify this
     private boolean processWithSyncBatch() throws Exception
     {
-        CheaterFutureTask firstTask = queue.poll(100, TimeUnit.MILLISECONDS);
+        CheaterFutureTask<?> firstTask = queue.poll(100, TimeUnit.MILLISECONDS);
         if (firstTask == null)
             return false;
-        if (!(firstTask.getRawCallable() instanceof CommitLog.LogRecordAdder))
+        if (!(firstTask.getRawCallable() instanceof LogRecordAdder))
         {
             firstTask.run();
             return true;
         }
 
-        // attempt to do a bunch of LogRecordAdder ops before syncing
         // (this is a little clunky since there is no blocking peek method,
         //  so we have to break it into firstTask / extra tasks)
-        incompleteTasks.clear();
-        taskValues.clear();
         long start = System.nanoTime();
-        long window = (long)(1000000 * DatabaseDescriptor.getCommitLogSyncBatchWindow());
-
-        // it doesn't seem worth bothering future-izing the exception
-        // since if a commitlog op throws, we're probably screwed anyway
-        incompleteTasks.add(firstTask);
-        taskValues.add(firstTask.getRawCallable().call());
-        while (!queue.isEmpty()
-               && queue.peek().getRawCallable() instanceof CommitLog.LogRecordAdder
-               && System.nanoTime() - start < window)
-        {
-            CheaterFutureTask task = queue.remove();
-            incompleteTasks.add(task);
-            taskValues.add(task.getRawCallable().call());
-        }
+        long window = (long) (1000000 * DatabaseDescriptor.getCommitLogSyncBatchWindow());
 
         // now sync and set the tasks' values (which allows thread calling get() to proceed)
         CommitLog.instance.sync();
-        for (int i = 0; i < incompleteTasks.size(); i++)
-        {
-            incompleteTasks.get(i).set(taskValues.get(i));
-        }
+
+        firstTask.set(null);;
+        while ((System.nanoTime() - start) < window && !queue.isEmpty()
+               && (queue.peek().getRawCallable() instanceof LogRecordAdder))
+            queue.remove().set(null);
         return true;
     }
 
@@ -112,14 +93,14 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable)
     {
-        return new CheaterFutureTask(callable);
+        return new CheaterFutureTask<T>(callable);
     }
 
     public void execute(Runnable command)
     {
         try
         {
-            queue.put((CheaterFutureTask)command);
+            queue.put((CheaterFutureTask<?>)command);
         }
         catch (InterruptedException e)
         {
@@ -127,9 +108,9 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
         }
     }
 
-    public void add(CommitLog.LogRecordAdder adder)
+    public void waitIfNeeded()
     {
-        FBUtilities.waitOnFuture(submit((Callable)adder));
+        FBUtilities.waitOnFuture(submit(new LogRecordAdder()));
     }
 
     public void shutdown()
@@ -153,7 +134,7 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
 
     private static class CheaterFutureTask<V> extends FutureTask<V>
     {
-        private final Callable rawCallable;
+        private final Callable<V> rawCallable;
 
         public CheaterFutureTask(Callable<V> callable)
         {
@@ -161,7 +142,7 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
             rawCallable = callable;
         }
 
-        public Callable getRawCallable()
+        public Callable<V> getRawCallable()
         {
             return rawCallable;
         }
@@ -173,4 +154,11 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
         }
     }
 
+    class LogRecordAdder implements Callable<Void>
+    {
+        public Void call()
+        {
+            return null;
+        }
+    }
 }

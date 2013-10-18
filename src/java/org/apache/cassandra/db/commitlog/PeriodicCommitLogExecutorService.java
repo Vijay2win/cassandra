@@ -21,55 +21,23 @@ import java.io.IOException;
 import java.util.concurrent.*;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.WrappedRunnable;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
 class PeriodicCommitLogExecutorService implements ICommitLogExecutorService
 {
-    private final BlockingQueue<Runnable> queue;
-    protected volatile long completedTaskCount = 0;
-    private final Thread appendingThread;
     private volatile boolean run = true;
 
     public PeriodicCommitLogExecutorService(final CommitLog commitLog)
     {
-        queue = new LinkedBlockingQueue<Runnable>(DatabaseDescriptor.getCommitLogPeriodicQueueSize());
-        Runnable runnable = new WrappedRunnable()
-        {
-            public void runMayThrow() throws Exception
-            {
-                while (run)
-                {
-                    Runnable r = queue.poll(100, TimeUnit.MILLISECONDS);
-                    if (r == null)
-                        continue;
-                    r.run();
-                    completedTaskCount++;
-                }
-                commitLog.sync();
-            }
-        };
-        appendingThread = new Thread(runnable, "COMMIT-LOG-WRITER");
-        appendingThread.start();
-
-        final Callable syncer = new Callable()
-        {
-            public Object call() throws Exception
-            {
-                commitLog.sync();
-                return null;
-            }
-        };
-
         new Thread(new Runnable()
         {
             public void run()
             {
                 while (run)
                 {
-                    FBUtilities.waitOnFuture(submit(syncer));
+                    commitLog.sync();
                     Uninterruptibles.sleepUninterruptibly(DatabaseDescriptor.getCommitLogSyncPeriod(), TimeUnit.MILLISECONDS);
                 }
             }
@@ -77,59 +45,31 @@ class PeriodicCommitLogExecutorService implements ICommitLogExecutorService
 
     }
 
-    public void add(CommitLog.LogRecordAdder adder)
+    public void waitIfNeeded()
     {
-        try
-        {
-            queue.put(adder);
-        }
-        catch (InterruptedException e)
-        {
-            throw new RuntimeException(e);
-        }
+        // noop.
     }
 
     public <T> Future<T> submit(Callable<T> task)
     {
-        FutureTask<T> ft = new FutureTask<T>(task);
-        try
-        {
-            queue.put(ft);
-        }
-        catch (InterruptedException e)
-        {
-            throw new RuntimeException(e);
-        }
-        return ft;
+        throw new UnsupportedOperationException("Multi threaded commit log");
     }
+
+    Thread shutdownThread = new Thread(new WrappedRunnable()
+    {
+        public void runMayThrow() throws InterruptedException, IOException
+        {
+            CommitLog.instance.sync();
+        }
+    }, "Commitlog Shutdown");
 
     public void shutdown()
     {
-        new Thread(new WrappedRunnable()
-        {
-            public void runMayThrow() throws InterruptedException, IOException
-            {
-                while (!queue.isEmpty())
-                    Thread.sleep(100);
-                run = false;
-                appendingThread.join();
-            }
-        }, "Commitlog Shutdown").start();
+        shutdownThread.start();
     }
 
     public void awaitTermination() throws InterruptedException
     {
-        appendingThread.join();
+        shutdownThread.run();
     }
-
-    public long getPendingTasks()
-    {
-        return queue.size();
-    }
-
-    public long getCompletedTasks()
-    {
-        return completedTaskCount;
-    }
-
 }

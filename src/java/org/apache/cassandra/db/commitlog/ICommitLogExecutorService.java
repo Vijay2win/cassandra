@@ -25,23 +25,12 @@ import java.util.concurrent.Future;
  */
 public interface ICommitLogExecutorService
 {
-    /**
-     * Get the number of completed tasks
-     */
-    public long getCompletedTasks();
-
-    /**
-     * Get the number of tasks waiting to be executed
-     */
-    public long getPendingTasks();
-
-
     public <T> Future<T> submit(Callable<T> task);
 
     /**
      * submits the adder for execution and blocks for it to be synced, if necessary
      */
-    public void add(CommitLog.LogRecordAdder adder);
+    public void waitIfNeeded();
 
     /** shuts down the CommitLogExecutor in an orderly fashion */
     public void shutdown();

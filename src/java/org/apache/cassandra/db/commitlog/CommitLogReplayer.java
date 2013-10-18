@@ -40,6 +40,7 @@ import org.apache.cassandra.db.*;
 import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
+import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.*;
 
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
@@ -184,6 +185,14 @@ public class CommitLogReplayer
         final long segment = desc.id;
         int version = desc.getMessagingVersion();
         RandomAccessReader reader = RandomAccessReader.open(new File(file.getAbsolutePath()));
+
+        int end = Integer.MAX_VALUE;
+        if (desc.getMessagingVersion() >= MessagingService.VERSION_21 && reader.length() > 4)
+        {
+            reader.seek(0);
+            end = reader.readInt();
+        }
+
         try
         {
             assert reader.length() <= Integer.MAX_VALUE;
@@ -218,7 +227,7 @@ public class CommitLogReplayer
                 {
                     // any of the reads may hit EOF
                     serializedSize = reader.readInt();
-                    if (serializedSize == CommitLog.END_OF_SEGMENT_MARKER)
+                    if (reader.getPosition() >= end || serializedSize == CommitLog.END_OF_SEGMENT_MARKER)
                     {
                         logger.debug("Encountered end of segment marker at {}", reader.getFilePointer());
                         break;

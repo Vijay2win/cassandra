@@ -23,16 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractCommitLogExecutorService extends AbstractExecutorService implements ICommitLogExecutorService
 {
-    protected volatile long completedTaskCount = 0;
-
-    /**
-     * Get the number of completed tasks
-     */
-    public long getCompletedTasks()
-    {
-        return completedTaskCount;
-    }
-
     public boolean isTerminated()
     {
         throw new UnsupportedOperationException();

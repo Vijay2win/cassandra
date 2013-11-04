@@ -62,6 +62,7 @@ public class SchemaLoader
         cleanupAndLeaveDirs();
 
         CommitLog.instance.allocator.enableReserveSegmentCreation();
+        CommitLog.instance.isTest = true;
 
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
         {

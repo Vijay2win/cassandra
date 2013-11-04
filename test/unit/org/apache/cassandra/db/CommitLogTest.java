@@ -119,7 +119,7 @@ public class CommitLogTest extends SchemaLoader
         CommitLog.instance.discardCompletedSegments(cfid2, CommitLog.instance.getContext().get());
 
         // Assert we still have both our segment
-        assert CommitLog.instance.activeSegments() == 2 : "Expecting 2 segments, got " + CommitLog.instance.activeSegments();
+        assert CommitLog.instance.activeSegments() == 3 : "Expecting 3 segments, got " + CommitLog.instance.activeSegments();
     }
 
     @Test
@@ -141,6 +141,7 @@ public class CommitLogTest extends SchemaLoader
         CommitLog.instance.discardCompletedSegments(cfid1, CommitLog.instance.getContext().get());
 
         assert CommitLog.instance.activeSegments() == 1 : "Expecting 1 segment, got " + CommitLog.instance.activeSegments();
+        assert CommitLog.instance.activeSegment.isUnused() : "Looks like Commmit log switch didnt happen, CASSANDRA-5911";
 
         // Adding new mutation on another CF, large enough (including CL entry overhead) that a new segment is created
         RowMutation rm2 = new RowMutation("Keyspace1", bytes("k"));
@@ -149,7 +150,7 @@ public class CommitLogTest extends SchemaLoader
         // also forces a new segment, since each entry-with-overhead is just over half the CL size
         CommitLog.instance.add(rm2);
 
-        assert CommitLog.instance.activeSegments() == 3 : "Expecting 3 segments, got " + CommitLog.instance.activeSegments();
+        assert CommitLog.instance.activeSegments() == 2 : "Expecting 2 segments, got " + CommitLog.instance.activeSegments();
 
 
         // "Flush" second cf: The first segment should be deleted since we

@@ -59,7 +59,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 
-public class PigTestBase extends SchemaLoader
+public class PigTestBase
 {
     protected static EmbeddedCassandraService cassandra;
     protected static Configuration conf;
@@ -94,7 +94,6 @@ public class PigTestBase extends SchemaLoader
 
     protected static void startCassandra() throws IOException
     {
-        Schema.instance.clear(); // Schema are now written on disk and will be reloaded
         cassandra = new EmbeddedCassandraService();
         cassandra.start();
     }

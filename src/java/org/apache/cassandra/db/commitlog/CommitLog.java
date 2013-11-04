@@ -59,6 +59,7 @@ public class CommitLog implements CommitLogMBean
     public CommitLogSegment activeSegment;
 
     private final CommitLogMetrics metrics;
+    public boolean isTest = false;
 
     private CommitLog()
     {
@@ -200,10 +201,19 @@ public class CommitLog implements CommitLogMBean
      */
     public void discardCompletedSegments(final UUID cfId, final ReplayPosition context)
     {
-        Callable task = new Callable()
+        Callable<Void> task = new Callable<Void>()
         {
-            public Object call()
+            public Void call()
             {
+                // recycle the active used segment first.
+                if (activeSegment.isUsed(cfId) && activeSegment.id == context.segment)
+                {
+                    if (allocator.numSegmentsAvailable() > 0 || isTest)
+                        activateNextArchiveSegment();
+                    else
+                        logger.warn("no active commitlog to switch, additional mutations might be replayed if the node is restarted immediatly. See: CASSANDRA-5911");
+                }
+
                 logger.debug("discard completed log segments for {}, column family {}", context, cfId);
 
                 // Go thru the active segment files, which are ordered oldest to newest, marking the
@@ -295,6 +305,15 @@ public class CommitLog implements CommitLogMBean
         logger.debug("Active segment is now {}", activeSegment);
     }
 
+    private void activateNextArchiveSegment()
+    {
+        CommitLogSegment oldSegment = activeSegment;
+        activateNextSegment();
+        // Now we can run the user defined command just before switching to the new commit log.
+        // (Do this here instead of in the recycle call so we can get a head start on the archive.)
+        archiver.maybeArchive(oldSegment.getPath(), oldSegment.getName());
+    }
+
     public List<String> getActiveSegmentNames()
     {
         List<String> segmentNames = new ArrayList<String>();
@@ -340,13 +359,8 @@ public class CommitLog implements CommitLogMBean
             }
 
             if (!activeSegment.hasCapacityFor(totalSize))
-            {
-                CommitLogSegment oldSegment = activeSegment;
-                activateNextSegment();
-                // Now we can run the user defined command just before switching to the new commit log.
-                // (Do this here instead of in the recycle call so we can get a head start on the archive.)
-                archiver.maybeArchive(oldSegment.getPath(), oldSegment.getName());
-            }
+                activateNextArchiveSegment();
+
             try
             {
                 activeSegment.write(rowMutation);

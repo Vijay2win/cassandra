@@ -340,6 +340,12 @@ public class CommitLogSegment
         return cfLastWrite.keySet();
     }
 
+    public boolean isUsed(UUID id)
+    {
+        Integer location = cfLastWrite.get(id);
+        return location != null && location != 0;
+    }
+
     /**
      * @return true if this segment is unused and safe to recycle or delete
      */

@@ -227,6 +227,11 @@ public class CommitLogAllocator
         return size.get();
     }
 
+    public int numSegmentsAvailable()
+    {
+        return availableSegments.size();
+    }
+
     /**
      * @param name the filename to check
      * @return true if file is managed by this allocator.

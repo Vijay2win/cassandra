@@ -187,7 +187,7 @@ public class CommitLogReplayer
         RandomAccessReader reader = RandomAccessReader.open(new File(file.getAbsolutePath()));
 
         int end = Integer.MAX_VALUE;
-        if (desc.getMessagingVersion() >= MessagingService.VERSION_21 && reader.length() > 4)
+        if (version >= CommitLogDescriptor.VERSION_21 && reader.length() > 4)
         {
             reader.seek(0);
             end = reader.readInt();
@@ -199,7 +199,7 @@ public class CommitLogReplayer
             int replayPosition;
             if (globalPosition.segment < segment)
             {
-                replayPosition = 0;
+                replayPosition = (version >= CommitLogDescriptor.VERSION_21) ? 4 : 0;
             }
             else if (globalPosition.segment == segment)
             {

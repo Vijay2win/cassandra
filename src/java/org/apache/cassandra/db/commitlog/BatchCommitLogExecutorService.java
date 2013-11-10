@@ -17,6 +17,7 @@
  */
 package org.apache.cassandra.db.commitlog;
 
+import java.util.ArrayList;
 import java.util.concurrent.*;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -57,6 +58,7 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
         return queue.size();
     }
 
+    private final ArrayList<CheaterFutureTask<?>> incompleteTasks = new ArrayList<CheaterFutureTask<?>>();
     private boolean processWithSyncBatch() throws Exception
     {
         CheaterFutureTask<?> firstTask = queue.poll(100, TimeUnit.MILLISECONDS);
@@ -70,16 +72,23 @@ class BatchCommitLogExecutorService extends AbstractCommitLogExecutorService
 
         // (this is a little clunky since there is no blocking peek method,
         //  so we have to break it into firstTask / extra tasks)
+        incompleteTasks.clear();
         long start = System.nanoTime();
         long window = (long) (1000000 * DatabaseDescriptor.getCommitLogSyncBatchWindow());
 
+        // it doesn't seem worth bothering future-izing the exception
+        // since if a commitlog op throws, we're probably screwed anyway
+        incompleteTasks.add(firstTask);
+        firstTask.set(null);
+        while (!queue.isEmpty()
+               && queue.peek().getRawCallable() instanceof LogRecordAdder
+               && System.nanoTime() - start < window)
+            incompleteTasks.add(queue.remove());
+
         // now sync and set the tasks' values (which allows thread calling get() to proceed)
         CommitLog.instance.sync();
-
-        firstTask.set(null);;
-        while ((System.nanoTime() - start) < window && !queue.isEmpty()
-               && (queue.peek().getRawCallable() instanceof LogRecordAdder))
-            queue.remove().set(null);
+        for (CheaterFutureTask<?> task : incompleteTasks)
+            task.set(null);
         return true;
     }
 

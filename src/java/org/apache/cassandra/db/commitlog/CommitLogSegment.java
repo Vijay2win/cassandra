@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
@@ -43,6 +42,7 @@ import org.apache.cassandra.io.util.FileUtils;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.sun.swing.internal.plaf.synth.resources.synth;
 
 /*
  * A single commit log file on disk. Manages creation of the file and writing row mutations to disk,
@@ -219,7 +219,7 @@ public class CommitLogSegment
     /**
      * Forces a disk flush for this segment file.
      */
-    public void sync()
+    public synchronized void sync()
     {
         try
         {
@@ -227,9 +227,9 @@ public class CommitLogSegment
             if (current != lastSynced.get())
             {
                 buffer.putInt(0, current);
-                buffer.force();
                 lastSynced.set(current);
             }
+            buffer.force();
         }
         catch (Exception e) // MappedByteBuffer.force() does not declare IOException but can actually throw it
         {
@@ -315,7 +315,10 @@ public class CommitLogSegment
      */
     public void markClean(UUID cfId, ReplayPosition context)
     {
-        cfLastWrite.invalidate(cfId);
+        AtomicInteger lastWritten = cfLastWrite.getIfPresent(cfId);
+
+        if (lastWritten != null && (!contains(context) || lastWritten.get() < context.position))
+            cfLastWrite.invalidate(cfId);
     }
 
     /**

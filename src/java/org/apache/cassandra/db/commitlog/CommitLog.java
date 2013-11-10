@@ -199,7 +199,7 @@ public class CommitLog implements CommitLogMBean
      * @param cfId    the column family ID that was flushed
      * @param context the replay position of the flush
      */
-    public void discardCompletedSegments(final UUID cfId, final ReplayPosition context)
+    public void discardCompletedSegments(final UUID cfId, final ReplayPosition context, final boolean forceDiscard)
     {
         Callable<Void> task = new Callable<Void>()
         {
@@ -208,7 +208,7 @@ public class CommitLog implements CommitLogMBean
                 // recycle the active used segment first.
                 if (activeSegment.isUsed(cfId) && activeSegment.id == context.segment)
                 {
-                    if (allocator.numSegmentsAvailable() > 0 || isTest)
+                    if (allocator.numSegmentsAvailable() > 0 || isTest || forceDiscard)
                         activateNextArchiveSegment();
                     else
                         logger.warn("no active commitlog to switch, additional mutations might be replayed if the node is restarted immediatly. See: CASSANDRA-5911");
@@ -299,7 +299,7 @@ public class CommitLog implements CommitLogMBean
      *
      * @return the newly activated segment
      */
-    private void activateNextSegment()
+    public void activateNextSegment()
     {
         activeSegment = allocator.fetchSegment();
         logger.debug("Active segment is now {}", activeSegment);

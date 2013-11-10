@@ -70,6 +70,8 @@ public class PigTestBase
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
+        if (cassandra != null)
+            cassandra.stop();
     }
 
     @Before

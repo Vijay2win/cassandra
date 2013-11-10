@@ -50,6 +50,7 @@ public class CQLSSTableWriterTest extends SchemaLoader
     @Test
     public void testUnsortedWriter() throws Exception
     {
+        Schema.instance.clear();
         String KS = "cql_keyspace";
         String TABLE = "table1";
 

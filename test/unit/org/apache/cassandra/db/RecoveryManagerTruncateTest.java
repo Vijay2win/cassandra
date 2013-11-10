@@ -28,7 +28,9 @@ import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.Util;
 import org.apache.cassandra.db.commitlog.CommitLog;
+import org.apache.cassandra.db.commitlog.CommitLogSegment;
 import org.apache.cassandra.db.filter.QueryFilter;
+import org.junit.Assert;
 import org.junit.Test;
 import org.apache.cassandra.utils.ByteBufferUtil;
 
@@ -82,4 +84,28 @@ public class RecoveryManagerTruncateTest extends SchemaLoader
 		}
 		return cf.getColumn(ByteBufferUtil.bytes(columnName));
 	}
+
+    @Test
+    public void testFlushForceCLSwitch()
+    {
+        CommitLog.instance.isTest = false;
+        CommitLog.instance.resetUnsafe();
+
+        CommitLogSegment segment = CommitLog.instance.activeSegment;
+        Keyspace keyspace = Keyspace.open("Keyspace1");
+        ColumnFamilyStore cfs = keyspace.getColumnFamilyStore("Standard1");
+        ColumnFamily cf = TreeMapBackedSortedColumns.factory.create("Keyspace1", "Standard1");
+        cf.addColumn(column("col1", "val1", 1L));
+        RowMutation rm = new RowMutation("Keyspace1", ByteBufferUtil.bytes("keymulti"), cf);
+        rm.apply();
+        CommitLog.instance.add(rm);
+
+        // Check if the truncate is switching the commit logs
+        Assert.assertTrue(CommitLog.instance.allocator.numSegmentsAvailable() == 0);
+        cfs.truncateBlocking();
+        Assert.assertTrue(!segment.equals(CommitLog.instance.activeSegment));
+
+        // reset
+        CommitLog.instance.isTest = true;
+    }
 }

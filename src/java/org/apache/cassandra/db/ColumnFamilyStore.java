@@ -131,7 +131,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         // If the CF comparator has changed, we need to change the memtable,
         // because the old one still aliases the previous comparator.
         if (getMemtableThreadSafe().initialComparator != metadata.comparator)
-            switchMemtable(true, true);
+            switchMemtable(true, true, false);
     }
 
     private void maybeReloadCompactionStrategy()
@@ -690,7 +690,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
      * flag allow to force switching the memtable even if it is clean (though
      * in that case we don't flush, as there is no point).
      */
-    public Future<?> switchMemtable(final boolean writeCommitLog, boolean forceSwitch)
+    public Future<?> switchMemtable(final boolean writeCommitLog, boolean forceSwitch, final boolean truncateCommand)
     {
         /*
          * If we can get the writelock, that means no new updates can come in and
@@ -764,7 +764,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
                     {
                         // if we're not writing to the commit log, we are replaying the log, so marking
                         // the log header with "you can discard anything written before the context" is not valid
-                        CommitLog.instance.discardCompletedSegments(metadata.cfId, ctx.get());
+                        CommitLog.instance.discardCompletedSegments(metadata.cfId, ctx.get(), truncateCommand);
                     }
                 }
             });
@@ -792,6 +792,11 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
      */
     public Future<?> forceFlush()
     {
+        return forceFlush(false);
+    }
+
+    public Future<?> forceFlush(boolean truncateCommand)
+    {
         if (isClean())
         {
             // We could have a memtable for this column family that is being
@@ -807,7 +812,7 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
             });
         }
 
-        return switchMemtable(true, false);
+        return switchMemtable(true, false, truncateCommand);
     }
 
     public void forceBlockingFlush()
@@ -1916,15 +1921,12 @@ public class ColumnFamilyStore implements ColumnFamilyStoreMBean
         // position in the System keyspace.
         logger.debug("truncating {}", name);
 
-        if (DatabaseDescriptor.isAutoSnapshot())
-        {
-            // flush the CF being truncated before forcing the new segment
-            forceBlockingFlush();
+        // flush the CF being truncated before forcing the new segment
+        FBUtilities.waitOnFuture(forceFlush(true));
 
-            // sleep a little to make sure that our truncatedAt comes after any sstable
-            // that was part of the flushed we forced; otherwise on a tie, it won't get deleted.
-            Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
-        }
+        // sleep a little to make sure that our truncatedAt comes after any sstable
+        // that was part of the flushed we forced; otherwise on a tie, it won't get deleted.
+        Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
 
         // nuke the memtable data w/o writing to disk first
         Keyspace.switchLock.writeLock().lock();

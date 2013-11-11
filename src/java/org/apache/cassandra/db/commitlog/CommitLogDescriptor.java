@@ -42,7 +42,7 @@ public class CommitLogDescriptor
      */
     public static final int current_version = VERSION_21;
 
-    private final int version;
+    public final int version;
     public final long id;
 
     public CommitLogDescriptor(int version, long id)

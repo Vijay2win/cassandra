@@ -212,11 +212,11 @@ public class CommitLog implements CommitLogMBean
             PureJavaCrc32 checksum = new PureJavaCrc32();
             DataOutput dos = new DataOutputStream(new ChecksummedOutputStream(new ByteBufferOutputStream(reserved), checksum));
             dos.writeInt((int) size);
-            dos.writeLong(checksum.getValue());
+            reserved.putLong(checksum.getValue());
 
             // checksummed mutation
             RowMutation.serializer.serialize(rowMutation, dos, MessagingService.current_version);
-            dos.writeLong(checksum.getValue());
+            reserved.putLong(checksum.getValue());
         }
         catch (IOException e)
         {

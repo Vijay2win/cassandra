@@ -42,7 +42,6 @@ import org.apache.cassandra.io.util.FileUtils;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.sun.swing.internal.plaf.synth.resources.synth;
 
 /*
  * A single commit log file on disk. Manages creation of the file and writing row mutations to disk,
@@ -58,8 +57,9 @@ public class CommitLogSegment
 
     // The commit log entry overhead in bytes (int: length + long: head checksum + long: tail checksum)
     static final int ENTRY_OVERHEAD_SIZE = 4 + 8 + 8;
+    static final int INITIAL_START = 4;
 
-    private AtomicInteger position = new AtomicInteger(4); //reserve first 4 bytes.
+    private AtomicInteger position = new AtomicInteger(INITIAL_START); //reserve first 4 bytes.
     private AtomicInteger lastSynced = new AtomicInteger(0);
     // cache which cf is dirty in this segment to avoid having to lookup all ReplayPositions to decide if we can delete this segment
     private final LoadingCache<UUID, AtomicInteger> cfLastWrite = CacheBuilder.newBuilder().build(new CacheLoader<UUID, AtomicInteger>()
@@ -156,7 +156,8 @@ public class CommitLogSegment
     {
         try
         {
-            position.set(4); // remember first 4 bytes are reserved.
+            position.set(INITIAL_START); // remember first 4 bytes are reserved.
+            close(false);
             sync();
         }
         catch (FSWriteError e)
@@ -164,8 +165,6 @@ public class CommitLogSegment
             logger.error("I/O error flushing {} {}", this, e.getMessage());
             throw e;
         }
-
-        close(false);
 
         return new CommitLogSegment(getPath());
     }

@@ -40,7 +40,6 @@ import org.apache.cassandra.db.*;
 import org.apache.cassandra.io.util.FastByteArrayInputStream;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
-import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.utils.*;
 
 import org.cliffc.high_scale_lib.NonBlockingHashSet;
@@ -183,11 +182,10 @@ public class CommitLogReplayer
         logger.info("Replaying {}", file.getPath());
         CommitLogDescriptor desc = CommitLogDescriptor.fromFileName(file.getName());
         final long segment = desc.id;
-        int version = desc.getMessagingVersion();
         RandomAccessReader reader = RandomAccessReader.open(new File(file.getAbsolutePath()));
 
         int end = Integer.MAX_VALUE;
-        if (version >= CommitLogDescriptor.VERSION_21 && reader.length() > 4)
+        if (desc.version >= CommitLogDescriptor.VERSION_21 && reader.length() > 4)
         {
             reader.seek(0);
             end = reader.readInt();
@@ -199,7 +197,7 @@ public class CommitLogReplayer
             int replayPosition;
             if (globalPosition.segment < segment)
             {
-                replayPosition = (version >= CommitLogDescriptor.VERSION_21) ? 4 : 0;
+                replayPosition = (desc.version >= CommitLogDescriptor.VERSION_21) ? CommitLogSegment.INITIAL_START : 0;
             }
             else if (globalPosition.segment == segment)
             {
@@ -211,9 +209,9 @@ public class CommitLogReplayer
                 return;
             }
 
-            if (logger.isDebugEnabled())
-                logger.debug("Replaying {} starting at {}", file, replayPosition);
-            reader.seek(replayPosition);
+            logger.debug("Replaying {} starting at {}", file, replayPosition);
+            if (replayPosition < reader.length())
+                reader.seek(replayPosition);
 
             /* read the logs populate RowMutation and apply */
             while (!reader.isEOF())
@@ -242,7 +240,7 @@ public class CommitLogReplayer
 
                     long claimedSizeChecksum = reader.readLong();
                     checksum.reset();
-                    if (version < CommitLogDescriptor.VERSION_20)
+                    if (desc.version < CommitLogDescriptor.VERSION_21)
                         checksum.update(serializedSize);
                     else
                         FBUtilities.updateChecksumInt(checksum, serializedSize);
@@ -276,7 +274,7 @@ public class CommitLogReplayer
                 {
                     // assuming version here. We've gone to lengths to make sure what gets written to the CL is in
                     // the current version. so do make sure the CL is drained prior to upgrading a node.
-                    rm = RowMutation.serializer.deserialize(new DataInputStream(bufIn), version, ColumnSerializer.Flag.LOCAL);
+                    rm = RowMutation.serializer.deserialize(new DataInputStream(bufIn), desc.getMessagingVersion(), ColumnSerializer.Flag.LOCAL);
                     // doublecheck that what we read is [still] valid for the current schema
                     for (ColumnFamily cf : rm.getColumnFamilies())
                         for (Column cell : cf)

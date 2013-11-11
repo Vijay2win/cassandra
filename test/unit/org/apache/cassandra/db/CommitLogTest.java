@@ -22,17 +22,20 @@ package org.apache.cassandra.db;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 import org.junit.Assert;
 import org.junit.Test;
-
 import org.apache.cassandra.SchemaLoader;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.commitlog.CommitLogDescriptor;
+import org.apache.cassandra.db.commitlog.CommitLogReplayer;
+import org.apache.cassandra.db.commitlog.CommitLogSegment;
 import org.apache.cassandra.net.MessagingService;
+import org.apache.cassandra.utils.ByteBufferUtil;
 
 import static org.apache.cassandra.utils.ByteBufferUtil.bytes;
 
@@ -224,5 +227,21 @@ public class CommitLogTest extends SchemaLoader
         Assert.assertEquals(MessagingService.current_version, new CommitLogDescriptor(1340512736956320000L).getMessagingVersion());
         String newCLName = "CommitLog-" + CommitLogDescriptor.current_version + "-1340512736956320000.log";
         Assert.assertEquals(MessagingService.current_version, CommitLogDescriptor.fromFileName(newCLName).getMessagingVersion());
+    }
+
+    @Test
+    public void testSingleMutationReplay() throws IOException {
+        CommitLogSegment activeSegment = CommitLogSegment.freshSegment();
+        CommitLog.instance.activeSegment.set(activeSegment);
+
+        RowMutation rm = new RowMutation("Keyspace1", bytes("k"));
+        rm.add("Standard1", bytes("c1"), ByteBufferUtil.bytes("1234"), 0);
+        for (int i = 0; i < 10; i++)
+            CommitLog.instance.add(rm);
+        activeSegment.sync();
+
+        CommitLogReplayer replayer = new CommitLogReplayer();
+        replayer.recover(new File(activeSegment.getPath()));
+        Assert.assertEquals(10, replayer.blockForWrites());
     }
 }

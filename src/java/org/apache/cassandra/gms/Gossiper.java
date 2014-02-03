@@ -817,8 +817,6 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
             return;
         }
 
-        localState.markDead();
-
         MessageOut<EchoMessage> echoMessage = new MessageOut<EchoMessage>(MessagingService.Verb.ECHO, new EchoMessage(), EchoMessage.serializer);
         logger.trace("Sending a EchoMessage to {}", addr);
         IAsyncCallback echoHandler = new IAsyncCallback()
@@ -830,7 +828,8 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
 
             public void response(MessageIn msg)
             {
-                realMarkAlive(addr, localState);
+                if (!localState.isAlive())
+                    realMarkAlive(addr, localState);
             }
         };
         MessagingService.instance().sendRR(echoMessage, addr, echoHandler);
@@ -839,7 +838,7 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
     private void realMarkAlive(final InetAddress addr, final EndpointState localState)
     {
         if (logger.isTraceEnabled())
-                logger.trace("marking as alive {}", addr);
+            logger.trace("marking as alive {}", addr);
         localState.markAlive();
         localState.updateTimestamp(); // prevents doStatusCheck from racing us and evicting if it was down > aVeryLongTime
         liveEndpoints.add(addr);
@@ -850,7 +849,7 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
         for (IEndpointStateChangeSubscriber subscriber : subscribers)
             subscriber.onAlive(addr, localState);
         if (logger.isTraceEnabled())
-                logger.trace("Notified " + subscribers);
+            logger.trace("Notified " + subscribers);
     }
 
     private void markDead(InetAddress addr, EndpointState localState)
@@ -875,13 +874,6 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
      */
     private void handleMajorStateChange(InetAddress ep, EndpointState epState)
     {
-        if (!isDeadState(epState))
-        {
-            if (endpointStateMap.get(ep) != null)
-                logger.info("Node {} has restarted, now UP", ep);
-            else
-                logger.info("Node {} is now part of the cluster", ep);
-        }
         if (logger.isTraceEnabled())
             logger.trace("Adding endpoint state for " + ep);
         endpointStateMap.put(ep, epState);
@@ -891,7 +883,13 @@ public class Gossiper implements IFailureDetectionEventListener, GossiperMBean
             subscriber.onRestart(ep, epState);
 
         if (!isDeadState(epState))
+        {
+            if (endpointStateMap.get(ep) != null)
+                logger.info("Node {} has restarted", ep);
+            else
+                logger.info("Node {} is now part of the cluster", ep);
             markAlive(ep, epState);
+        }
         else
         {
             logger.debug("Not marking " + ep + " alive due to dead state");

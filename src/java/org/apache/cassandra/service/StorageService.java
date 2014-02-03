@@ -610,7 +610,6 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
             if (!DatabaseDescriptor.isAutoBootstrap())
                 throw new RuntimeException("Trying to replace_address with auto_bootstrap disabled will not work, check your configuration");
             tokens = prepareReplacementInfo();
-            appStates.put(ApplicationState.STATUS, valueFactory.hibernate(true));
             appStates.put(ApplicationState.TOKENS, valueFactory.tokens(tokens));
         }
         else if (shouldBootstrap())
@@ -623,6 +622,9 @@ public class StorageService extends NotificationBroadcasterSupport implements IE
         // (we won't be part of the storage ring though until we add a counterId to our state, below.)
         // Seed the host ID-to-endpoint map with our own ID.
         getTokenMetadata().updateHostId(SystemKeyspace.getLocalHostId(), FBUtilities.getBroadcastAddress());
+        if (!isSurveyMode)
+            // set a dead state which will changed after the join completes.
+            appStates.put(ApplicationState.STATUS, valueFactory.hibernate(true));
         appStates.put(ApplicationState.NET_VERSION, valueFactory.networkVersion());
         appStates.put(ApplicationState.HOST_ID, valueFactory.hostId(SystemKeyspace.getLocalHostId()));
         appStates.put(ApplicationState.RPC_ADDRESS, valueFactory.rpcaddress(DatabaseDescriptor.getRpcAddress()));

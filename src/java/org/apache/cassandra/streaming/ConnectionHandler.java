@@ -120,9 +120,7 @@ public class ConnectionHandler
         {
             try
             {
-                Socket socket = OutboundTcpConnectionPool.newSocket(peer);
-                socket.setSoTimeout(DatabaseDescriptor.getStreamingSocketTimeout());
-                return socket;
+                return OutboundTcpConnectionPool.newSocket(peer);
             }
             catch (IOException e)
             {

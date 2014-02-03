@@ -1282,9 +1282,9 @@ public class DatabaseDescriptor
         conf.row_cache_keys_to_save = rowCacheKeysToSave;
     }
 
-    public static int getStreamingSocketTimeout()
+    public static int getSocketTimeout()
     {
-        return conf.streaming_socket_timeout_in_ms;
+        return conf.socket_timeout_in_ms;
     }
 
     public static String getLocalDataCenter()

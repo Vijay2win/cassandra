@@ -62,7 +62,8 @@ public class Config
 
     public Long truncate_request_timeout_in_ms = new Long(60000);
 
-    public Integer streaming_socket_timeout_in_ms = new Integer(0);
+    public volatile Integer streaming_socket_timeout_in_ms = null;
+    public Integer socket_timeout_in_ms = 10000;
 
     public boolean cross_node_timeout = false;
 

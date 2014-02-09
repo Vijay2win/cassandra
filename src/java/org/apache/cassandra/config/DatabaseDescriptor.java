@@ -495,6 +495,10 @@ public class DatabaseDescriptor
         }
         if (seedProvider.getSeeds().size() == 0)
             throw new ConfigurationException("The seed provider lists no seeds.");
+
+        // make sure streaming socket timeout is set.
+        if (conf.streaming_socket_timeout_in_ms == null)
+            conf.streaming_socket_timeout_in_ms = conf.socket_timeout_in_ms;
     }
 
     private static IEndpointSnitch createEndpointSnitch(String snitchClassName) throws ConfigurationException
@@ -1280,6 +1284,11 @@ public class DatabaseDescriptor
     public static void setRowCacheKeysToSave(int rowCacheKeysToSave)
     {
         conf.row_cache_keys_to_save = rowCacheKeysToSave;
+    }
+
+    public static int getSocketTimeout()
+    {
+        return conf.socket_timeout_in_ms;
     }
 
     public static int getStreamingSocketTimeout()

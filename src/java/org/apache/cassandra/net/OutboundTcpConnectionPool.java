@@ -121,21 +121,23 @@ public class OutboundTcpConnectionPool
 
     public static Socket newSocket(InetAddress endpoint) throws IOException
     {
+        Socket socket;
         // zero means 'bind on any available port.'
         if (isEncryptedChannel(endpoint))
         {
             if (Config.getOutboundBindAny())
-                return SSLFactory.getSocket(DatabaseDescriptor.getServerEncryptionOptions(), endpoint, DatabaseDescriptor.getSSLStoragePort());
+                socket = SSLFactory.getSocket(DatabaseDescriptor.getServerEncryptionOptions(), endpoint, DatabaseDescriptor.getSSLStoragePort());
             else
-                return SSLFactory.getSocket(DatabaseDescriptor.getServerEncryptionOptions(), endpoint, DatabaseDescriptor.getSSLStoragePort(), FBUtilities.getLocalAddress(), 0);
+                socket = SSLFactory.getSocket(DatabaseDescriptor.getServerEncryptionOptions(), endpoint, DatabaseDescriptor.getSSLStoragePort(), FBUtilities.getLocalAddress(), 0);
         }
         else
         {
-            Socket socket = SocketChannel.open(new InetSocketAddress(endpoint, DatabaseDescriptor.getStoragePort())).socket();
+            socket = SocketChannel.open(new InetSocketAddress(endpoint, DatabaseDescriptor.getStoragePort())).socket();
             if (Config.getOutboundBindAny() && !socket.isBound())
                 socket.bind(new InetSocketAddress(FBUtilities.getLocalAddress(), 0));
-            return socket;
         }
+        socket.setSoTimeout(DatabaseDescriptor.getSocketTimeout());
+        return socket;
     }
 
     public InetAddress endPoint()

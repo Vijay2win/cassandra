@@ -76,7 +76,7 @@ public class ConcurrentLinkedHashCache<K extends IMeasurableMemory, V extends IM
         return map.isEmpty();
     }
 
-    public int size()
+    public long size()
     {
         return map.size();
     }

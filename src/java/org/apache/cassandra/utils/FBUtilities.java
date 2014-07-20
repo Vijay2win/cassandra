@@ -37,13 +37,14 @@ import java.util.zip.Checksum;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.AbstractIterator;
+
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.cassandra.auth.IAuthenticator;
 import org.apache.cassandra.auth.IAuthorizer;
+import org.apache.cassandra.cache.ICacheProvider;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.dht.IPartitioner;
@@ -413,6 +414,13 @@ public class FBUtilities
     {
         if (!partitionerClassName.contains("."))
             partitionerClassName = "org.apache.cassandra.dht." + partitionerClassName;
+        return FBUtilities.construct(partitionerClassName, "partitioner");
+    }
+
+    public static ICacheProvider newRowCacheProvider(String partitionerClassName) throws ConfigurationException
+    {
+        if (!partitionerClassName.contains("."))
+            partitionerClassName = "org.apache.cassandra.cache." + partitionerClassName;
         return FBUtilities.construct(partitionerClassName, "partitioner");
     }
 

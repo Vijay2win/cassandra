@@ -17,10 +17,10 @@
  */
 package org.apache.cassandra.cache;
 
-public class SerializingCacheProvider implements ICacheProvider
+public class OffheapCacheProvider implements ICacheProvider
 {
     public ICache<RowCacheKey, IRowCacheEntry> create(long capacity)
     {
-        return SerializingCache.<RowCacheKey, IRowCacheEntry> create(capacity, new RowValueSerializer());
+        return OffHeapCache.create(capacity, new RowKeySerializer(), new RowValueSerializer());
     }
 }

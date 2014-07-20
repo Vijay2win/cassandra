@@ -19,6 +19,7 @@ package org.apache.cassandra.utils.vint;
 
 import java.io.DataInput;
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.cassandra.io.util.AbstractDataInput;
 
@@ -30,21 +31,21 @@ import org.apache.cassandra.io.util.AbstractDataInput;
  */
 public class EncodedDataInputStream extends AbstractDataInput implements DataInput
 {
-    private DataInput input;
+    private InputStream input;
 
-    public EncodedDataInputStream(DataInput input)
+    public EncodedDataInputStream(InputStream input)
     {
         this.input = input;
     }
 
     public int skipBytes(int n) throws IOException
     {
-        return input.skipBytes(n);
+        return (int) input.skip(n);
     }
 
     public int read() throws IOException
     {
-        return input.readByte() & 0xFF;
+        return input.read();
     }
 
     public void seek(long position)
@@ -91,14 +92,14 @@ public class EncodedDataInputStream extends AbstractDataInput implements DataInp
 
     private long vintDecode() throws IOException
     {
-        byte firstByte = input.readByte();
+        byte firstByte = (byte) input.read();
         int len = vintDecodeSize(firstByte);
         if (len == 1)
             return firstByte;
         long i = 0;
         for (int idx = 0; idx < len - 1; idx++)
         {
-            byte b = input.readByte();
+            byte b = (byte) input.read();
             i = i << 8;
             i = i | (b & 0xFF);
         }

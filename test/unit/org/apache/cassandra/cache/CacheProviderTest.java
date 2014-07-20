@@ -21,6 +21,9 @@ package org.apache.cassandra.cache;
  */
 
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,29 +31,30 @@ import java.util.UUID;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import org.apache.cassandra.SchemaLoader;
+import org.apache.cassandra.cache.ICacheProvider.RowKeySerializer;
+import org.apache.cassandra.cache.ICacheProvider.RowValueSerializer;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.db.ArrayBackedSortedColumns;
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.io.util.DataOutputBuffer;
 import org.apache.cassandra.locator.SimpleStrategy;
-
-import com.googlecode.concurrentlinkedhashmap.Weighers;
+import org.apache.cassandra.service.CacheService;
 
 import static org.apache.cassandra.Util.column;
 import static org.junit.Assert.*;
 
 public class CacheProviderTest
 {
-    MeasureableString key1 = new MeasureableString("key1");
-    MeasureableString key2 = new MeasureableString("key2");
-    MeasureableString key3 = new MeasureableString("key3");
-    MeasureableString key4 = new MeasureableString("key4");
-    MeasureableString key5 = new MeasureableString("key5");
-    private static final long CAPACITY = 4;
     private static final String KEYSPACE1 = "CacheProviderTest1";
     private static final String CF_STANDARD1 = "Standard1";
+
+    private final RowCacheKey key1 = new RowCacheKey(new UUID(0, 0), "key1".getBytes());
+    private final RowCacheKey key2 = new RowCacheKey(new UUID(0, 0), "key2".getBytes());
+    private final RowCacheKey key3 = new RowCacheKey(new UUID(0, 0), "key3".getBytes());
+    private final RowCacheKey key4 = new RowCacheKey(new UUID(0, 0), "key4".getBytes());
+    private final RowCacheKey key5 = new RowCacheKey(new UUID(0, 0), "key5".getBytes());
 
     @BeforeClass
     public static void defineSchema() throws ConfigurationException
@@ -62,18 +66,18 @@ public class CacheProviderTest
                                     SchemaLoader.standardCFMD(KEYSPACE1, CF_STANDARD1));
     }
 
-    private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
+    private void simpleCase(ColumnFamily cf, AutoSavingCache<RowCacheKey, IRowCacheEntry> rowCache)
     {
-        cache.put(key1, cf);
-        assertNotNull(cache.get(key1));
+        rowCache.put(key1, cf);
+        assertNotNull(rowCache.get(key1));
 
-        assertDigests(cache.get(key1), cf);
-        cache.put(key2, cf);
-        cache.put(key3, cf);
-        cache.put(key4, cf);
-        cache.put(key5, cf);
+        assertDigests(rowCache.get(key1), cf);
+        rowCache.putIfAbsent(key2, cf);
+        rowCache.putIfAbsent(key3, cf);
+        rowCache.putIfAbsent(key4, cf);
+        rowCache.putIfAbsent(key5, cf);
 
-        assertEquals(CAPACITY, cache.size());
+        assertEquals(5, rowCache.size());
     }
 
     private void assertDigests(IRowCacheEntry one, ColumnFamily two)
@@ -84,7 +88,7 @@ public class CacheProviderTest
     }
 
     // TODO this isn't terribly useful
-    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
+    private void concurrentCase(final ColumnFamily cf, final AutoSavingCache<RowCacheKey, IRowCacheEntry> rowCache) throws InterruptedException
     {
         Runnable runable = new Runnable()
         {
@@ -92,11 +96,11 @@ public class CacheProviderTest
             {
                 for (int j = 0; j < 10; j++)
                 {
-                    cache.put(key1, cf);
-                    cache.put(key2, cf);
-                    cache.put(key3, cf);
-                    cache.put(key4, cf);
-                    cache.put(key5, cf);
+                    rowCache.putIfAbsent(key1, cf);
+                    rowCache.putIfAbsent(key2, cf);
+                    rowCache.putIfAbsent(key3, cf);
+                    rowCache.putIfAbsent(key4, cf);
+                    rowCache.putIfAbsent(key5, cf);
                 }
             }
         };
@@ -117,20 +121,23 @@ public class CacheProviderTest
         ColumnFamily cf = ArrayBackedSortedColumns.factory.create(KEYSPACE1, CF_STANDARD1);
         cf.addColumn(column("vijay", "great", 1));
         cf.addColumn(column("awesome", "vijay", 1));
+        cf.addColumn(column("vijay2", "great", 1));
+        cf.addColumn(column("awesome2", "vijay", 1));
+        cf.addColumn(column("vijay3", "vijay", 1));
         return cf;
     }
 
     @Test
     public void testSerializingCache() throws InterruptedException
     {
-        ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
         ColumnFamily cf = createCF();
-        simpleCase(cf, cache);
-        concurrentCase(cf, cache);
+        CacheService.instance.rowCache.clear();
+        simpleCase(cf, CacheService.instance.rowCache);
+        concurrentCase(cf, CacheService.instance.rowCache);
     }
     
     @Test
-    public void testKeys()
+    public void testKeys() throws IOException
     {
         UUID cfId = UUID.randomUUID();
 
@@ -147,18 +154,32 @@ public class CacheProviderTest
         assertNotSame(key1.hashCode(), key3.hashCode());
     }
 
-    private class MeasureableString implements IMeasurableMemory
+    @Test
+    public void testKeySerialization() throws IOException
     {
-        public final String string;
+        RowKeySerializer serializer = new RowKeySerializer();
+        DataOutputBuffer buffer = new DataOutputBuffer();
+        serializer.serialize(buffer, key3);
 
-        public MeasureableString(String input)
-        {
-            this.string = input;
-        }
+        assertEquals(serializer.serializedSize(key3), buffer.getLength());
 
-        public long unsharedHeapSize()
-        {
-            return string.length();
-        }
+        DataInputStream input = new DataInputStream(new ByteArrayInputStream(buffer.toByteArray()));
+        RowCacheKey clone = serializer.deserialize(input, buffer.getLength());
+        assertEquals(clone, key3);
+    }
+
+    @Test
+    public void testValueSerialization() throws IOException
+    {
+        RowValueSerializer serializer = new RowValueSerializer();
+        DataOutputBuffer buffer = new DataOutputBuffer();
+        ColumnFamily original = createCF();
+        serializer.serialize(buffer, original);
+
+        assertEquals(serializer.serializedSize(original), buffer.getLength());
+
+        DataInputStream input = new DataInputStream(new ByteArrayInputStream(buffer.toByteArray()));
+        IRowCacheEntry clone = serializer.deserialize(input, buffer.getLength());
+        assertEquals(clone, original);
     }
 }

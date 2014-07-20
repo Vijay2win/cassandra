@@ -47,6 +47,7 @@ import org.apache.cassandra.auth.AllowAllInternodeAuthenticator;
 import org.apache.cassandra.auth.IAuthenticator;
 import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.IInternodeAuthenticator;
+import org.apache.cassandra.cache.ICacheProvider;
 import org.apache.cassandra.config.Config.RequestSchedulerId;
 import org.apache.cassandra.config.EncryptionOptions.ClientEncryptionOptions;
 import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions;
@@ -113,6 +114,7 @@ public class DatabaseDescriptor
     private static long keyCacheSizeInMB;
     private static long counterCacheSizeInMB;
     private static IAllocator memoryAllocator;
+    private static ICacheProvider rowCacheProvider;
     private static long indexSummaryCapacityInMB;
 
     private static String localDC;
@@ -578,6 +580,7 @@ public class DatabaseDescriptor
                     + conf.index_summary_capacity_in_mb + "', it should be a non-negative integer.");
 
         memoryAllocator = FBUtilities.newOffHeapAllocator(conf.memory_allocator);
+        rowCacheProvider = FBUtilities.newRowCacheProvider(conf.row_cache_provider);
 
         if(conf.encryption_options != null)
         {
@@ -1524,6 +1527,11 @@ public class DatabaseDescriptor
     public static IAllocator getoffHeapMemoryAllocator()
     {
         return memoryAllocator;
+    }
+
+    public static ICacheProvider getRowCacheProvider()
+    {
+        return rowCacheProvider;
     }
 
     public static void setRowCacheKeysToSave(int rowCacheKeysToSave)

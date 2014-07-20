@@ -43,7 +43,7 @@ public class CacheMetrics
     /** Total size of cache, in bytes */
     public final Gauge<Long> size;
     /** Total number of cache entries */
-    public final Gauge<Integer> entries;
+    public final Gauge<Long> entries;
 
     private final AtomicLong lastRequests = new AtomicLong(0);
     private final AtomicLong lastHits = new AtomicLong(0);
@@ -86,9 +86,9 @@ public class CacheMetrics
                 return cache.weightedSize();
             }
         });
-        entries = Metrics.newGauge(factory.createMetricName("Entries"), new Gauge<Integer>()
+        entries = Metrics.newGauge(factory.createMetricName("Entries"), new Gauge<Long>()
         {
-            public Integer value()
+            public Long value()
             {
                 return cache.size();
             }

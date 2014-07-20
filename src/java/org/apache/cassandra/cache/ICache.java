@@ -40,7 +40,7 @@ public interface ICache<K, V>
 
     public void remove(K key);
 
-    public int size();
+    public long size();
 
     public long weightedSize();
 

@@ -70,7 +70,7 @@ public class AutoSavingCacheTest
         AutoSavingCache<KeyCacheKey, RowIndexEntry> keyCache = CacheService.instance.keyCache;
 
         // serialize to file
-        keyCache.submitWrite(keyCache.size()).get();
+        keyCache.submitWrite((int) keyCache.size()).get();
         keyCache.clear();
 
         Assert.assertEquals(0, keyCache.size());

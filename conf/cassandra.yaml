@@ -174,6 +174,10 @@ row_cache_save_period: 0
 # Disabled by default, meaning all keys are going to be saved
 # row_cache_keys_to_save: 100
 
+# plug-able row cache provider, 
+# options are SerializingCacheProvider and OffheapCacheProvider
+# row_cache_provider: SerializingCacheProvider
+
 # Maximum size of the counter cache in memory.
 #
 # Counter cache helps to reduce counter locks' contention for hot counter cells.

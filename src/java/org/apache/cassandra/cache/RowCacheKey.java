@@ -40,8 +40,13 @@ public class RowCacheKey implements CacheKey, Comparable<RowCacheKey>
 
     public RowCacheKey(UUID cfId, ByteBuffer key)
     {
+        this(cfId, ByteBufferUtil.getArray(key));
+    }
+
+    public RowCacheKey(UUID cfId, byte[] key)
+    {
         this.cfId = cfId;
-        this.key = ByteBufferUtil.getArray(key);
+        this.key = key;
         assert this.key != null;
     }
 

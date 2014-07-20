@@ -64,6 +64,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
                    .concurrencyLevel(DEFAULT_CONCURENCY_LEVEL)
                    .listener(listener)
                    .build();
+        logger.info("Intialized SerializingCache with capacity {}", capacity);
     }
 
     public static <K, V> SerializingCache<K, V> create(long weightedCapacity, Weigher<RefCountedMemory> weigher, ISerializer<V> serializer)
@@ -140,7 +141,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
         return map.isEmpty();
     }
 
-    public int size()
+    public long size()
     {
         return map.size();
     }

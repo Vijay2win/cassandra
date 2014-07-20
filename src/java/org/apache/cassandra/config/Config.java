@@ -23,9 +23,10 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+
 import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
-
+import org.apache.cassandra.cache.SerializingCacheProvider;
 import org.apache.cassandra.config.EncryptionOptions.ClientEncryptionOptions;
 import org.apache.cassandra.config.EncryptionOptions.ServerEncryptionOptions;
 import org.apache.cassandra.exceptions.ConfigurationException;
@@ -196,6 +197,7 @@ public class Config
     public volatile int counter_cache_keys_to_save = Integer.MAX_VALUE;
 
     public String memory_allocator = NativeAllocator.class.getSimpleName();
+    public String row_cache_provider = SerializingCacheProvider.class.getSimpleName();
 
     public Integer file_cache_size_in_mb;
 

@@ -94,7 +94,7 @@ public class InstrumentingCache<K, V>
         capacitySetManually = true;
     }
 
-    public int size()
+    public long size()
     {
         return map.size();
     }

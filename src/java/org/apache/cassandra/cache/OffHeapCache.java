@@ -40,7 +40,7 @@ public class OffHeapCache<K, V> implements ICache<K, V>
     {
         this.map = LRUCache.<K, V>builder().keySerializer(keySerializer)
                                            .valueSerializer(valueSerializer)
-                                           .maxSize(capacity)
+                                           .capacity(capacity)
                                            .hashpowerInit(DEFAULT_CONCURENCY_LEVEL)
                                            .build();
         logger.info("Intialized OffHeapCache with max memory size {}", capacity);
@@ -109,12 +109,12 @@ public class OffHeapCache<K, V> implements ICache<K, V>
     public Set<K> keySet()
     {
         long size = map.size();
-        return Sets.newHashSet(map.hotN(size));
+        return map.hotN(size);
     }
 
     public Set<K> hotKeySet(int n)
     {
-        return Sets.newHashSet(map.hotN(n));
+        return map.hotN(n);
     }
 
     public boolean containsKey(K key)

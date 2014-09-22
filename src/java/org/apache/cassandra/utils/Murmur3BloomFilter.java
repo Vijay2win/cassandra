@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.cassandra.db.TypeSizes;
 import org.apache.cassandra.utils.obs.IBitSet;
+import org.apache.cassandra.utils.obs.OffHeapBitSet;
 
 public class Murmur3BloomFilter extends BloomFilter
 {
@@ -47,5 +48,12 @@ public class Murmur3BloomFilter extends BloomFilter
         {
             return new Murmur3BloomFilter(hashes, bs);
         }
+    }
+
+    public long getOffHeapSize()
+    {
+        if (bitset instanceof OffHeapBitSet)
+            return bitset.capacity() / 8;
+        return 0L;
     }
 }

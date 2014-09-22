@@ -91,6 +91,10 @@ public class ColumnFamilyMetrics
     public final Gauge<Long> recentBloomFilterFalsePositives;
     /** False positive ratio of bloom filter */
     public final Gauge<Double> bloomFilterFalseRatio;
+    /** Off-heap Memory used by bloom filter data structure */
+    public final Gauge<Long> bloomFilterOffheapMemoryUsed;
+    /** Off-heap Memory used by Index Summary data structure */
+    public final Gauge<Long> indexSummaryOffheapMemoryUsed;
     /** False positive ratio of bloom filter from last read */
     public final Gauge<Double> recentBloomFilterFalseRatio;
     /** Disk space used by bloom filter */
@@ -473,6 +477,26 @@ public class ColumnFamilyMetrics
                 long total = 0;
                 for (SSTableReader sst : cfs.getSSTables())
                     total += sst.getBloomFilterSerializedSize();
+                return total;
+            }
+        });
+        bloomFilterOffheapMemoryUsed = createColumnFamilyGauge("BloomFilterOffheapMemoryUsed", new Gauge<Long>()
+        {
+            public Long value()
+            {
+                long total = 0;
+                for (SSTableReader sst : cfs.getSSTables())
+                    total += sst.getBloomFilterOffHeapMemorySize();
+                return total;
+            }
+        });
+        indexSummaryOffheapMemoryUsed = createColumnFamilyGauge("IndexSummaryOffheapMemoryUsed", new Gauge<Long>()
+        {
+            public Long value()
+            {
+                long total = 0;
+                for (SSTableReader sst : cfs.getSSTables())
+                    total += sst.getIndexSummaryOffHeapMemorySize();
                 return total;
             }
         });

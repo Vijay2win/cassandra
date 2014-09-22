@@ -30,5 +30,7 @@ public interface IFilter extends Closeable
 
     long serializedSize();
 
+    long getOffHeapSize();
+
     void close();
 }

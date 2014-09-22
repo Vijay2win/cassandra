@@ -1099,6 +1099,16 @@ public abstract class SSTableReader extends SSTable
         return bf.serializedSize();
     }
 
+    public long getBloomFilterOffHeapMemorySize()
+    {
+        return bf.getOffHeapSize();
+    }
+
+    public long getIndexSummaryOffHeapMemorySize()
+    {
+        return indexSummary.getOffHeapSize();
+    }
+
     /**
      * @return An estimate of the number of keys in this SSTable based on the index summary.
      */

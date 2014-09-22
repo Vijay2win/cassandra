@@ -1002,6 +1002,11 @@ public class NodeProbe implements AutoCloseable
                 case "RecentBloomFilterFalsePositives":
                 case "RecentBloomFilterFalseRatio":
                 case "SnapshotsSize":
+                case "BloomFilterOffheapMemoryUsed":
+                case "IndexSummaryOffheapMemoryUsed":
+                case "MemtableOffHeapSize":
+                case "AllMemtablesOffHeapSize":
+                case "AllMemtablesHeapSize":
                     return JMX.newMBeanProxy(mbeanServerConn, oName, JmxReporter.GaugeMBean.class).getValue();
                 case "LiveDiskSpaceUsed":
                 case "MemtableSwitchCount":

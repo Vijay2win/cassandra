@@ -80,6 +80,7 @@ public class NodeTool
                 Ring.class,
                 NetStats.class,
                 CfStats.class,
+                MemStats.class,
                 CfHistograms.class,
                 Cleanup.class,
                 ClearSnapshot.class,
@@ -796,7 +797,7 @@ public class NodeTool
             }
         }
 
-        private String format(long bytes, boolean humanReadable) {
+        private static String format(long bytes, boolean humanReadable) {
             return humanReadable ? FileUtils.stringifyFileSize(bytes) : Long.toString(bytes);
         }
 
@@ -875,6 +876,46 @@ public class NodeTool
                     if (verifier.get(ks).size() > 0)
                         throw new IllegalArgumentException("Unknown tables: " + verifier.get(ks) + " in keyspace: " + ks);
             }
+        }
+    }
+
+    @Command(name = "memstats", description = "Print off-heap Memory used by the process")
+    public static class MemStats extends NodeToolCmd
+    {
+        @Arguments(usage = "<keyspace> <table>", description = "The keyspace and table name")
+        private List<String> args = new ArrayList<>();
+
+        @Option(title = "human_readable",
+                name = {"-H", "--human-readable"},
+                description = "Display bytes in human readable form, i.e. KB, MB, GB, TB")
+        private boolean humanReadable = false;
+
+        @Override
+        public void execute(NodeProbe probe)
+        {
+            checkArgument(args.size() == 2, "memstats requires ks and cf args");
+
+            String keyspace = args.get(0);
+            String cfname = args.get(1);
+
+            System.out.println(String.format("\nOff-heap memory used for %s/%s\n", keyspace, cfname));
+            System.out.println("\tBloom Filter\t: " + format((long) probe.getColumnFamilyMetric(keyspace, cfname, "BloomFilterOffheapMemoryUsed"), humanReadable));
+            System.out.println("\tIndex Summary\t: " + format((long) probe.getColumnFamilyMetric(keyspace, cfname, "IndexSummaryOffheapMemoryUsed"), humanReadable));
+            System.out.println("\tMemtable size\t: " + format((long) probe.getColumnFamilyMetric(keyspace, cfname, "MemtableOffHeapSize"), humanReadable));
+
+            System.out.println("\nOther Off-heap (Total)\n");
+            System.out.println("\tAll Row Cache size\t: " + format((long) probe.getCacheMetric("RowCache", "Size"), humanReadable));
+            System.out.println("\tAll Memtable size\t: " + format((long) probe.getColumnFamilyMetric(keyspace, cfname, "AllMemtablesOffHeapSize"), humanReadable));
+
+            System.out.println("\nOther On-heap (Total)\n");
+            System.out.println("\tAll Key Cache size\t: " + format((long) probe.getCacheMetric("KeyCache", "Size"), humanReadable));
+            System.out.println("\tAll Memtable size\t: " + format((long) probe.getColumnFamilyMetric(keyspace, cfname, "AllMemtablesHeapSize"), humanReadable));
+
+            System.out.println();
+        }
+
+        private static String format(long bytes, boolean humanReadable) {
+            return humanReadable ? FileUtils.stringifyFileSize(bytes) : Long.toString(bytes);
         }
     }
 

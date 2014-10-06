@@ -19,6 +19,7 @@ package org.apache.cassandra.cache;
 
 import java.util.Set;
 
+import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ public class OffHeapCache<K, V> implements ICache<K, V>
 
     private OffHeapCache(long capacity, ICacheSerializer<K> keySerializer, ICacheSerializer<V> valueSerializer)
     {
+        assert FBUtilities.isUnix() : "OffheapCacheProvider is not supported on windows.";
         this.map = LRUCache.<K, V>builder().keySerializer(keySerializer)
                                            .valueSerializer(valueSerializer)
                                            .capacity(capacity)

@@ -1534,6 +1534,11 @@ public class DatabaseDescriptor
         return rowCacheProvider;
     }
 
+    public static void setRowCacheProvider(ICacheProvider provider)
+    {
+        rowCacheProvider = provider;
+    }
+
     public static void setRowCacheKeysToSave(int rowCacheKeysToSave)
     {
         conf.row_cache_keys_to_save = rowCacheKeysToSave;

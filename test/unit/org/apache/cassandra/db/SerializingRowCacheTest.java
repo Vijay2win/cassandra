@@ -18,18 +18,18 @@
 
 package org.apache.cassandra.db;
 
-import org.apache.cassandra.cache.OffheapCacheProvider;
+import org.apache.cassandra.cache.SerializingCacheProvider;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class RowCacheTest extends AbstractRowCacheTest
+public class SerializingRowCacheTest extends AbstractRowCacheTest
 {
-
     @BeforeClass
     public static void defineSchema() throws ConfigurationException
     {
-        AbstractRowCacheTest.defineSchema(new OffheapCacheProvider());
+        isTestAvailable = true; // always true
+        AbstractRowCacheTest.defineSchema(new SerializingCacheProvider());
     }
 
     @AfterClass

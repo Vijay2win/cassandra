@@ -174,8 +174,20 @@ row_cache_save_period: 0
 # Disabled by default, meaning all keys are going to be saved
 # row_cache_keys_to_save: 100
 
-# plug-able row cache provider, 
-# options are SerializingCacheProvider and OffheapCacheProvider
+# Row cache provider to use.
+# Possible values are SerializingCacheProvider and OffheapCacheProvider.
+# Default is no row cache.
+# 
+# SerializingCacheProvider is the one used in previous versions of Cassandra.
+# It is available on all platforms and uses offheap memory for the rows but
+# structures on the Java heap to manage the offheap row data.
+#
+# OffheapCacheProvider is new in Cassandra 3.0 and only available on
+# Unix platforms (Linux and OSX).
+# It uses a native code library to manage the whole row cache including
+# management information in native memory thus reducing heap
+# pressure compared to SerializingCacheProvider.
+# 
 # row_cache_provider: SerializingCacheProvider
 
 # Maximum size of the counter cache in memory.

@@ -417,11 +417,11 @@ public class FBUtilities
         return FBUtilities.construct(partitionerClassName, "partitioner");
     }
 
-    public static ICacheProvider newRowCacheProvider(String partitionerClassName) throws ConfigurationException
+    public static ICacheProvider newRowCacheProvider(String rowCacheClassName) throws ConfigurationException
     {
-        if (!partitionerClassName.contains("."))
-            partitionerClassName = "org.apache.cassandra.cache." + partitionerClassName;
-        return FBUtilities.construct(partitionerClassName, "partitioner");
+        if (!rowCacheClassName.contains("."))
+            rowCacheClassName = "org.apache.cassandra.cache." + rowCacheClassName;
+        return FBUtilities.construct(rowCacheClassName, "rowCache");
     }
 
     public static IAllocator newOffHeapAllocator(String offheap_allocator) throws ConfigurationException
